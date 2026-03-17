@@ -1,0 +1,68 @@
+import re
+import sys
+from urllib.request import urlopen, Request
+from urllib.parse import urljoin
+
+BASE = 'http://localhost:8000/'
+URL = urljoin(BASE, 'auth/login.html?role=profesor')
+
+print('Fetching', URL)
+try:
+    req = Request(URL, headers={'User-Agent': 'CheckScript/1.0'})
+    resp = urlopen(req, timeout=5)
+    html = resp.read().decode('utf-8', errors='ignore')
+    print('STATUS', resp.getcode())
+except Exception as e:
+    print('ERROR fetching login page:', e)
+    sys.exit(1)
+
+# find <link href=>, <script src=>, <img src=>, import '...'
+link_hrefs = re.findall(r'<link[^>]+href=["\']([^"\']+)["\']', html, flags=re.I)
+script_srcs = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', html, flags=re.I)
+img_srcs = re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', html, flags=re.I)
+# inline module imports
+module_scripts = re.findall(r'<script[^>]+type=["\']module["\'][^>]*>(.*?)</script>', html, flags=re.I|re.S)
+imports = []
+for s in module_scripts:
+    for m in re.findall(r"import\s+(?:[^;]+?)from\s+['\"]([^'\"]+)['\"]", s):
+        imports.append(m)
+    for m in re.findall(r"import\s+['\"]([^'\"]+)['\"]", s):
+        imports.append(m)
+
+# consolidate and resolve
+resources = set()
+for r in link_hrefs + script_srcs + img_srcs + imports:
+    # ignore absolute external urls
+    if r.startswith('http://') or r.startswith('https://') or r.startswith('//'):
+        resources.add(r)
+    else:
+        resources.add(urljoin(URL, r))
+
+print('\nFound resources:', len(resources))
+for res in sorted(resources):
+    print(' -', res)
+
+print('\nChecking resources...')
+bad = []
+for res in sorted(resources):
+    try:
+        req = Request(res, headers={'User-Agent': 'CheckScript/1.0'})
+        r = urlopen(req, timeout=5)
+        code = r.getcode()
+        print(f'{code}\t{res}')
+        if code != 200:
+            bad.append((res, code))
+    except Exception as e:
+        print(f'ERR\t{res}\t{e}')
+        bad.append((res, str(e)))
+
+print('\nSummary:')
+if not bad:
+    print('All resources returned 200 OK')
+else:
+    print('Resources with issues:')
+    for u,err in bad:
+        print(' *', u, '->', err)
+
+# exit 0 even if bad so caller continues
+sys.exit(0)

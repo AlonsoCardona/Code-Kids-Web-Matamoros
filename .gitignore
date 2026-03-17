@@ -1,0 +1,36 @@
+# Node modules
+node_modules/
+functions/node_modules/
+**/node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Firebase
+.firebase/
+.firebaserc
+firebase-debug.log
+functions/.runtimeconfig.json
+functions/.env*
+
+# Secrets
+config/service-account.json
+service-account-dev.json
+*.secret.json
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+.cache/

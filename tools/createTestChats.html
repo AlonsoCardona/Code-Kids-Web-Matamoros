@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Chats de Prueba - CodeKids</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log div {
+            padding: 5px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #6366f1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ Herramienta de Datos de Prueba - CodeKids</h1>
+        <p>Crea chats y mensajes de prueba en Firestore para testing.</p>
+        
+        <div style="margin: 20px 0;">
+            <button id="createChatsBtn">📨 Crear Chat de Prueba</button>
+            <button id="clearLogsBtn">🗑️ Limpiar Logs</button>
+        </div>
+        
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, addDoc, doc, getDoc, getDocs, query, where, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyC6afY7ktRXd46SZMTJg6eWKZUWn7-8c-A",
+            authDomain: "codekidsv1.firebaseapp.com",
+            projectId: "codekidsv1",
+            storageBucket: "codekidsv1.firebasestorage.app",
+            messagingSenderId: "406171121023",
+            appId: "1:406171121023:web:f6ae3863f3ceb25fa9e3fe"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const logsDiv = document.getElementById('logs');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsDiv.appendChild(div);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        document.getElementById('clearLogsBtn').onclick = () => {
+            logsDiv.innerHTML = '';
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                log(`✅ Usuario autenticado: ${user.email}`, 'success');
+            } else {
+                log('❌ No hay usuario autenticado. Redirigiendo...', 'error');
+                setTimeout(() => {
+                    window.location.href = '../auth/login.html';
+                }, 2000);
+            }
+        });
+
+        document.getElementById('createChatsBtn').onclick = async () => {
+            const btn = document.getElementById('createChatsBtn');
+            btn.disabled = true;
+            
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    log('❌ Debes iniciar sesión primero', 'error');
+                    return;
+                }
+
+                log('🔍 Buscando otros usuarios...', 'info');
+
+                // Obtener todos los usuarios excepto el actual
+                const usersRef = collection(db, 'users');
+                const usersSnapshot = await getDocs(usersRef);
+                
+                const otherUsers = [];
+                usersSnapshot.forEach(doc => {
+                    if (doc.id !== user.uid) {
+                        otherUsers.push({
+                            uid: doc.id,
+                            ...doc.data()
+                        });
+                    }
+                });
+
+                log(`✅ Encontrados ${otherUsers.length} usuarios`, 'success');
+
+                if (otherUsers.length === 0) {
+                    log('❌ No hay otros usuarios en la base de datos', 'error');
+                    return;
+                }
+
+                // Crear chat con el primer usuario encontrado
+                const otherUser = otherUsers[0];
+                log(`💬 Creando chat con ${otherUser.displayName || 'Usuario'}...`, 'info');
+
+                // Verificar si ya existe un chat
+                const chatsRef = collection(db, 'chats');
+                const q = query(chatsRef, where('participants', 'array-contains', user.uid));
+                const existingChats = await getDocs(q);
+                
+                let chatId = null;
+                let chatExists = false;
+                
+                existingChats.forEach(chatDoc => {
+                    const participants = chatDoc.data().participants;
+                    if (participants.includes(otherUser.uid)) {
+                        chatId = chatDoc.id;
+                        chatExists = true;
+                    }
+                });
+
+                if (chatExists) {
+                    log(`ℹ️ Ya existe un chat con ${otherUser.displayName}`, 'info');
+                } else {
+                    // Crear nuevo chat
+                    const newChat = await addDoc(chatsRef, {
+                        participants: [user.uid, otherUser.uid],
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        lastMessage: ''
+                    });
+                    chatId = newChat.id;
+                    log(`✅ Chat creado: ${chatId}`, 'success');
+                }
+
+                // Agregar mensajes de prueba
+                log('📝 Agregando mensajes de prueba...', 'info');
+                
+                const messagesRef = collection(db, 'chats', chatId, 'messages');
+                
+                const testMessages = [
+                    { text: '¡Hola! ¿Cómo estás?', from: 'other' },
+                    { text: '¡Hola! Todo bien, ¿y tú?', from: 'me' },
+                    { text: '¿Ya terminaste la lección de variables?', from: 'other' },
+                    { text: 'Sí, fue muy interesante. Ahora estoy con bucles', from: 'me' },
+                    { text: '¡Genial! Si necesitas ayuda, avísame', from: 'other' }
+                ];
+
+                for (const msg of testMessages) {
+                    await addDoc(messagesRef, {
+                        text: msg.text,
+                        senderId: msg.from === 'me' ? user.uid : otherUser.uid,
+                        timestamp: serverTimestamp()
+                    });
+                    
+                    // Pequeña espera para que los timestamps sean diferentes
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                // Actualizar último mensaje
+                await addDoc(messagesRef, {
+                    text: testMessages[testMessages.length - 1].text,
+                    senderId: otherUser.uid,
+                    timestamp: serverTimestamp()
+                });
+
+                log(`✅ ${testMessages.length} mensajes agregados`, 'success');
+                log('🎉 ¡Chat de prueba creado exitosamente!', 'success');
+                log('🔄 Recarga la app para ver los cambios', 'info');
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            } finally {
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>

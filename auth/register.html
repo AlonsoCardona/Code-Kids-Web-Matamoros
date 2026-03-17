@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registro Deshabilitado - CodeKids</title>
+    <script>
+        // Preaplicar tema guardado para evitar FOUC también con clase 'dark' (Tailwind)
+        try {
+            const savedTheme = localStorage.getItem('app-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) { /* noop */ }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md animate-fade-in">
+        <div class="card text-center">
+            <div class="mb-6">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-xl mb-4">
+                    <span class="text-white font-bold text-4xl">CK</span>
+                </div>
+                <h1 class="text-3xl font-bold gradient-text mb-2">Registro Cerrado</h1>
+                <p class="text-gray-600">El registro público está deshabilitado en esta plataforma.</p>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Solo los administradores pueden crear cuentas nuevas. Solicita acceso a tu profesor o al equipo de soporte.</p>
+            <button onclick="location.href='login.html'" class="btn btn-primary w-full">Ir al Inicio de Sesión</button>
+            <a href="../index.html" class="block mt-4 text-xs text-gray-500 hover:text-gray-700">← Volver a la página principal</a>
+        </div>
+    </div>
+    <script>
+        // Redirección automática al login después de unos segundos
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 5000);
+    </script>
+</body>
+</html>

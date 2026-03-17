@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecciones - CodeKids</title>
+  <script>try{const t=localStorage.getItem('app-theme');if(t==='dark'){document.documentElement.classList.add('theme-dark','dark')}}catch(e){}</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-gray-50">
+  <script type="module">
+    import '../js/firebase-init.js';
+    import { initStudentShell } from '../js/student-shell.js';
+    import { initAuth } from '../js/auth.js';
+    import '../js/api-mock.js';
+    import { addXP } from '../js/gamification.js';
+    import { doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    initStudentShell('lecciones');
+
+    const COURSE = {
+      id: 'python_5_pasos',
+      title: 'Fundamentos de Python en 5 Pasos',
+      videos: [
+        { id:'video1', title:'Paso 1: Introducción', yt:'https://www.youtube.com/embed/kqtD5dpn9C8' },
+        { id:'video2', title:'Paso 2: Variables y Tipos', yt:'https://www.youtube.com/embed/x7X9w_GIm1s' },
+        { id:'video3', title:'Paso 3: Condicionales', yt:'https://www.youtube.com/embed/5u0jaA3qAGk' },
+        { id:'video4', title:'Paso 4: Bucles', yt:'https://www.youtube.com/embed/9OK32jb_TdI' },
+        { id:'video5', title:'Paso 5: Funciones', yt:'https://www.youtube.com/embed/NSbOtYzIQI0' }
+      ]
+    };
+    // Cargar API YouTube para detectar fin de video
+    const ytApiScript = document.createElement('script'); ytApiScript.src='https://www.youtube.com/iframe_api'; document.head.appendChild(ytApiScript);
+    let ytPlayer = null;
+
+    const root = document.createElement('main');
+    root.className = 'pt-20 md:ml-64 p-6';
+    root.innerHTML = `
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 bg-white rounded-xl shadow p-4">
+          <h2 class="text-lg font-bold mb-3">${COURSE.title}</h2>
+          <div id="lessonsList" class="space-y-2"></div>
+        </div>
+        <div class="lg:col-span-2">
+          <div id="lessonPlayer" class="bg-white rounded-xl shadow overflow-hidden">
+            <div class="aspect-video bg-black"><iframe id="ytFrame" src="" class="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+            <div class="p-4 flex items-center justify-between">
+              <h3 id="currentTitle" class="font-bold text-gray-800">Selecciona una lección</h3>
+              <button id="btnComplete" class="hidden bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Marcar como visto</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(root);
+
+    let currentId = null; let userData = null;
+
+    function renderList() {
+      const completed = userData?.studentProfile?.completedLessons || [];
+      const list = document.getElementById('lessonsList');
+      const html = COURSE.videos.map((v, idx) => {
+        const unlocked = idx === 0 || completed.includes(COURSE.videos[idx-1].id);
+        const done = completed.includes(v.id);
+        return `<button data-id="${v.id}" class="w-full text-left px-3 py-2 rounded border ${unlocked?'border-gray-200 hover:bg-indigo-50':'border-gray-200 bg-gray-100 opacity-60 cursor-not-allowed'}" ${!unlocked?'title="Completa la anterior para desbloquear"':''}>
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-gray-800">${v.title}</span>
+            <span>${done?'✅':' '}${!unlocked && !done?'🔒':''}</span>
+          </div>
+        </button>`; 
+      }).join('');
+      list.innerHTML = html;
+      list.querySelectorAll('button').forEach(btn => {
+        const id = btn.getAttribute('data-id');
+        btn.addEventListener('click', () => {
+          const idx = COURSE.videos.findIndex(x=>x.id===id);
+            const unlocked = idx === 0 || (userData.studentProfile?.completedLessons||[]).includes(COURSE.videos[idx-1].id);
+            if (!unlocked) return;
+            currentId = id; const v = COURSE.videos[idx];
+            loadVideo(v.yt);
+            document.getElementById('currentTitle').textContent = v.title;
+            document.getElementById('btnComplete').classList.remove('hidden');
+        });
+      });
+    }
+
+    function loadVideo(url){
+      const vidId = (url.split('/embed/')[1]||'').split('?')[0];
+      if (typeof YT !== 'undefined' && YT.Player) {
+        if (ytPlayer) { ytPlayer.loadVideoById(vidId); return; }
+        ytPlayer = new YT.Player('ytFrame', {
+          videoId: vidId,
+          events: {
+            'onStateChange': (e) => {
+              if (e.data === 0) { // ended
+                if (currentId) {
+                  const btn = document.getElementById('btnComplete');
+                  btn.classList.add('animate-pulse');
+                }
+              }
+            }
+          }
+        });
+      } else {
+        document.getElementById('ytFrame').src = url + '?enablejsapi=1';
+      }
+    }
+
+    async function markComplete() {
+      if (!currentId) return;
+      const uid = window.auth.currentUser.uid;
+      const ref = doc(window.db, 'users', uid);
+      const snap = await getDoc(ref); const data = snap.exists()? snap.data():{};
+      const arr = new Set(data.studentProfile?.completedLessons || []);
+      arr.add(currentId);
+      await updateDoc(ref, { 'studentProfile.completedLessons': Array.from(arr) });
+      await addXP(currentId==='video5'?100:10, 'lesson');
+      const idx = COURSE.videos.findIndex(x=>x.id===currentId);
+      if (idx < COURSE.videos.length - 1) {
+        alert('✅ Progreso guardado. ¡Sigue con el siguiente paso!');
+      } else {
+        alert('🎉 ¡Lección Completada! +100 XP');
+      }
+      currentId = null; renderList();
+    }
+
+    document.getElementById('btnComplete').addEventListener('click', markComplete);
+    initAuth((_u, uData) => { userData = uData; renderList(); });
+  </script>
+</body>
+</html>

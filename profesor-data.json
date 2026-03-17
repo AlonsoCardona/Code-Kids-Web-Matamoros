@@ -1,0 +1,21 @@
+{
+  "uid": "b2DhnOyiEJgsllO88dP8uE7puJ03",
+  "email": "j2025p1@codekids.com",
+  "displayName": "Juan Pérez",
+  "nombre": "Juan Pérez",
+  "photoURL": null,
+  "rol": "Profesor",
+  "role": "Profesor",
+  "passwordChangeRequired": false,
+  "passwordValidUntil": null,
+  "xp": 0,
+  "nivel": 1,
+  "racha": 0,
+  "leccionesCompletadas": [],
+  "insignias": [],
+  "configuracion": {
+    "notificaciones": true,
+    "sonido": true,
+    "tema": "claro"
+  }
+}

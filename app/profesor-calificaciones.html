@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calificaciones - CodeKids</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold gradient-text">📝 Gestión de Calificaciones</h1>
+                <a href="./panel-alumnos.html" class="text-blue-600 hover:text-blue-800 font-semibold">← Volver al Panel</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8">
+        <!-- Selector de Grupo -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Selecciona un Grupo</h2>
+            <select id="groupSelector" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg">
+                <option value="">Cargando grupos...</option>
+            </select>
+        </div>
+
+        <!-- Panel de Calificación -->
+        <div id="gradingPanel" class="hidden">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Asignar / Editar Calificación</h2>
+                
+                <div class="grid md:grid-cols-3 gap-4 mb-6">
+                    <!-- Selector de Estudiante -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Estudiante *</label>
+                        <select id="studentSelector" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Selecciona un estudiante...</option>
+                        </select>
+                    </div>
+
+                    <!-- Nombre de la Unidad -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Unidad / Tema *</label>
+                        <input type="text" id="unitName" placeholder="Ej: Unidad 1 - Variables" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <!-- Calificación -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Calificación (0-100) *</label>
+                        <input type="number" id="scoreInput" min="0" max="100" placeholder="85" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex gap-4">
+                    <button id="saveGradeBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span id="saveBtnText">Guardar Calificación</span>
+                    </button>
+                    <button id="clearFormBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition">
+                        Limpiar
+                    </button>
+                </div>
+
+                <div id="gradeError" class="hidden mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"></div>
+                <div id="gradeSuccess" class="hidden mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm"></div>
+            </div>
+
+            <!-- Tabla de Calificaciones del Grupo -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Calificaciones del Grupo</h2>
+                    <span id="groupGradesCount" class="text-sm text-gray-500">0 calificaciones</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b-2 border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">#</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Estudiante</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Unidad</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Calificación</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Fecha</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="groupGradesTable">
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">Selecciona un grupo para ver las calificaciones</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Estadísticas del Grupo -->
+                <div class="grid md:grid-cols-3 gap-4 mt-6 pt-6 border-t">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <p class="text-sm text-gray-600">Estudiantes Evaluados</p>
+                        <p id="evaluatedCount" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <p class="text-sm text-gray-600">Promedio del Grupo</p>
+                        <p id="groupAverage" class="text-2xl font-bold text-green-600">0</p>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-4">
+                        <p class="text-sm text-gray-600">Calificaciones Registradas</p>
+                        <p id="totalGradesCount" class="text-2xl font-bold text-yellow-600">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import '../js/firebase-init.js';
+        import { initAuth } from '../js/auth.js';
+        import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        let currentUser = null;
+        let currentUserData = null;
+        let selectedGroupId = null;
+        let selectedGroupData = null;
+        let groupStudents = [];
+        let groupGrades = [];
+
+        // Verificar autenticación y que sea profesor
+        initAuth(async (user, userData) => {
+            currentUser = user;
+            currentUserData = userData;
+
+            if (userData.role !== 'Profesor' && userData.rol !== 'profesor') {
+                alert('Esta sección es solo para profesores');
+                window.location.href = '../app.html';
+                return;
+            }
+
+            await loadTeacherGroups();
+        });
+
+        // Cargar grupos del profesor
+        async function loadTeacherGroups() {
+            const selector = document.getElementById('groupSelector');
+            selector.innerHTML = '<option value="">Cargando...</option>';
+
+            try {
+                const q = query(
+                    collection(window.db, 'groups'),
+                    where('teacherUid', '==', currentUser.uid)
+                );
+
+                const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    selector.innerHTML = '<option value="">No tienes grupos asignados</option>';
+                    return;
+                }
+
+                selector.innerHTML = '<option value="">Selecciona un grupo...</option>';
+                snapshot.forEach(d => {
+                    const group = d.data();
+                    selector.innerHTML += `<option value="${d.id}">${group.nombre || 'Sin nombre'}</option>`;
+                });
+
+                selector.addEventListener('change', handleGroupChange);
+
+            } catch (error) {
+                console.error('Error cargando grupos:', error);
+                selector.innerHTML = '<option value="">Error al cargar grupos</option>';
+            }
+        }
+
+        // Manejar cambio de grupo
+        async function handleGroupChange(e) {
+            selectedGroupId = e.target.value;
+
+            if (!selectedGroupId) {
+                document.getElementById('gradingPanel').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('gradingPanel').classList.remove('hidden');
+            await loadGroupData();
+        }
+
+        // Cargar datos del grupo (estudiantes y calificaciones)
+        async function loadGroupData() {
+            try {
+                // Obtener documento del grupo
+                const groupDoc = await getDocs(query(collection(window.db, 'groups'), where('__name__', '==', selectedGroupId)));
+                selectedGroupData = groupDoc.docs[0]?.data();
+
+                // Cargar estudiantes del grupo
+                const studentIds = Object.keys(selectedGroupData.members || {});
+                if (studentIds.length === 0) {
+                    document.getElementById('studentSelector').innerHTML = '<option value="">No hay estudiantes en este grupo</option>';
+                    groupStudents = [];
+                } else {
+                    const studentsSnap = await getDocs(collection(window.db, 'users'));
+                    groupStudents = studentsSnap.docs
+                        .filter(d => studentIds.includes(d.id))
+                        .map(d => ({ id: d.id, ...d.data() }));
+
+                    const studentSelector = document.getElementById('studentSelector');
+                    studentSelector.innerHTML = '<option value="">Selecciona un estudiante...</option>';
+                    groupStudents.forEach(s => {
+                        studentSelector.innerHTML += `<option value="${s.id}">${s.displayName || s.email}</option>`;
+                    });
+                }
+
+                // Cargar calificaciones del grupo
+                await loadGroupGrades();
+
+            } catch (error) {
+                console.error('Error cargando datos del grupo:', error);
+            }
+        }
+
+        // Cargar calificaciones del grupo
+        async function loadGroupGrades() {
+            try {
+                const q = query(
+                    collection(window.db, 'grades'),
+                    where('groupId', '==', selectedGroupId),
+                    orderBy('createdAt', 'desc')
+                );
+
+                const snapshot = await getDocs(q);
+                groupGrades = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                renderGroupGradesTable();
+                updateGroupStats();
+
+            } catch (error) {
+                console.error('Error cargando calificaciones:', error);
+                document.getElementById('groupGradesTable').innerHTML = 
+                    '<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error al cargar calificaciones</td></tr>';
+            }
+        }
+
+        // Renderizar tabla de calificaciones
+        function renderGroupGradesTable() {
+            const tbody = document.getElementById('groupGradesTable');
+
+            if (groupGrades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay calificaciones registradas</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = groupGrades.map((grade, idx) => {
+                const date = grade.createdAt?.toDate?.() || new Date();
+                const scoreColor = grade.score >= 70 ? 'text-green-600' : grade.score >= 60 ? 'text-yellow-600' : 'text-red-600';
+
+                return `
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-500">${idx + 1}</td>
+                        <td class="px-4 py-3 text-sm font-semibold">${grade.studentName}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${grade.unitName}</td>
+                        <td class="px-4 py-3">
+                            <span class="text-lg font-bold ${scoreColor}">${grade.score}/100</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${date.toLocaleDateString('es-ES')}</td>
+                        <td class="px-4 py-3">
+                            <button onclick="editGrade('${grade.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-semibold mr-2">Editar</button>
+                            <button onclick="deleteGrade('${grade.id}')" class="text-red-600 hover:text-red-800 text-sm font-semibold">Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('groupGradesCount').textContent = `${groupGrades.length} calificaciones`;
+        }
+
+        // Actualizar estadísticas
+        function updateGroupStats() {
+            const uniqueStudents = new Set(groupGrades.map(g => g.studentId)).size;
+            const average = groupGrades.length > 0 ? 
+                (groupGrades.reduce((sum, g) => sum + g.score, 0) / groupGrades.length).toFixed(1) : 0;
+
+            document.getElementById('evaluatedCount').textContent = uniqueStudents;
+            document.getElementById('groupAverage').textContent = average;
+            document.getElementById('totalGradesCount').textContent = groupGrades.length;
+        }
+
+        // Guardar calificación
+        document.getElementById('saveGradeBtn').addEventListener('click', async () => {
+            const studentId = document.getElementById('studentSelector').value;
+            const unitName = document.getElementById('unitName').value.trim();
+            const score = parseInt(document.getElementById('scoreInput').value);
+
+            const errorDiv = document.getElementById('gradeError');
+            const successDiv = document.getElementById('gradeSuccess');
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+
+            // Validaciones
+            if (!studentId) {
+                errorDiv.textContent = 'Selecciona un estudiante';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (!unitName) {
+                errorDiv.textContent = 'Ingresa el nombre de la unidad';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (isNaN(score) || score < 0 || score > 100) {
+                errorDiv.textContent = 'La calificación debe estar entre 0 y 100';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const student = groupStudents.find(s => s.id === studentId);
+            if (!student) {
+                errorDiv.textContent = 'Estudiante no encontrado';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveGradeBtn');
+            const saveBtnText = document.getElementById('saveBtnText');
+            saveBtn.disabled = true;
+            saveBtnText.textContent = 'Guardando...';
+
+            try {
+                await addDoc(collection(window.db, 'grades'), {
+                    studentId: studentId,
+                    studentName: student.displayName || student.email,
+                    groupId: selectedGroupId,
+                    groupName: selectedGroupData.nombre || 'Sin nombre',
+                    teacherId: currentUser.uid,
+                    teacherName: currentUserData.displayName || currentUserData.email,
+                    unitName: unitName,
+                    score: score,
+                    maxScore: 100,
+                    createdAt: serverTimestamp(),
+                    lastModifiedBy: currentUser.uid,
+                    lastModifiedByRole: 'Profesor',
+                    lastModifiedAt: serverTimestamp()
+                });
+
+                successDiv.textContent = '✓ Calificación guardada correctamente';
+                successDiv.classList.remove('hidden');
+
+                // Limpiar formulario
+                document.getElementById('studentSelector').value = '';
+                document.getElementById('unitName').value = '';
+                document.getElementById('scoreInput').value = '';
+
+                // Recargar tabla
+                await loadGroupGrades();
+
+            } catch (error) {
+                console.error('Error guardando calificación:', error);
+                errorDiv.textContent = 'Error al guardar la calificación';
+                errorDiv.classList.remove('hidden');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtnText.textContent = 'Guardar Calificación';
+            }
+        });
+
+        // Limpiar formulario
+        document.getElementById('clearFormBtn').addEventListener('click', () => {
+            document.getElementById('studentSelector').value = '';
+            document.getElementById('unitName').value = '';
+            document.getElementById('scoreInput').value = '';
+            document.getElementById('gradeError').classList.add('hidden');
+            document.getElementById('gradeSuccess').classList.add('hidden');
+        });
+
+        // Editar calificación
+        window.editGrade = async function(gradeId) {
+            const grade = groupGrades.find(g => g.id === gradeId);
+            if (!grade) return;
+
+            document.getElementById('studentSelector').value = grade.studentId;
+            document.getElementById('unitName').value = grade.unitName;
+            document.getElementById('scoreInput').value = grade.score;
+
+            // Cambiar botón a modo edición
+            const saveBtn = document.getElementById('saveGradeBtn');
+            saveBtn.onclick = async () => {
+                const newScore = parseInt(document.getElementById('scoreInput').value);
+                const newUnitName = document.getElementById('unitName').value.trim();
+
+                if (isNaN(newScore) || newScore < 0 || newScore > 100) {
+                    alert('Calificación inválida');
+                    return;
+                }
+
+                saveBtn.disabled = true;
+
+                try {
+                    await updateDoc(doc(window.db, 'grades', gradeId), {
+                        score: newScore,
+                        unitName: newUnitName,
+                        lastModifiedBy: currentUser.uid,
+                        lastModifiedByRole: 'Profesor',
+                        lastModifiedAt: serverTimestamp()
+                    });
+
+                    document.getElementById('gradeSuccess').textContent = '✓ Calificación actualizada';
+                    document.getElementById('gradeSuccess').classList.remove('hidden');
+
+                    // Limpiar y recargar
+                    document.getElementById('clearFormBtn').click();
+                    await loadGroupGrades();
+                    
+                    // Restaurar función original del botón
+                    saveBtn.onclick = null;
+
+                } catch (error) {
+                    console.error('Error actualizando:', error);
+                    alert('Error al actualizar la calificación');
+                } finally {
+                    saveBtn.disabled = false;
+                }
+            };
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // Eliminar calificación
+        window.deleteGrade = async function(gradeId) {
+            if (!confirm('¿Eliminar esta calificación?')) return;
+
+            try {
+                await deleteDoc(doc(window.db, 'grades', gradeId));
+                await loadGroupGrades();
+            } catch (error) {
+                console.error('Error eliminando:', error);
+                alert('Error al eliminar la calificación');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,426 @@
+/* ========================================
+   LABORATORIO DE JUEGOS - ARCADE DE CÓDIGO
+   ======================================== */
+
+/* Header del Arcade */
+.arcade-header {
+    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%);
+    border-radius: 24px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(139, 92, 246, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.arcade-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255,255,255,0.05) 10px,
+        rgba(255,255,255,0.05) 20px
+    );
+    animation: arcadeLines 20s linear infinite;
+}
+
+@keyframes arcadeLines {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+}
+
+.arcade-title {
+    font-size: 3rem;
+    font-weight: 900;
+    color: white;
+    text-shadow: 
+        3px 3px 0px rgba(0,0,0,0.3),
+        0 0 20px rgba(255,255,255,0.5);
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    letter-spacing: 2px;
+}
+
+.arcade-subtitle {
+    font-size: 1.2rem;
+    color: rgba(255,255,255,0.95);
+    margin-top: 0.75rem;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.arcade-robot {
+    font-size: 3rem;
+    animation: robotBounce 2s ease-in-out infinite;
+}
+
+@keyframes robotBounce {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-15px) rotate(5deg); }
+}
+
+/* Tarjetas de Juego Tipo Arcade */
+.arcade-game-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 24px;
+    padding: 0;
+    box-shadow: 
+        0 8px 30px rgba(0,0,0,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.6);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 3px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.arcade-game-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.arcade-game-card:hover {
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 
+        0 20px 50px rgba(139, 92, 246, 0.3),
+        0 0 30px rgba(139, 92, 246, 0.2),
+        inset 0 1px 0 rgba(255,255,255,0.8);
+    border-color: #8b5cf6;
+}
+
+.arcade-game-card:hover::before {
+    opacity: 1;
+}
+
+.arcade-game-card:active {
+    transform: translateY(-8px) scale(0.98);
+}
+
+/* Header de la tarjeta con ilustración */
+.arcade-card-banner {
+    height: 180px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.arcade-card-banner::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    background: linear-gradient(to top, rgba(0,0,0,0.2), transparent);
+}
+
+.arcade-card-banner.maze {
+    background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+}
+
+.arcade-card-banner.typo {
+    background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+}
+
+.arcade-card-banner.debug {
+    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+}
+
+.arcade-card-banner.memory {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+}
+
+.arcade-game-icon {
+    font-size: 5rem;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+    animation: iconFloat 3s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes iconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+}
+
+/* Contenido de la tarjeta */
+.arcade-card-content {
+    padding: 1.5rem;
+}
+
+.arcade-game-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.arcade-xp-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-radius: 20px;
+    font-weight: 800;
+    color: #92400e;
+    font-size: 0.9rem;
+    border: 2px solid #fbbf24;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+    animation: xpPulse 2s ease-in-out infinite;
+}
+
+@keyframes xpPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.xp-star {
+    font-size: 1.2rem;
+    animation: starSpin 4s linear infinite;
+}
+
+@keyframes starSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.arcade-game-description {
+    color: #6b7280;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.arcade-game-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
+    background: #f3f4f6;
+    border-radius: 12px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.meta-icon {
+    font-size: 1.2rem;
+}
+
+/* Botón de Arcade */
+.arcade-play-button {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-weight: 800;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 
+        0 6px 20px rgba(139, 92, 246, 0.4),
+        inset 0 -3px 0 rgba(0,0,0,0.2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.arcade-play-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255,255,255,0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.arcade-play-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 
+        0 10px 30px rgba(139, 92, 246, 0.5),
+        inset 0 -3px 0 rgba(0,0,0,0.3);
+}
+
+.arcade-play-button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.arcade-play-button:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 
+        0 2px 8px rgba(139, 92, 246, 0.4),
+        inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.arcade-play-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.arcade-play-button.green {
+    background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+    box-shadow: 
+        0 6px 20px rgba(16, 185, 129, 0.4),
+        inset 0 -3px 0 rgba(0,0,0,0.2);
+}
+
+.arcade-play-button.green:hover {
+    box-shadow: 
+        0 10px 30px rgba(16, 185, 129, 0.5),
+        inset 0 -3px 0 rgba(0,0,0,0.3);
+}
+
+.arcade-play-button.green:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 
+        0 2px 8px rgba(16, 185, 129, 0.4),
+        inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Badge de récord personal */
+.personal-record {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    z-index: 2;
+}
+
+.record-trophy {
+    font-size: 1.2rem;
+    animation: trophyShine 2s ease-in-out infinite;
+}
+
+@keyframes trophyShine {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.5); }
+}
+
+/* Filtros de categoría */
+.arcade-filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.arcade-filter-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 14px;
+    border: 3px solid #e5e7eb;
+    background: white;
+    font-weight: 700;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+.arcade-filter-btn:hover {
+    border-color: #8b5cf6;
+    color: #8b5cf6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+.arcade-filter-btn.active {
+    background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    color: white;
+    border-color: #8b5cf6;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+/* Modo Oscuro */
+.dark .arcade-game-card {
+    background: linear-gradient(145deg, #1f2937 0%, #111827 100%);
+}
+
+.dark .arcade-game-title {
+    color: #f9fafb;
+}
+
+.dark .arcade-game-description {
+    color: #d1d5db;
+}
+
+.dark .arcade-game-meta {
+    background: #374151;
+}
+
+.dark .meta-item {
+    color: #d1d5db;
+}
+
+.dark .arcade-filter-btn {
+    background: #374151;
+    color: #d1d5db;
+    border-color: #4b5563;
+}
+
+.dark .arcade-filter-btn:hover {
+    border-color: #8b5cf6;
+    color: #a5b4fc;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .arcade-title {
+        font-size: 2rem;
+    }
+    
+    .arcade-card-banner {
+        height: 140px;
+    }
+    
+    .arcade-game-icon {
+        font-size: 3.5rem;
+    }
+}

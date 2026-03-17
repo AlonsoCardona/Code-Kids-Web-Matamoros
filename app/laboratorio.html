@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Laboratorio - CodeKids</title>
+  <script>try{const t=localStorage.getItem('app-theme');if(t==='dark')document.documentElement.classList.add('theme-dark','dark')}catch(e){}</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .game-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .game-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    }
+    .game-card button {
+      transition: all 0.2s ease;
+    }
+    .game-card button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+    .game-card button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .maze-cell {
+      width: 60px;
+      height: 60px;
+      border: 2px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      transition: background-color 0.3s;
+    }
+    .maze-cell.wall {
+      background-color: #1f2937;
+    }
+    .maze-cell.player {
+      background-color: #60a5fa;
+    }
+    .maze-cell.goal {
+      background-color: #34d399;
+    }
+    .command-btn {
+      padding: 0.75rem;
+      font-size: 1.5rem;
+      border-radius: 0.5rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .command-btn:hover {
+      transform: scale(1.05);
+    }
+    .command-btn:active {
+      transform: scale(0.95);
+    }
+    .typing-code {
+      font-family: 'Courier New', monospace;
+      font-size: 1.25rem;
+      padding: 1rem;
+      background: #1e293b;
+      color: #10b981;
+      border-radius: 0.5rem;
+    }
+    .typing-input {
+      font-family: 'Courier New', monospace;
+      font-size: 1.25rem;
+      padding: 0.75rem;
+      background: #334155;
+      color: #60a5fa;
+      border: 2px solid #475569;
+      border-radius: 0.5rem;
+      width: 100%;
+    }
+    .typing-input:focus {
+      outline: none;
+      border-color: #60a5fa;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+<script type="module">
+  import '../js/firebase-init.js';
+  import { initStudentShell } from '../js/student-shell.js';
+  import { addXP } from '../js/gamification.js';
+  
+  window.addXP = addXP;
+  initStudentShell('laboratorio');
+</script>
+
+<main class="flex-1 md:ml-64 p-6 pt-20">
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">🎮 Laboratorio de Juegos</h1>
+    <p class="text-gray-600">Practica programación jugando. ¡Gana XP mientras te diviertes!</p>
+  </div>
+  
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="gamesGrid">
+    <!-- Juego 1: Laberinto -->
+    <div class="game-card bg-white rounded-xl shadow-lg p-6 cursor-pointer" data-game="maze">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-2xl font-bold text-gray-800">🧩 Laberinto de Bloques</h3>
+        <span class="text-sm px-3 py-1 bg-purple-100 text-purple-700 rounded-full">+30 XP</span>
+      </div>
+      <p class="text-gray-600 mb-4">Programa los movimientos del robot para llegar a la meta. Usa comandos de movimiento y lógica.</p>
+      <div class="flex items-center gap-2 text-sm text-gray-500 mb-4">
+        <span>⏱️ 5 min</span>
+        <span>•</span>
+        <span>🎯 Nivel: Fácil</span>
+      </div>
+      <button class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 transition font-semibold">
+        ▶️ Jugar Ahora
+      </button>
+    </div>
+
+    <!-- Juego 2: Typo-Racer -->
+    <div class="game-card bg-white rounded-xl shadow-lg p-6 cursor-pointer" data-game="typo">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-2xl font-bold text-gray-800">⌨️ Typo-Racer</h3>
+        <span class="text-sm px-3 py-1 bg-green-100 text-green-700 rounded-full">+20 XP</span>
+      </div>
+      <p class="text-gray-600 mb-4">Escribe código Python lo más rápido posible. Mejora tu velocidad y precisión de tecleo.</p>
+      <div class="flex items-center gap-2 text-sm text-gray-500 mb-4">
+        <span>⏱️ 3 min</span>
+        <span>•</span>
+        <span>🎯 Nivel: Fácil</span>
+      </div>
+      <button class="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 rounded-lg hover:from-green-700 hover:to-teal-700 transition font-semibold">
+        ▶️ Jugar Ahora
+      </button>
+    </div>
+  </div>
+</main>
+
+<!-- Modal del juego -->
+<div id="gameModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-xl w-full max-w-4xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <button id="closeGameBtn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+    <div id="gameContent"></div>
+  </div>
+</div>
+
+<script>
+  // ========== VARIABLES GLOBALES ==========
+  let currentGame = null;
+  
+  // ========== LABERINTO - VARIABLES ==========
+  let mazeLevel = 0;
+  let playerPos = { x: 0, y: 0 };
+  let playerDirection = 0; // 0=derecha, 1=abajo, 2=izquierda, 3=arriba
+  let commands = [];
+  
+  const mazeLevels = [
+    {
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 1, 0],
+        [0, 1, 0, 0, 0],
+        [0, 0, 0, 1, 2]
+      ],
+      start: { x: 0, y: 0 },
+      goal: { x: 4, y: 4 }
+    },
+    {
+      grid: [
+        [0, 1, 0, 0, 0],
+        [0, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0],
+        [1, 1, 0, 0, 0],
+        [0, 0, 0, 1, 2]
+      ],
+      start: { x: 0, y: 0 },
+      goal: { x: 4, y: 4 }
+    }
+  ];
+
+  // ========== TYPO-RACER - VARIABLES ==========
+  let typoChallenges = [
+    'print("Hola Mundo")',
+    'x = 10',
+    'if x > 5:',
+    'for i in range(10):',
+    'def suma(a, b):',
+    'return a + b',
+    'nombre = input("Tu nombre: ")',
+    'lista = [1, 2, 3, 4, 5]',
+    'while True:',
+    'import random'
+  ];
+  let currentChallengeIndex = 0;
+  let startTime = null;
+  let correctCount = 0;
+
+  // ========== EVENT LISTENERS ==========
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.game-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const game = card.getAttribute('data-game');
+        openGame(game);
+      });
+    });
+
+    // Manejar botones de juego con stopPropagation
+    document.querySelectorAll('.game-card button').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const card = btn.closest('.game-card');
+        const game = card.getAttribute('data-game');
+        openGame(game);
+      });
+    });
+
+    document.getElementById('closeGameBtn').addEventListener('click', closeGame);
+  });
+
+  // ========== ABRIR JUEGO ==========
+  function openGame(gameName) {
+    currentGame = gameName;
+    const modal = document.getElementById('gameModal');
+    const content = document.getElementById('gameContent');
+    
+    if (gameName === 'maze') {
+      content.innerHTML = renderMazeGame();
+      initMazeGame();
+    } else if (gameName === 'typo') {
+      content.innerHTML = renderTypoGame();
+      initTypoGame();
+    }
+    
+    modal.classList.remove('hidden');
+  }
+
+  // ========== CERRAR JUEGO ==========
+  function closeGame() {
+    document.getElementById('gameModal').classList.add('hidden');
+    currentGame = null;
+    mazeLevel = 0;
+    currentChallengeIndex = 0;
+    correctCount = 0;
+  }
+
+  // ========== LABERINTO - RENDERIZAR ==========
+  function renderMazeGame() {
+    return `
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">🧩 Laberinto de Bloques - Nivel ${mazeLevel + 1}</h2>
+      <p class="text-gray-600 mb-4">Programa al robot (🤖) para llegar a la meta (🎯). Usa los comandos de movimiento.</p>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Laberinto -->
+        <div>
+          <div id="mazeGrid" class="inline-grid gap-1 mb-4"></div>
+          <div class="text-sm text-gray-600">
+            <p>🤖 = Robot</p>
+            <p>🎯 = Meta</p>
+            <p>⬛ = Pared</p>
+          </div>
+        </div>
+        
+        <!-- Controles -->
+        <div>
+          <h3 class="font-bold text-gray-800 mb-3">Comandos:</h3>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <button class="command-btn" onclick="addCommand('forward')">⬆️<br><span class="text-sm">Avanzar</span></button>
+            <button class="command-btn" onclick="addCommand('turnLeft')">↪️<br><span class="text-sm">Girar Izq</span></button>
+            <button class="command-btn" onclick="addCommand('turnRight')">↩️<br><span class="text-sm">Girar Der</span></button>
+            <button class="command-btn bg-red-600" onclick="clearCommands()">🗑️<br><span class="text-sm">Limpiar</span></button>
+          </div>
+          
+          <div class="bg-gray-100 rounded-lg p-4 mb-4">
+            <h4 class="font-semibold text-gray-700 mb-2">Programa:</h4>
+            <div id="commandsList" class="text-sm space-y-1"></div>
+          </div>
+          
+          <button class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition font-semibold mb-2" onclick="executeCommands()">
+            ▶️ Ejecutar Programa
+          </button>
+          <button class="w-full bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition" onclick="resetMaze()">
+            🔄 Reiniciar Nivel
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ========== LABERINTO - INICIALIZAR ==========
+  function initMazeGame() {
+    const level = mazeLevels[mazeLevel];
+    playerPos = { ...level.start };
+    playerDirection = 0;
+    commands = [];
+    renderMaze();
+    updateCommandsList();
+  }
+
+  // ========== LABERINTO - RENDERIZAR GRID ==========
+  function renderMaze() {
+    const grid = document.getElementById('mazeGrid');
+    const level = mazeLevels[mazeLevel];
+    const rows = level.grid.length;
+    const cols = level.grid[0].length;
+    
+    grid.style.gridTemplateColumns = `repeat(${cols}, 60px)`;
+    grid.innerHTML = '';
+    
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const cell = document.createElement('div');
+        cell.className = 'maze-cell';
+        
+        if (level.grid[y][x] === 1) {
+          cell.classList.add('wall');
+          cell.textContent = '⬛';
+        } else if (x === playerPos.x && y === playerPos.y) {
+          cell.textContent = getPlayerIcon();
+        } else if (x === level.goal.x && y === level.goal.y) {
+          cell.textContent = '🎯';
+        } else {
+          cell.textContent = '';
+        }
+        
+        grid.appendChild(cell);
+      }
+    }
+  }
+
+  function getPlayerIcon() {
+    const icons = ['➡️', '⬇️', '⬅️', '⬆️'];
+    return icons[playerDirection];
+  }
+
+  // ========== LABERINTO - COMANDOS ==========
+  window.addCommand = function(cmd) {
+    commands.push(cmd);
+    updateCommandsList();
+  };
+
+  window.clearCommands = function() {
+    commands = [];
+    updateCommandsList();
+  };
+
+  function updateCommandsList() {
+    const list = document.getElementById('commandsList');
+    if (commands.length === 0) {
+      list.innerHTML = '<p class="text-gray-400">Sin comandos</p>';
+    } else {
+      list.innerHTML = commands.map((cmd, i) => {
+        const labels = {
+          forward: '⬆️ Avanzar',
+          turnLeft: '↪️ Girar Izquierda',
+          turnRight: '↩️ Girar Derecha'
+        };
+        return `<div>${i + 1}. ${labels[cmd]}</div>`;
+      }).join('');
+    }
+  }
+
+  // ========== LABERINTO - EJECUTAR ==========
+  window.executeCommands = async function() {
+    const level = mazeLevels[mazeLevel];
+    playerPos = { ...level.start };
+    playerDirection = 0;
+    
+    for (let cmd of commands) {
+      if (cmd === 'forward') {
+        const directions = [
+          { dx: 1, dy: 0 },  // derecha
+          { dx: 0, dy: 1 },  // abajo
+          { dx: -1, dy: 0 }, // izquierda
+          { dx: 0, dy: -1 }  // arriba
+        ];
+        const dir = directions[playerDirection];
+        const newX = playerPos.x + dir.dx;
+        const newY = playerPos.y + dir.dy;
+        
+        // Verificar límites y paredes
+        if (newX >= 0 && newX < level.grid[0].length && 
+            newY >= 0 && newY < level.grid.length && 
+            level.grid[newY][newX] !== 1) {
+          playerPos.x = newX;
+          playerPos.y = newY;
+        }
+      } else if (cmd === 'turnLeft') {
+        playerDirection = (playerDirection + 3) % 4;
+      } else if (cmd === 'turnRight') {
+        playerDirection = (playerDirection + 1) % 4;
+      }
+      
+      renderMaze();
+      await sleep(500);
+    }
+    
+    // Verificar si llegó a la meta
+    if (playerPos.x === level.goal.x && playerPos.y === level.goal.y) {
+      await sleep(300);
+      alert('🎉 ¡Felicitaciones!\n\nHas completado el nivel.\n+30 XP');
+      await window.addXP(30);
+      
+      if (mazeLevel < mazeLevels.length - 1) {
+        mazeLevel++;
+        initMazeGame();
+        document.querySelector('#gameContent h2').textContent = `🧩 Laberinto de Bloques - Nivel ${mazeLevel + 1}`;
+      } else {
+        alert('🏆 ¡Has completado todos los niveles!\n\nEres un maestro del laberinto.');
+        closeGame();
+      }
+    } else {
+      alert('❌ No llegaste a la meta.\n\nIntenta de nuevo con una mejor secuencia de comandos.');
+    }
+  };
+
+  window.resetMaze = function() {
+    initMazeGame();
+  };
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ========== TYPO-RACER - RENDERIZAR ==========
+  function renderTypoGame() {
+    return `
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">⌨️ Typo-Racer: Python Edition</h2>
+      <p class="text-gray-600 mb-4">Escribe el código exactamente como aparece. ¡Velocidad y precisión!</p>
+      
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-semibold text-gray-700">Progreso:</span>
+          <span id="typoProgress" class="text-sm text-gray-600">0/10</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+          <div id="typoProgressBar" class="bg-green-600 h-3 rounded-full transition-all" style="width: 0%"></div>
+        </div>
+      </div>
+      
+      <div class="typing-code mb-4" id="typoChallenge">
+        print("Hola Mundo")
+      </div>
+      
+      <input 
+        type="text" 
+        id="typoInput" 
+        class="typing-input mb-4" 
+        placeholder="Escribe el código aquí..."
+        autocomplete="off"
+        spellcheck="false"
+      >
+      
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="text-center p-4 bg-blue-50 rounded-lg">
+          <div class="text-3xl font-bold text-blue-600" id="typoCorrect">0</div>
+          <div class="text-sm text-gray-600">Correctos</div>
+        </div>
+        <div class="text-center p-4 bg-purple-50 rounded-lg">
+          <div class="text-3xl font-bold text-purple-600" id="typoTime">0s</div>
+          <div class="text-sm text-gray-600">Tiempo</div>
+        </div>
+      </div>
+      
+      <div id="typoFeedback" class="text-center text-sm"></div>
+    `;
+  }
+
+  // ========== TYPO-RACER - INICIALIZAR ==========
+  function initTypoGame() {
+    currentChallengeIndex = 0;
+    correctCount = 0;
+    startTime = Date.now();
+    
+    // Shuffle challenges
+    typoChallenges = typoChallenges.sort(() => Math.random() - 0.5);
+    
+    showNextChallenge();
+    
+    const input = document.getElementById('typoInput');
+    input.focus();
+    input.addEventListener('input', checkTypoInput);
+    
+    // Update timer
+    setInterval(updateTimer, 100);
+  }
+
+  function showNextChallenge() {
+    if (currentChallengeIndex >= 10) {
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+      alert(`🎊 ¡Juego completado!\n\nCódigos correctos: ${correctCount}/10\nTiempo total: ${totalTime}s\n+20 XP`);
+      window.addXP(20);
+      closeGame();
+      return;
+    }
+    
+    const challenge = typoChallenges[currentChallengeIndex % typoChallenges.length];
+    document.getElementById('typoChallenge').textContent = challenge;
+    document.getElementById('typoInput').value = '';
+    document.getElementById('typoProgress').textContent = `${currentChallengeIndex}/10`;
+    document.getElementById('typoProgressBar').style.width = `${(currentChallengeIndex / 10) * 100}%`;
+    document.getElementById('typoInput').focus();
+  }
+
+  function checkTypoInput(e) {
+    const input = e.target.value;
+    const challenge = typoChallenges[currentChallengeIndex % typoChallenges.length];
+    const feedback = document.getElementById('typoFeedback');
+    
+    if (input === challenge) {
+      feedback.innerHTML = '<span class="text-green-600 font-semibold">✓ ¡Correcto!</span>';
+      correctCount++;
+      document.getElementById('typoCorrect').textContent = correctCount;
+      
+      setTimeout(() => {
+        currentChallengeIndex++;
+        showNextChallenge();
+        feedback.innerHTML = '';
+      }, 300);
+    } else if (challenge.startsWith(input)) {
+      feedback.innerHTML = '<span class="text-gray-500">Sigue escribiendo...</span>';
+    } else {
+      feedback.innerHTML = '<span class="text-red-600">✗ Error - revisa tu código</span>';
+    }
+  }
+
+  function updateTimer() {
+    if (!startTime || currentGame !== 'typo') return;
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const timeEl = document.getElementById('typoTime');
+    if (timeEl) {
+      timeEl.textContent = elapsed + 's';
+    }
+  }
+</script>
+
+</body>
+</html>

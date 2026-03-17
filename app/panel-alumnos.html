@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Profesor - CodeKids</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg">
+            <div class="container mx-auto px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                            <span class="text-2xl">👨‍🏫</span>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold">Panel de Profesor</h1>
+                            <p class="text-purple-200 text-sm">CodeKids Control Center</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <p class="font-semibold" id="professorName">Profesor</p>
+                            <p class="text-sm text-purple-200" id="professorEmail">profesor@codekids.com</p>
+                        </div>
+                        <button id="logoutBtn" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition">
+                            Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-6 py-8">
+            <div class="bg-white rounded-2xl shadow-lg p-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">🎓 Bienvenido al Panel de Profesor</h2>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-6 mb-8">
+                    <p class="text-lg text-gray-700">
+                        <strong>✅ ¡Inicio de sesión exitoso!</strong><br>
+                        Has iniciado sesión correctamente como profesor.
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <a href="./profesor-calificaciones.html" class="bg-gradient-to-br from-green-400 to-green-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition transform hover:-translate-y-1">
+                        <div class="text-4xl mb-2">📝</div>
+                        <h3 class="text-xl font-bold mb-2">Calificaciones</h3>
+                        <p class="text-green-100">Gestiona calificaciones de tus alumnos</p>
+                        <p class="text-sm mt-4 bg-green-700 bg-opacity-50 rounded px-3 py-1 inline-block">→ Ir al sistema</p>
+                    </a>
+
+                    <div class="bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-xl p-6 shadow-lg opacity-75">
+                        <div class="text-4xl mb-2">👥</div>
+                        <h3 class="text-xl font-bold mb-2">Mis Alumnos</h3>
+                        <p class="text-blue-100">Gestiona tus estudiantes</p>
+                        <p class="text-3xl font-bold mt-4">0</p>
+                        <p class="text-xs mt-2 text-blue-200">Próximamente</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-purple-400 to-purple-600 text-white rounded-xl p-6 shadow-lg opacity-75">
+                        <div class="text-4xl mb-2">📚</div>
+                        <h3 class="text-xl font-bold mb-2">Contenidos</h3>
+                        <p class="text-purple-100">Cursos y lecciones</p>
+                        <p class="text-3xl font-bold mt-4">-</p>
+                        <p class="text-xs mt-2 text-purple-200">Próximamente</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-green-50 border-l-4 border-green-500 p-6">
+                    <p class="text-gray-700">
+                        <strong>✅ Sistema de Calificaciones Disponible</strong><br>
+                        Haz clic en la tarjeta de "Calificaciones" para acceder al sistema completo de gestión de calificaciones de tus alumnos.
+                    </p>
+                </div>
+
+                <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-6">
+                    <p class="text-gray-700">
+                        <strong>ℹ️ Más funcionalidades próximamente</strong><br>
+                        El panel de profesor está en desarrollo activo. Las funcionalidades de gestión de alumnos y contenidos estarán disponibles próximamente.
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { auth, db } from '../js/firebase-init.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Verificar autenticación
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '/auth/login.html';
+                return;
+            }
+
+            // Obtener datos del usuario
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    document.getElementById('professorName').textContent = 
+                        `${userData.nombre || ''} ${userData.apellidoPaterno || ''}`.trim() || 'Profesor';
+                    document.getElementById('professorEmail').textContent = user.email;
+
+                    // Verificar que sea profesor
+                    const role = (userData.role || userData.rol || '').toLowerCase();
+                    if (role !== 'profesor' && role !== 'teacher') {
+                        console.warn('Usuario no es profesor, redirigiendo...');
+                        // Redirigir según su rol real
+                        if (role === 'admin') {
+                            window.location.href = '/admin.html';
+                        } else {
+                            window.location.href = '/app/dashboard.html';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error obteniendo datos del usuario:', error);
+            }
+        });
+
+        // Cerrar sesión
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                window.location.href = '/auth/login.html';
+            } catch (error) {
+                console.error('Error cerrando sesión:', error);
+                alert('Error al cerrar sesión');
+            }
+        });
+    </script>
+</body>
+</html>

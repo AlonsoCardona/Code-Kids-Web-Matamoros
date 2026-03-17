@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeKids - Mi Espacio</title>
+    <script>
+        // Preaplicar tema oscuro antes de cargar estilos
+        try {
+            const savedTheme = localStorage.getItem('app-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) { /* noop */ }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-50">
+    <!--
+    ========================================
+    CODEKIDS - APLICACIÓN INTERNA
+    ========================================
+    
+    ACCESO: Estudiantes y Profesores
+    ARQUITECTURA: Inspirada en Microsoft Teams (3 paneles)
+    
+    LAYOUT:
+    - Header Global: Logo, Búsqueda, Notificaciones, Perfil
+    - Sidebar: Navegación principal (Tareas, Grupos, Lecciones, Lab, Chats, Panel)
+    - Main Content: Contenido dinámico según sección seleccionada
+    
+    GAMIFICACIÓN:
+    - Puntos, insignias, barras de progreso
+    - Minijuegos desbloqueables
+    - Lecciones con desbloqueo progresivo
+    
+    SEGURIDAD:
+    - Chats solo entre Profesor-Estudiante
+    - NO hay comunicación entre Estudiantes
+    - Profesores moderan grupos
+    -->
+    
+    <!-- Header Global -->
+    <header class="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
+        <div class="flex items-center justify-between px-6 py-3">
+            <!-- Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                    <span class="text-white font-bold text-xl">CK</span>
+                </div>
+                <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">CodeKids</span>
+            </div>
+
+            <!-- Búsqueda Global (Usuarios y Contenido según rol) -->
+            <div class="flex-1 max-w-xl mx-6">
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="globalSearch" 
+                        placeholder="🔍 Buscar usuarios, publicaciones..." 
+                        class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                    >
+                    <div id="searchResults" class="hidden absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-y-auto z-50">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notificaciones y Perfil -->
+            <div class="flex items-center space-x-4">
+                <!-- Notificaciones (Tiempo Real con onSnapshot) -->
+                <button id="notificationButton" class="relative p-2 hover:bg-gray-100 rounded-lg transition">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    </svg>
+                    <span id="notificationBadge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">0</span>
+                </button>
+
+                <!-- Avatar y Menú de Usuario -->
+                <div class="relative">
+                    <button id="profileButton" class="flex items-center space-x-2 hover:bg-gray-100 rounded-lg p-2 transition">
+                        <img id="userAvatar" src="" alt="Avatar" class="w-8 h-8 rounded-full border-2 border-indigo-200">
+                        <span id="userName" class="font-semibold text-gray-800"></span>
+                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div id="profileMenu" class="hidden absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+                        <button id="myProfileBtn" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition flex items-center space-x-2">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span>Mi Perfil</span>
+                        </button>
+                        <button id="settingsBtn" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition flex items-center space-x-2">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span>Configuración</span>
+                        </button>
+                        <hr class="my-2">
+                        <button id="logoutBtn" class="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 transition flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            <span>Cerrar Sesión</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Layout Principal -->
+    <div class="flex pt-16 h-screen">
+        <!-- Sidebar Izquierdo (Navegación) -->
+        <aside class="w-20 bg-white border-r border-gray-200 flex flex-col items-center py-6 space-y-6 fixed left-0 h-full">
+            <button data-section="tasks" class="nav-item p-3 rounded-lg hover:bg-indigo-50 transition group hidden" title="Mis Tareas">
+                <svg class="w-7 h-7 text-gray-600 group-hover:text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+            </button>
+            <button data-section="groups" class="nav-item p-3 rounded-lg bg-indigo-50 transition group" title="Grupos">
+                <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+            </button>
+            <button data-section="lessons" class="nav-item p-3 rounded-lg hover:bg-green-50 transition group" title="Lecciones">
+                <svg class="w-7 h-7 text-gray-600 group-hover:text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+            </button>
+            <button data-section="lab" class="nav-item p-3 rounded-lg hover:bg-purple-50 transition group" title="Laboratorio">
+                <svg class="w-7 h-7 text-gray-600 group-hover:text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path>
+                </svg>
+            </button>
+            <button data-section="chats" class="nav-item p-3 rounded-lg hover:bg-blue-50 transition group relative" title="Chats">
+                <svg class="w-7 h-7 text-gray-600 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                <span id="chatBadge" class="hidden absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">0</span>
+            </button>
+            <div class="flex-1"></div>
+            <button data-section="dashboard" class="nav-item p-3 rounded-lg hover:bg-orange-50 transition group hidden" title="Panel de Control">
+                <svg class="w-7 h-7 text-gray-600 group-hover:text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </button>
+        </aside>
+
+        <!-- Área de Contenido Principal -->
+        <main id="appContent" class="flex-1 ml-20 overflow-hidden">
+            <!-- El contenido se cargará dinámicamente aquí -->
+            <div class="h-full flex items-center justify-center">
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-bounce">
+                        <span class="text-white font-bold text-3xl">CK</span>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Cargando tu espacio...</h2>
+                    <p class="text-gray-600">Por favor espera un momento</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

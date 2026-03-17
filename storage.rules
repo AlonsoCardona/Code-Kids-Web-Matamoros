@@ -1,0 +1,47 @@
+rules_version = '2';
+
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Función helper: verificar autenticación
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Función helper: es el dueño del archivo
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Imágenes de perfil de usuarios
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isOwner(userId) 
+                      && request.resource.size < 5 * 1024 * 1024 // Máximo 5MB
+                      && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Archivos de grupos (solo miembros)
+    match /groups/{groupId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() 
+                      && request.resource.size < 10 * 1024 * 1024; // Máximo 10MB
+    }
+    
+    // Archivos de tareas/asignaciones
+    match /assignments/{groupId}/{assignmentId}/{studentId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isOwner(studentId)
+                      && request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Recursos del curso (solo lectura para todos, escritura solo admins)
+    match /courses/{courseId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Solo mediante Cloud Functions
+    }
+  }
+}

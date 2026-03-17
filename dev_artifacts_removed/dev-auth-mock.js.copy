@@ -1,0 +1,67 @@
+// js/dev-auth-mock.js — SOLO para desarrollo local. Activar con ?dev_as=profesor
+// WARNING: This is a local-only mock. Do NOT deploy to production.
+(function(){
+  // Activate only with query ?dev_as=profesor
+  if (!location.search.includes('dev_as=profesor')) return;
+  console.warn('DEV: mock auth activo — iniciando sesión como Profesor (mock)');
+
+  const mockUser = {
+    uid: 'dev-prof-0001',
+    email: 'dev.profesor@local',
+    displayName: 'Profesor (Mock)',
+    photoURL: null,
+    getIdTokenResult: async () => ({ claims: {} })
+  };
+
+  // Provide a minimal getUserData used across the app to treat user as Profesor
+  window.getUserData = async function(uid){
+    return {
+      id: uid || mockUser.uid,
+      uid: uid || mockUser.uid,
+      email: mockUser.email,
+      displayName: 'Profesor Mock',
+      role: 'Profesor',
+      rol: 'profesor',
+      photoURL: null
+    };
+  };
+
+  try {
+    window.currentUser = mockUser;
+    // dispatch app's usual event to notify auth state
+    window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: mockUser }));
+  } catch (e) { console.warn('DEV mock: no se pudo disparar evento:', e); }
+})();
+// js/dev-auth-mock.js — SOLO para desarrollo local. Quitar antes de producción.
+(function(){
+  // Activate the mock only when the URL contains ?dev_as=graciela
+  if (!location.search.includes('dev_as=graciela')) return;
+  console.warn('DEV: mock auth activo — iniciando sesión como Graciela (Profesor)');
+
+  const mockUser = {
+    uid: 'dev-graciela-0001',
+    email: 'g2025c2@codekids.com',
+    displayName: 'Graciela Salazar Torres',
+    photoURL: null,
+    getIdTokenResult: async () => ({ claims: {} })
+  };
+
+  // Mock getUserData to return a Profesor role for Graciela
+  window.getUserData = async function(uid){
+    return {
+      id: uid || mockUser.uid,
+      uid: uid || mockUser.uid,
+      email: mockUser.email,
+      displayName: mockUser.displayName,
+      role: 'Profesor',
+      rol: 'profesor',
+      photoURL: null
+    };
+  };
+
+  // Set globals used by the app and dispatch the login event
+  try {
+    window.currentUser = mockUser;
+    window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: mockUser }));
+  } catch (e) { console.warn('DEV mock: no se pudo disparar evento:', e); }
+})();

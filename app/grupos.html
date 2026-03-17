@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Grupos - CodeKids</title>
+    <script>
+        try {
+            const t = localStorage.getItem('app-theme');
+            if (t === 'dark') document.documentElement.classList.add('theme-dark', 'dark');
+        } catch(e) {}
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard-enhancements.css">
+</head>
+<body class="bg-gray-50">
+    <script type="module">
+        import '../js/firebase-init.js';
+        import { initStudentShell } from '../js/student-shell.js';
+        import { initAuth } from '../js/auth.js';
+        import { collection, query, where, getDocs, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        initStudentShell('grupos');
+
+        let currentUserData = null;
+        let currentStudentGroupId = null;
+
+        initAuth((_u, uData) => {
+            currentUserData = uData;
+            initGrupos();
+        });
+
+        async function initGrupos() {
+            console.log('👥 ========== INICIANDO GRUPOS ESTUDIANTE ==========');
+            console.log('📍 URL actual:', window.location.href);
+            console.log('📍 Hash:', window.location.hash);
+
+            // Esperar a que el usuario esté autenticado
+            let user = window.currentUser || window.auth?.currentUser;
+            if (!user) {
+                console.warn('⏳ Usuario no disponible, esperando autenticación...');
+                // Esperar hasta 5 segundos
+                for (let i = 0; i < 10; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    user = window.currentUser || window.auth?.currentUser;
+                    if (user) {
+                        console.log('✅ Usuario autenticado encontrado:', user.uid);
+                        break;
+                    }
+                }
+            }
+
+            console.log('👤 Usuario actual:', user);
+            console.log('🔥 Firestore disponible:', !!window.db);
+
+            // Event listeners
+            document.getElementById('closeStudentGroupDetailModal')?.addEventListener('click', () => closeStudentGroupDetailModal());
+
+            // Cargar grupos del estudiante
+            console.log('🚀 Llamando a loadStudentGroups()...');
+            await loadStudentGroups();
+            console.log('👥 ========== FIN INIT GRUPOS ==========');
+        }
+
+        async function loadStudentGroups() {
+            const user = window.currentUser || window.auth?.currentUser;
+            if (!user) {
+                console.warn('⚠️ No hay usuario autenticado');
+                return;
+            }
+
+            try {
+                console.log('🔍 Cargando grupos del estudiante:', user.uid);
+                console.log('📧 Email del estudiante:', user.email);
+
+                const groupsRef = collection(window.db, 'groups');
+                const q = query(groupsRef, where('studentIds', 'array-contains', user.uid));
+                const snapshot = await getDocs(q);
+
+                console.log('📊 Grupos encontrados:', snapshot.size);
+
+                // Debug: Mostrar todos los grupos que contienen este estudiante
+                if (!snapshot.empty) {
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        console.log('✅ Grupo encontrado:', {
+                            id: doc.id,
+                            name: data.name,
+                            studentIds: data.studentIds,
+                            containsStudent: data.studentIds?.includes(user.uid)
+                        });
+                    });
+                }
+
+                const grid = document.getElementById('studentGroupsGrid');
+                if (!grid) {
+                    console.error('❌ No se encontró el elemento studentGroupsGrid');
+                    return;
+                }
+
+                grid.innerHTML = '';
+
+                if (snapshot.empty) {
+                    console.warn('⚠️ No se encontraron grupos para:', user.uid);
+                    grid.innerHTML = `
+                        <div class="text-center text-gray-400 py-12 col-span-full">
+                            <div class="text-6xl mb-4">📚</div>
+                            <p class="text-lg mb-2">No estás asignado a ningún grupo</p>
+                            <p class="text-sm">Tu profesor te asignará a un grupo pronto</p>
+                            <p class="text-xs text-gray-500 mt-2">UID: ${user.uid}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const group = doc.data();
+                    const groupCard = createStudentGroupCard(doc.id, group);
+                    grid.insertAdjacentHTML('beforeend', groupCard);
+                });
+
+                console.log('✅ Grupos del estudiante renderizados');
+
+                // Agregar event listeners
+                grid.querySelectorAll('.student-group-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const groupId = card.dataset.groupId;
+                        openStudentGroupDetail(groupId);
+                    });
+                });
+            } catch (error) {
+                console.error('❌ Error cargando grupos:', error);
+                const grid = document.getElementById('studentGroupsGrid');
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="text-center text-red-400 py-12 col-span-full">
+                            <div class="text-6xl mb-4">⚠️</div>
+                            <p class="text-lg mb-2">Error cargando grupos</p>
+                            <p class="text-sm">${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function createStudentGroupCard(groupId, group) {
+            const studentCount = group.studentIds?.length || 0;
+            return `
+                <div class="student-group-card card hover-lift cursor-pointer transition-all" data-group-id="${groupId}">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-bold text-gray-800 mb-1">${group.name}</h3>
+                            <p class="text-sm text-gray-600">${group.subject}</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
+                            ${group.level}
+                        </span>
+                    </div>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                            <span>${studentCount} compañero${studentCount !== 1 ? 's' : ''}</span>
+                        </div>
+                        ${group.period ? `<div class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span>${group.period}</span>
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function openStudentGroupDetail(groupId) {
+            currentStudentGroupId = groupId;
+            const user = window.currentUser || window.auth?.currentUser;
+            if (!user) return;
+
+            try {
+                const groupDoc = await getDoc(doc(window.db, 'groups', groupId));
+                if (!groupDoc.exists()) return;
+
+                const group = groupDoc.data();
+
+                // Actualizar información
+                document.getElementById('studentGroupDetailName').textContent = group.name;
+                document.getElementById('studentGroupDetailSubject').textContent = group.subject;
+                document.getElementById('studentGroupDetailLevel').textContent = group.level;
+                document.getElementById('studentGroupDetailPeriod').textContent = group.period || '-';
+                document.getElementById('studentGroupDetailStudentCount').textContent = (group.studentIds?.length || 0) - 1; // Excluir al usuario actual
+
+                // Cargar compañeros
+                await loadClassmates(group.studentIds || [], user.uid);
+
+                // Mostrar modal
+                document.getElementById('studentGroupDetailModal').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error cargando detalle del grupo:', error);
+            }
+        }
+
+        function closeStudentGroupDetailModal() {
+            document.getElementById('studentGroupDetailModal').classList.add('hidden');
+        }
+
+        async function loadClassmates(studentIds, currentUserId) {
+            const container = document.getElementById('studentGroupClassmates');
+
+            // Filtrar al usuario actual
+            const classmateIds = studentIds.filter(id => id !== currentUserId);
+
+            if (classmateIds.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">No hay otros compañeros en este grupo</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            for (const studentId of classmateIds) {
+                try {
+                    const studentDoc = await getDoc(doc(window.db, 'users', studentId));
+                    if (studentDoc.exists()) {
+                        const student = studentDoc.data();
+                        const studentCard = `
+                            <div class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                                <img src="${student.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.displayName || 'Estudiante')}&background=667eea&color=fff`}"
+                                     class="w-10 h-10 rounded-full">
+                                <div class="flex-1">
+                                    <div class="font-semibold text-gray-800">${student.displayName || student.email}</div>
+                                    <div class="text-xs text-gray-500">${student.email}</div>
+                                </div>
+                            </div>
+                        `;
+                        container.insertAdjacentHTML('beforeend', studentCard);
+                    }
+                } catch (error) {
+                    console.error('Error cargando compañero:', error);
+                }
+            }
+        }
+
+        // Exponer funciones globales si son necesarias
+        window.openStudentGroupDetail = openStudentGroupDetail;
+    </script>
+
+    <main class="flex-1 md:ml-64 p-6 pt-20">
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">👥 Mis Grupos</h1>
+            <p class="text-gray-600">Grupos a los que has sido asignado por tus profesores</p>
+        </div>
+
+        <!-- Grid de Grupos -->
+        <div id="studentGroupsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="text-center text-gray-400 py-12 col-span-full">
+                <div class="text-6xl mb-4">📚</div>
+                <p class="text-lg mb-2">Cargando tus grupos...</p>
+            </div>
+        </div>
+
+        <!-- Modal Detalle de Grupo (Estudiante) -->
+        <div id="studentGroupDetailModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="sticky top-0 bg-white border-b border-gray-200 p-6">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <h2 id="studentGroupDetailName" class="text-2xl font-bold text-gray-800 mb-2"></h2>
+                            <div class="flex items-center gap-4 text-sm text-gray-600">
+                                <span id="studentGroupDetailSubject" class="font-semibold"></span>
+                                <span>•</span>
+                                <span id="studentGroupDetailLevel"></span>
+                            </div>
+                        </div>
+                        <button id="closeStudentGroupDetailModal" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
+                    </div>
+                </div>
+
+                <div class="p-6 space-y-6">
+                    <!-- Información del Grupo -->
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">📋 Información</h3>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500">Periodo:</span>
+                                <span id="studentGroupDetailPeriod" class="ml-2 font-semibold"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Compañeros:</span>
+                                <span id="studentGroupDetailStudentCount" class="ml-2 font-semibold"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compañeros de Grupo -->
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-3">👥 Compañeros</h3>
+                        <div id="studentGroupClassmates" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

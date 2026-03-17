@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Kids - ¡La Aventura de Crear con Código!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Fredoka', 'Poppins', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Animaciones */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Fondos Animados */
+        .hero-background {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-background::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .floating-shapes {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.15;
+        }
+
+        .shape:nth-child(1) { top: 10%; left: 10%; animation: float 6s ease-in-out infinite; }
+        .shape:nth-child(2) { top: 60%; right: 15%; animation: float 8s ease-in-out infinite 1s; }
+        .shape:nth-child(3) { bottom: 20%; left: 20%; animation: float 7s ease-in-out infinite 2s; }
+        .shape:nth-child(4) { top: 30%; right: 30%; animation: float 9s ease-in-out infinite 1.5s; }
+
+        /* Fondo dinámico: Cohetes detrás del contenido */
+        .rocket-section { position: relative; overflow: hidden; }
+        .rocket-section .rocket-bg { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+        /* Overlay sits above rockets to preserve legibility (temporarily transparent for debugging) */
+        .rocket-section .rocket-overlay { position: absolute; inset: 0; background: transparent; z-index: 2; pointer-events: none; }
+        .rocket-section .container { position: relative; z-index: 3; }
+
+        .rocket { position: absolute; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; will-change: transform, opacity; opacity: 0.98; transform-origin: center; filter: drop-shadow(0 8px 18px rgba(0,0,0,0.14)); }
+        .rocket svg { width: 100%; height: 100%; display: block; }
+
+        /* Positioning helpers per origin side */
+        .rocket[data-dir="bottom"] { bottom: -18vh; }
+        .rocket[data-dir="top"] { top: -18vh; }
+        .rocket[data-dir="left"] { left: -12vw; }
+        .rocket[data-dir="right"] { right: -12vw; }
+
+        /* Movement: separate keyframes per origin to allow four-directional launch */
+        @keyframes rocket-move-bottom {
+            0% { transform: translateY(0) translateX(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; }
+            8% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-140vh) translateX(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; }
+        }
+
+        @keyframes rocket-move-top {
+            0% { transform: translateY(0) translateX(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; }
+            8% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(140vh) translateX(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; }
+        }
+
+        @keyframes rocket-move-left {
+            0% { transform: translateX(0) translateY(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; }
+            8% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateX(140vw) translateY(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; }
+        }
+
+        @keyframes rocket-move-right {
+            0% { transform: translateX(0) translateY(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; }
+            8% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateX(-140vw) translateY(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; }
+        }
+
+        /* Subtle rotation/wobble layered over the main move animation */
+        @keyframes rocket-wobble { 0% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } 100% { transform: rotate(-6deg); } }
+
+        /* Reduce motion: create static decorative rockets instead of animating */
+        @media (prefers-reduced-motion: reduce) {
+            .rocket { animation: none !important; opacity: 0.8; transform: translateY(-20px) !important; }
+        }
+
+        /* Mascota Robot */
+        .robot-mascot {
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .robot-mascot:hover {
+            animation: wave 0.5s ease-in-out;
+        }
+
+        /* Robot friendly SVG */
+        .robot-friendly {
+            width: 48px;
+            height: 48px;
+            vertical-align: middle;
+            display: inline-block;
+        }
+
+        .robot-mascot .robot-friendly {
+            width: 160px;
+            height: 160px;
+            animation: bounce 2s ease-in-out infinite;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.12));
+            border-radius: 12px;
+        }
+
+        /* Botones Mejorados - Rediseño Moderno con Degradados Vibrantes */
+        .btn-adventure {
+            background: linear-gradient(135deg, #FF6B35 0%, #FF4858 50%, #FF2D75 100%);
+            color: white;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 
+                0 12px 28px rgba(255, 107, 53, 0.35),
+                0 4px 12px rgba(255, 45, 117, 0.25),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.1);
+            background-size: 200% 200%;
+            animation: gradientShift 4s ease infinite;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .btn-adventure:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 
+                0 18px 38px rgba(255, 107, 53, 0.45),
+                0 8px 20px rgba(255, 45, 117, 0.35),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.15),
+                0 0 30px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-adventure:active {
+            transform: translateY(-2px) scale(1.01);
+        }
+
+        .btn-adventure::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .btn-adventure:hover::before {
+            width: 350px;
+            height: 350px;
+        }
+
+        .btn-adventure i {
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .btn-adventure:hover i {
+            transform: scale(1.15) rotate(-10deg);
+        }
+
+        .btn-teacher {
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #06B6D4 100%);
+            color: white;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 
+                0 12px 28px rgba(99, 102, 241, 0.35),
+                0 4px 12px rgba(6, 182, 212, 0.25),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.1);
+            background-size: 200% 200%;
+            animation: gradientShift 4s ease infinite;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-teacher:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 
+                0 18px 38px rgba(99, 102, 241, 0.45),
+                0 8px 20px rgba(6, 182, 212, 0.35),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.15),
+                0 0 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-teacher:active {
+            transform: translateY(-2px) scale(1.01);
+        }
+
+        .btn-teacher::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.2) 50%,
+                transparent 70%
+            );
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+        }
+
+        .btn-teacher:hover::after {
+            left: 100%;
+        }
+
+        .btn-teacher i {
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .btn-teacher:hover i {
+            transform: scale(1.15);
+        }
+
+        /* Tarjetas de Características */
+        .feature-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 30px;
+            padding: 40px 30px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Accent border (top strip) using pseudo-element - subtle by default, intensifies on hover */
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 6px;
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
+            background: transparent;
+            transition: background .25s ease, opacity .25s ease, transform .25s ease;
+            opacity: 0.95;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .feature-card.accent-1::before { background: linear-gradient(90deg, #8B39FF 0%, #6EC6FF 100%); }
+        .feature-card.accent-2::before { background: linear-gradient(90deg, #6EC6FF 0%, #8B39FF 100%); }
+        .feature-card.accent-3::before { background: linear-gradient(90deg, #7C5CFF 0%, #A63CFF 100%); }
+        .feature-card.accent-4::before { background: linear-gradient(90deg, #4FA3FF 0%, #6A0DAD 100%); }
+
+        /* Intensify accent on hover */
+        .feature-card:hover::before { transform: scaleY(1.06); filter: saturate(1.15) brightness(1.03); }
+
+        /* Ensure card content stays visible above accent pseudo-element */
+        .feature-card > * { position: relative; z-index: 2; }
+
+        /* Keep card background white on hover to avoid accidental gradient overlays */
+        .feature-card:hover { background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; }
+
+        /* Dark mode: reduce brightness on hover */
+        .theme-dark .feature-card:hover { 
+            background: linear-gradient(135deg, #1F2937 0%, #374151 100%) !important;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .theme-dark .feature-card::before {
+            background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-15px) scale(1.03);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* badge container now holds a gradient background and inner svg */
+            border-radius: 25px;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .feature-icon-security {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .feature-icon-game {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+
+        .feature-icon-collab {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        /* New icon badge style: circular/rounded badge with gradient and a dark icon inside */
+        .icon-badge {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%; /* circular badges */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 24px rgba(12,12,20,0.08);
+            overflow: hidden;
+            transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease, filter 220ms ease;
+            will-change: transform;
+        }
+        .icon-badge svg { width:40px; height:40px; display:block; transition: transform 260ms ease; }
+        .icon-badge svg .fill-dark { fill: #0f1724; /* dark icon color */ }
+
+        /* Hover & focus micro-interactions */
+        .icon-badge:hover { transform: translateY(-6px) scale(1.06); box-shadow: 0 20px 40px rgba(12,12,20,0.12); }
+        .icon-badge:focus, .icon-badge:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(111,66,193,0.12), 0 18px 36px rgba(12,12,20,0.12); }
+        .icon-badge:hover svg { transform: translateY(-4px) rotate(-6deg); }
+        .feature-card:hover .icon-badge { transform: translateY(-8px) scale(1.08); }
+
+        /* Specific badge gradients matching CodeKids palette */
+        .badge-game { background: linear-gradient(135deg, #8B39FF 0%, #6EC6FF 100%); }
+        .badge-globe { background: linear-gradient(135deg, #6EC6FF 0%, #8EE29A 100%); }
+        .badge-collab { background: linear-gradient(135deg, #8B39FF 0%, #FF7AA2 100%); }
+        .badge-dashboard { background: linear-gradient(135deg, #7C5CFF 0%, #6A9BFF 100%); }
+        .badge-progress { background: linear-gradient(135deg, #6A9BFF 0%, #4FD1C5 100%); }
+        .badge-tools { background: linear-gradient(135deg, #9B6AFF 0%, #FF7AA2 100%); }
+        .badge-comm { background: linear-gradient(135deg, #6EE7B7 0%, #4FA3FF 100%); }
+
+        /* Small thematic icon inside cards (left of title) */
+        .feature-card .card-row { display:flex; align-items:center; gap:0.75rem; }
+        .feature-card .card-icon { width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; color: #6A0DAD; transition: transform .22s ease, color .22s ease; flex-shrink:0; }
+        .feature-card .card-title { margin:0; font-weight:700; color: #111827; }
+
+        /* Hover: more pronounced elevation + icon motion/color change */
+        .feature-card:hover { transform: translateY(-10px) scale(1.02); box-shadow: 0 18px 40px rgba(0,0,0,0.15); }
+        .feature-card:hover .card-icon { transform: translateX(6px); color: #8B39FF; }
+
+        /* ===== NUEVOS ESTILOS PARA SECCIÓN CARACTERÍSTICAS MEJORADA ===== */
+        
+        /* Animación de entrada para títulos */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .caracteristicas-title {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .caracteristicas-subtitle {
+            animation: fadeInUp 0.8s ease-out 0.2s;
+            animation-fill-mode: both;
+        }
+
+        /* Cards modernos para Características */
+        .feature-card-modern {
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            border-radius: 32px;
+            padding: 42px 32px;
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 
+                0 12px 32px rgba(0, 0, 0, 0.08),
+                0 2px 8px rgba(124, 58, 237, 0.05);
+            position: relative;
+            overflow: visible;
+            border: 2px solid transparent;
+            animation: fadeInUp 0.8s ease-out;
+            animation-fill-mode: both;
+        }
+
+        /* Dark mode para tarjetas de características */
+        .theme-dark .feature-card-modern {
+            background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+            box-shadow: 
+                0 12px 32px rgba(0, 0, 0, 0.4),
+                0 2px 8px rgba(124, 58, 237, 0.15);
+        }
+
+        .feature-card-modern:nth-child(1) { animation-delay: 0.3s; }
+        .feature-card-modern:nth-child(2) { animation-delay: 0.45s; }
+        .feature-card-modern:nth-child(3) { animation-delay: 0.6s; }
+
+        /* Hover mejorado con elevación y borde */
+        .feature-card-modern:hover {
+            transform: translateY(-18px) scale(1.04);
+            box-shadow: 
+                0 24px 48px rgba(0, 0, 0, 0.14),
+                0 8px 20px rgba(124, 58, 237, 0.15);
+            border-color: rgba(124, 58, 237, 0.3);
+        }
+
+        .theme-dark .feature-card-modern:hover {
+            box-shadow: 
+                0 24px 48px rgba(0, 0, 0, 0.6),
+                0 8px 20px rgba(124, 58, 237, 0.3);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        /* Efecto de brillo sutil en hover */
+        .feature-card-modern::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        .theme-dark .feature-card-modern::after {
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 60%);
+        }
+
+        .feature-card-modern:hover::after {
+            opacity: 1;
+        }
+
+        /* Contenedor del ícono con degradado vibrante */
+        .feature-icon-wrapper {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 26px;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 
+                0 14px 28px rgba(0, 0, 0, 0.12),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Degradados vibrantes para cada ícono */
+        .feature-icon-game {
+            background: linear-gradient(135deg, #8B39FF 0%, #6EC6FF 100%);
+        }
+
+        .feature-icon-globe {
+            background: linear-gradient(135deg, #06B6D4 0%, #10B981 100%);
+        }
+
+        .feature-icon-collab {
+            background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+        }
+
+        /* Ícono interno con sombra */
+        .feature-icon-inner {
+            font-size: 2.75rem;
+            color: white;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.25));
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Animación de ícono en hover - pulse y rotación sutil */
+        @keyframes iconPulse {
+            0%, 100% {
+                transform: scale(1) rotate(0deg);
+            }
+            50% {
+                transform: scale(1.15) rotate(-8deg);
+            }
+        }
+
+        .feature-card-modern:hover .feature-icon-wrapper {
+            transform: translateY(-8px) scale(1.08);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.18),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card-modern:hover .feature-icon-inner {
+            animation: iconPulse 0.6s ease-in-out;
+        }
+
+        /* Z-index para que las cards estén sobre los cohetes */
+        #pantalla-caracteristicas .container {
+            position: relative;
+            z-index: 10;
+        }
+
+        .feature-card-modern {
+            position: relative;
+            z-index: 15;
+        }
+
+        /* ===== FIN ESTILOS CARACTERÍSTICAS MEJORADA ===== */
+
+        /* Sección CTA Final */
+        .cta-final {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .floating-stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        /* Mapa Estilizado */
+        .map-container {
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            border: 5px solid white;
+        }
+
+        /* Textos con Efectos */
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .code-text {
+            position: relative;
+            display: inline-block;
+        }
+
+        .code-text::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #FF6B35, #FF8C42, #FFB84D);
+            border-radius: 2px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Badge Profesor */
+        .teacher-badge {
+            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        /* Icono dentro del badge */
+        .teacher-badge .teacher-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 10px;
+            display: inline-block;
+        }
+
+        /* Tarjetas Profesor */
+        .teacher-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .teacher-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .btn-adventure, .btn-teacher {
+                font-size: 1rem;
+                padding: 14px 28px;
+            }
+
+            .feature-icon {
+                width: 80px;
+                height: 80px;
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Burbuja de Diálogo */
+        .speech-bubble {
+            position: relative;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border: 20px solid transparent;
+            border-top-color: white;
+            border-bottom: 0;
+            margin-left: -20px;
+            margin-bottom: -20px;
+        }
+    </style>
+    <script>
+        // Apply saved theme
+        try {
+            const savedTheme = localStorage.getItem('app-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            }
+        } catch (e) { /* noop */ }
+    </script>
+    <style>
+        /* Theme toggle styles */
+        .theme-toggle { background: transparent; border: none; cursor: pointer; display:flex; align-items:center; gap:8px; }
+        .theme-toggle .icon-sun, .theme-toggle .icon-moon { font-size: 18px; line-height:1; }
+        .toggle-switch { width:44px; height:24px; background:#E6E6E6; border-radius:999px; position:relative; display:inline-block; }
+        .toggle-thumb { width:20px; height:20px; background:#fff; border-radius:50%; position:absolute; top:2px; left:2px; box-shadow:0 6px 14px rgba(0,0,0,0.12); transition:transform 220ms cubic-bezier(.2,.9,.2,1); }
+        .theme-on .toggle-switch { background: linear-gradient(90deg,#8B39FF,#6EC6FF); }
+        .theme-on .toggle-thumb { transform: translateX(20px); }
+        .theme-on .icon-sun { opacity:0.2; }
+        .theme-off .icon-moon { opacity:0.2; }
+        .theme-toggle:focus-visible { outline: 3px solid rgba(111,66,193,0.12); border-radius: 8px; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50">
+    <!-- Header Simplificado -->
+    <header class="bg-white shadow-lg sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <a href="index.html" class="text-3xl font-extrabold gradient-text tracking-tight no-underline hover:opacity-90">
+                    Code Kids
+                </a>
+            </div>
+            <div class="hidden md:flex items-center gap-6">
+                <button id="nav-sobre" class="text-gray-700 hover:text-purple-600 transition font-semibold">Sobre Nosotros</button>
+                <button id="nav-caracteristicas" class="text-gray-700 hover:text-purple-600 transition font-semibold">Características</button>
+                <button id="nav-profesores" class="text-gray-700 hover:text-purple-600 transition font-semibold">Para Profesores</button>
+                <button onclick="location.href='auth/login.html'" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-full font-bold hover:shadow-lg transition">
+                    Iniciar Sesión
+                </button>
+                <button id="themeToggle" class="theme-toggle theme-off" aria-pressed="false" title="Alternar modo claro/oscuro">
+                    <span class="icon-sun" aria-hidden="true">☀️</span>
+                    <div class="toggle-switch" aria-hidden="true"><span class="toggle-thumb"></span></div>
+                    <span class="icon-moon" aria-hidden="true">🌙</span>
+                </button>
+            </div>
+            <div class="md:hidden">
+                <button id="mobile-menu-btn" class="p-2 text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main id="main-views">
+        <!-- SECCIÓN 1: HERO PRINCIPAL -->
+        <div id="pantalla-principal">
+            <section class="hero-background py-20 relative">
+                <!-- Formas Flotantes -->
+                <div class="floating-shapes">
+                    <div class="shape" style="font-size: 4rem;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 3rem;"><i class="fas fa-star"></i></div>
+                    <div class="shape" style="font-size: 3.5rem;"><i class="fas fa-laptop-code"></i></div>
+                    <div class="shape" style="font-size: 4rem;"><i class="fas fa-rocket"></i></div>
+                </div>
+
+                <div class="container mx-auto px-6 relative z-10">
+                    <div class="grid md:grid-cols-2 gap-12 items-center">
+                        <!-- Columna Izquierda: Texto y CTA -->
+                        <div class="text-white" style="animation: slideIn 0.8s ease-out;">
+                            <h1 class="text-5xl md:text-6xl font-extrabold leading-tight mb-6">
+                                La aventura de crear <span class="code-text">con código!</span>
+                            </h1>
+                            
+                            <!-- Burbuja de Mascota -->
+                            <div class="speech-bubble mb-6 text-gray-800">
+                                <p class="text-lg font-medium">
+                                    <img src="images/robot-friendly.svg" class="robot-friendly" alt="Robot amistoso" /> ¡Hola! Soy tu guía en Code Kids. Aprende jugando en un entorno seguro y divertido.
+                                    Retos, proyectos y aventuras que hacen del código una experiencia mágica.
+                                </p>
+                            </div>
+
+                            <p class="text-xl mb-8 text-purple-100">
+                                Una plataforma diseñada para enseñar los fundamentos de la programación a niños de 6 a 12 años.
+                            </p>
+
+                            <div class="flex flex-wrap gap-4">
+                                <button onclick="location.href='auth/login.html'" class="btn-adventure flex items-center gap-2">
+                                    <i class="fas fa-rocket"></i>
+                                    ¡Comenzar la Aventura!
+                                </button>
+                                <button onclick="location.href='profesores/bienvenida/'" class="btn-teacher flex items-center gap-2">
+                                    <i class="fas fa-chalkboard-teacher"></i>
+                                    Acceder como Profesor
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Columna Derecha: Mapa + Mascota -->
+                        <div style="animation: slideIn 0.8s ease-out 0.3s; animation-fill-mode: both;">
+                            <!-- Mascota Robot -->
+                            <div class="text-center mb-6">
+                                <div class="robot-mascot inline-block drop-shadow-2xl">
+                                    <img src="images/robot-friendly.svg" class="robot-friendly" alt="Robot amistoso" />
+                                </div>
+                            </div>
+
+                            <!-- Mapa con Diseño Mejorado -->
+                            <div>
+                                <div class="speech-bubble mb-4 text-center">
+                                    <p class="text-lg font-bold text-purple-700">
+                                        <i class="fas fa-globe mr-2" aria-hidden="true"></i>¡Encuentra a tus amigos programadores cerca de ti!
+                                    </p>
+                                    <p class="text-base font-semibold text-gray-700 mt-2">
+                                        Nuestra Comunidad en H. Matamoros
+                                    </p>
+                                </div>
+                                <div class="map-container">
+                                    <div id="hero-map" class="w-full h-[400px]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: ¿POR QUÉ CODE KIDS? -->
+            <section class="py-20 bg-gradient-to-b from-white to-purple-50">
+                <div class="container mx-auto px-6">
+                    <div class="text-center mb-16">
+                        <h2 class="text-5xl md:text-6xl font-extrabold gradient-text mb-4">
+                            ¿Por qué Code Kids?
+                        </h2>
+                        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                            Nuestra comunidad de exploradores digitales aprende con diversión, seguridad y motivación constante.
+                        </p>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-10">
+                        <!-- Tarjeta 1: Seguridad -->
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <div class="icon-badge badge-game" role="img" aria-label="Seguridad y protección">
+                                    <!-- Shield-like icon with solid dark fill -->
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path class="fill-dark" d="M12 2l7 3v5c0 5-3.7 9.9-7 11-3.3-1.1-7-6-7-11V5l7-3z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">100% Seguro</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Crea grupos con códigos únicos. Acceso limitado y filtros activos para mantener a los estudiantes seguros.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta 2: Gamificación -->
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <div class="icon-badge badge-game" role="img" aria-label="Metodología interactiva">
+                                    <!-- Gamepad with small code brackets -->
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <g class="fill-dark">
+                                            <path d="M6 11a2 2 0 00-2 2v2a2 2 0 002 2h.5l1.5-1.5 1.5 1.5H11a2 2 0 002-2v-2a2 2 0 00-2-2H6z"/>
+                                            <path d="M17 6a3 3 0 00-3 3v1h4v-1a3 3 0 00-1-2z"/>
+                                            <path d="M3 7l1 1 1-1"/>
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Gamificación</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Niveles, insignias y retos que hacen del aprendizaje una aventura llena de motivación y diversión.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta 3: Colaboración -->
+                        <div class="feature-card">
+                            <div class="feature-icon">
+                                <div class="icon-badge badge-globe" role="img" aria-label="Colaboración global">
+                                    <!-- Globe icon -->
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path class="fill-dark" d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 2.1c.6.5 1.1 1.2 1.6 2.1H10.4c.5-.9 1-1.6 1.6-2.1.3-.2.6-.2 1 0zM6.4 8h11.2c-.3 1.3-.8 2.4-1.6 3.2H8c-.8-.8-1.3-1.9-1.6-3.2zM12 20.9c-.6-.5-1.1-1.2-1.6-2.1h6.4c-.5.9-1 1.6-1.6 2.1-.3.2-.6.2-1 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Colaboración</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Herramientas para crear, compartir proyectos y trabajar en equipo con moderación y apoyo en tiempo real.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: PARA PROFESORES -->
+            <section class="py-20 bg-gradient-to-b from-purple-50 to-white">
+                <div class="container mx-auto px-6">
+                    <div class="text-center mb-12">
+                        <span class="teacher-badge text-lg">
+                            <svg class="teacher-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" role="img">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#2E7D32" />
+                                <circle cx="8" cy="13" r="2.2" fill="#FFFFFF" />
+                                <path d="M2 20c0-3.3 4-6 10-6s10 2.7 10 6v1H2v-1z" fill="#FFFFFF" />
+                            </svg>
+                            Para Profesores
+                        </span>
+                        <h2 class="text-5xl font-extrabold text-gray-800 mt-6 mb-4">
+                            Herramientas para enseñar mejor
+                        </h2>
+                        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                            Crea grupos, asigna tareas, monitorea el progreso y comunica con tus estudiantes en un entorno moderado y seguro.
+                        </p>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <!-- Tarjeta Gestión -->
+                        <div class="teacher-card">
+                            <div class="mb-4">
+                                <div class="icon-badge badge-dashboard" role="img" aria-label="Gestión de clases">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <g class="fill-dark">
+                                            <path d="M3 5h18v12H3z" />
+                                            <path d="M7 9h3v3H7z" />
+                                            <path d="M12 9h5v3h-5z" />
+                                        </g>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Gestión de Clases</h3>
+                            <p class="text-gray-600">
+                                Crea grupos con códigos de acceso únicos y administra estudiantes fácilmente desde tu panel.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta Progreso -->
+                        <div class="teacher-card">
+                            <div class="mb-4">
+                                <div class="icon-badge badge-progress" role="img" aria-label="Seguimiento de progreso">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path class="fill-dark" d="M3 17h2v-7H3v7zm4 0h2V7H7v10zm4 0h2v-4h-2v4zm4 0h2V4h-2v13z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Seguimiento de Progreso</h3>
+                            <p class="text-gray-600">
+                                Dashboard con métricas claras de lecciones completadas, juegos jugados e insignias ganadas.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta Comunicación -->
+                        <div class="teacher-card">
+                            <div class="mb-4">
+                                <div class="icon-badge badge-comm" role="img" aria-label="Comunicación segura">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path class="fill-dark" d="M4 6h16v8H7l-3 3V6z"/>
+                                        <circle class="fill-dark" cx="8" cy="9" r="1" />
+                                        <circle class="fill-dark" cx="11" cy="9" r="1" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Comunicación Segura</h3>
+                            <p class="text-gray-600">
+                                Chat 1 a 1 con estudiantes, moderado y sin mensajes entre estudiantes. Todo supervisado.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN CTA FINAL -->
+            <section class="cta-final py-24 relative">
+                <!-- Estrellas Flotantes -->
+                <div class="floating-stars">
+                    <div class="star" style="top: 10%; left: 15%; animation-delay: 0s;"></div>
+                    <div class="star" style="top: 20%; right: 20%; animation-delay: 0.5s;"></div>
+                    <div class="star" style="bottom: 30%; left: 25%; animation-delay: 1s;"></div>
+                    <div class="star" style="top: 40%; right: 15%; animation-delay: 1.5s;"></div>
+                    <div class="star" style="bottom: 20%; right: 30%; animation-delay: 2s;"></div>
+                    <div class="star" style="top: 60%; left: 40%; animation-delay: 0.8s;"></div>
+                </div>
+
+                <div class="container mx-auto px-6 text-center relative z-10">
+                    <div class="robot-mascot inline-block text-8xl mb-6 drop-shadow-2xl text-white">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h2 class="text-5xl md:text-6xl font-extrabold text-white mb-6">
+                        ¿Listo para comenzar tu aventura?
+                    </h2>
+                    <p class="text-2xl text-purple-100 mb-10 max-w-3xl mx-auto">
+                        Únete a miles de estudiantes que ya están aprendiendo a programar de forma segura y divertida.
+                    </p>
+                    <button onclick="location.href='auth/login.html'" class="btn-adventure text-2xl flex items-center gap-3 mx-auto">
+                        <i class="fas fa-gamepad"></i>
+                        ¡Comenzar la Aventura!
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- PANTALLAS ADICIONALES (Sobre Nosotros, Características, Para Profesores) -->
+        <!-- Mantengo estructura similar pero con diseño actualizado -->
+        
+        <div id="pantalla-sobre-nosotros" class="hidden">
+            <section class="py-16 rocket-section" style="background: #FFFFFF;">
+                <div class="rocket-bg" aria-hidden></div>
+                <div class="rocket-overlay" aria-hidden></div>
+                <div class="container mx-auto px-6 text-center">
+                    <button class="mb-6 inline-flex items-center gap-2 text-purple-600 hover:underline font-bold" data-back>
+                        ← Volver
+                    </button>
+
+                    <!-- Top centered block: main title, subtitle, robot -->
+                    <div class="max-w-3xl mx-auto mb-8">
+                        <h1 class="text-5xl font-extrabold text-purple-700 mb-3">Sobre Nosotros</h1>
+                        <p class="text-xl text-gray-700 mb-6">Lo que nos impulsa y cómo lo hacemos.</p>
+                        <div class="robot-mascot mx-auto mb-6" style="max-width:360px;">
+                            <img src="images/robot-friendly.svg" alt="Robot amistoso" style="width:100%;height:auto;display:block;margin:0 auto;" />
+                        </div>
+                    </div>
+
+                    <!-- Secondary title -->
+                    <h2 class="text-3xl font-bold text-purple-700 mb-6">Quiénes somos</h2>
+
+                    <!-- Horizontal cards container -->
+                    <div class="flex flex-wrap justify-center gap-6">
+                        <div class="feature-card w-64 md:w-72">
+                            <div class="feature-icon feature-icon-security text-purple-600 mb-4">
+                                <i class="fas fa-bullseye text-4xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Nuestra misión</h3>
+                            <p class="text-gray-600 text-center">Aprender creando, jugando y colaborando en un entorno seguro.</p>
+                        </div>
+
+                        <div class="feature-card w-64 md:w-72">
+                            <div class="feature-icon feature-icon-game text-purple-600 mb-4">
+                                <i class="fas fa-puzzle-piece text-4xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Metodología</h3>
+                            <p class="text-gray-600 text-center">Retos cortos, proyectos reales y feedback constante.</p>
+                        </div>
+
+                        <div class="feature-card w-64 md:w-72">
+                            <div class="feature-icon feature-icon-security text-purple-600 mb-4">
+                                <i class="fas fa-shield-alt text-4xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Seguridad primero</h3>
+                            <p class="text-gray-600 text-center">Entorno cerrado y cuentas gestionadas por docentes para proteger a los estudiantes.</p>
+                        </div>
+
+                        <div class="feature-card w-64 md:w-72">
+                            <div class="feature-icon feature-icon-collab text-purple-600 mb-4">
+                                <i class="fas fa-users text-4xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Comunidad</h3>
+                            <p class="text-gray-600 text-center">Profesores y estudiantes construyendo juntos y compartiendo aprendizajes.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="pantalla-caracteristicas" class="hidden">
+            <section class="py-16 bg-white rocket-section">
+                <div class="rocket-bg" aria-hidden></div>
+                <div class="rocket-overlay" aria-hidden></div>
+                <div class="container mx-auto px-6">
+                    <button class="mb-8 inline-flex items-center gap-2 text-purple-600 hover:underline font-bold" data-back>
+                        ← Volver
+                    </button>
+                    
+                    <!-- Contenedor centrado de títulos -->
+                    <div class="text-center mb-16 max-w-3xl mx-auto">
+                        <h1 class="caracteristicas-title text-5xl font-extrabold mb-4" style="color: #7C3AED; letter-spacing: 0.5px;">Características</h1>
+                        <p class="caracteristicas-subtitle text-xl text-gray-700 mt-6">Pilares clave de la experiencia Code Kids.</p>
+                    </div>
+                    
+                    <!-- Grid de cards centrado -->
+                    <div class="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+                        <div class="feature-card-modern">
+                            <div class="feature-icon-wrapper feature-icon-game">
+                                <i class="fas fa-puzzle-piece feature-icon-inner"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-3" style="color: #1F2937;">Metodología Interactiva</h3>
+                            <p class="text-gray-600" style="line-height: 1.7;">Aprende haciendo con retos progresivos y feedback inmediato.</p>
+                        </div>
+                        <div class="feature-card-modern">
+                            <div class="feature-icon-wrapper feature-icon-globe">
+                                <i class="fas fa-globe feature-icon-inner"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-3" style="color: #1F2937;">Proyectos del Mundo Real</h3>
+                            <p class="text-gray-600" style="line-height: 1.7;">Crea juegos, apps y soluciones a problemas reales.</p>
+                        </div>
+                        <div class="feature-card-modern">
+                            <div class="feature-icon-wrapper feature-icon-collab">
+                                <i class="fas fa-user-graduate feature-icon-inner"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold mb-3" style="color: #1F2937;">Soporte para Educadores</h3>
+                            <p class="text-gray-600" style="line-height: 1.7;">Herramientas completas para gestionar y motivar estudiantes.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="pantalla-profesores" class="hidden">
+            <section class="py-16 bg-white rocket-section">
+                <div class="rocket-bg" aria-hidden></div>
+                <div class="rocket-overlay" aria-hidden></div>
+                <div class="container mx-auto px-6 flex flex-col items-center">
+                    <button class="mb-6 inline-flex items-center gap-2 text-purple-600 hover:underline font-bold" data-back>
+                        ← Volver
+                    </button>
+
+                    <h1 class="text-5xl font-extrabold text-purple-700 mb-3 text-center">Para Profesores</h1>
+                    <p class="text-xl text-gray-700 mb-6 text-center">Herramientas diseñadas para potenciar tu aula.</p>
+
+                    <div class="mb-8 text-center" aria-hidden>
+                        <div class="text-9xl robot-mascot text-purple-600 inline-block">
+                            <i class="fas fa-desktop" aria-hidden="true"></i>
+                        </div>
+                    </div>
+
+                    <h2 class="text-3xl font-bold text-purple-700 mb-6 text-center">Beneficios clave</h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl mx-auto">
+                        <div class="feature-card w-full accent-1">
+                            <div class="card-row">
+                                <span class="card-icon"><i class="fas fa-user-cog" aria-hidden="true"></i></span>
+                                <h3 class="card-title text-xl mb-2">Gestión simple</h3>
+                            </div>
+                            <p class="text-gray-600 text-left">Crea grupos con códigos de acceso únicos y administra estudiantes fácilmente desde tu panel.</p>
+                        </div>
+
+                        <div class="feature-card w-full accent-2">
+                            <div class="card-row">
+                                <span class="card-icon"><i class="fas fa-chart-bar" aria-hidden="true"></i></span>
+                                <h3 class="card-title text-xl mb-2">Progreso claro</h3>
+                            </div>
+                            <p class="text-gray-600 text-left">Dashboard con métricas claras de lecciones completadas, juegos jugados e insignias ganadas.</p>
+                        </div>
+
+                        <div class="feature-card w-full accent-3">
+                            <div class="card-row">
+                                <span class="card-icon"><i class="fas fa-sliders-h" aria-hidden="true"></i></span>
+                                <h3 class="card-title text-xl mb-2">Retos a medida</h3>
+                            </div>
+                            <p class="text-gray-600 text-left">Actividades adaptadas al nivel de tu grupo.</p>
+                        </div>
+
+                        <div class="feature-card w-full accent-4">
+                            <div class="card-row">
+                                <span class="card-icon"><i class="fas fa-shield-alt" aria-hidden="true"></i></span>
+                                <h3 class="card-title text-xl mb-2">Comunicación segura</h3>
+                            </div>
+                            <p class="text-gray-600 text-left">Chat moderado 1 a 1 con cada estudiante.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-16">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-10 mb-10">
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Compañía</h4>
+                    <ul class="space-y-2">
+                        <li><button class="hover:text-purple-400 transition" id="ft-sobre">Sobre Nosotros</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-caract">Características</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Soporte</h4>
+                    <ul class="space-y-2">
+                        <li><button class="hover:text-purple-400 transition" id="ft-faq">Preguntas Frecuentes</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-ayuda">Centro de Ayuda</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-contacto">Contáctanos</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Legal</h4>
+                    <ul class="space-y-2">
+                        <li><button class="hover:text-purple-400 transition" id="ft-terminos">Términos de Servicio</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-priv">Política de Privacidad</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Síguenos</h4>
+                    <p class="text-gray-400 mb-4">Tutoriales, noticias y actualizaciones.</p>
+                    <div class="flex gap-4">
+                        <a href="#" class="hover:text-purple-400 transition" aria-label="GitHub">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.09 3.29 9.4 7.86 10.93.57.1.78-.25.78-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.71 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.14 1.18a10.9 10.9 0 012.86-.38c.97.01 1.95.13 2.86.38 2.18-1.5 3.14-1.18 3.14-1.18.62 1.59.23 2.76.11 3.05.73.81 1.18 1.83 1.18 3.09 0 4.44-2.7 5.41-5.27 5.7.41.35.77 1.03.77 2.08 0 1.5-.01 2.71-.01 3.08 0 .31.2.67.79.56A10.51 10.51 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="hover:text-purple-400 transition" aria-label="YouTube">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23.5 6.2s-.2-1.6-.8-2.3c-.8-.9-1.7-.9-2.1-1-2.9-.2-7.2-.2-7.2-.2h-.1s-4.3 0-7.2.2c-.4.1-1.3.1-2.1 1C.7 4.6.5 6.2.5 6.2S.2 8.3.2 10.3v1.4c0 2 .3 4.1.3 4.1s.2 1.6.8 2.3c.8.9 1.8.9 2.2 1 1.6.1 6.8.2 6.8.2s4.3 0 7.2-.2c.4-.1 1.3-.1 2.1-1 .6-.7.8-2.3.8-2.3s.3-2.1.3-4.1v-1.4c0-2-.3-4.1-.3-4.1zM9.8 15.6V8.4l6.3 3.6-6.3 3.6z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="hover:text-purple-400 transition" aria-label="Twitter">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19.8 3H16l-4 6.1L7.9 3H2l7.3 10.4L2.3 21H6l4.5-6.8L15.9 21H22l-7.6-10.6L19.8 3z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
+                <p>© 2025 Code Kids. Todos los derechos reservados. Hecho con amor para los futuros programadores.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modales (mantengo los existentes pero sin mostrar aquí por brevedad) -->
+    <div id="overlay" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+
+    <!-- Modal FAQ -->
+    <div id="modal-faq" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100 z-10" data-close="modal-faq">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Preguntas Frecuentes (FAQ)</h3>
+                <div class="space-y-5 text-gray-700">
+                    <div>
+                        <p class="font-semibold text-lg">¿Mi hijo o hija necesita experiencia previa en programación?</p>
+                        <p class="mt-2">No. <span class="font-semibold text-purple-600">Code Kids</span> está diseñado para principiantes absolutos. Guiamos paso a paso desde los conceptos más básicos hasta retos avanzados, adaptándonos al ritmo de cada estudiante.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg">¿Cómo garantizan la seguridad de los estudiantes?</p>
+                        <p class="mt-2">La seguridad es nuestra prioridad. No hay registro público, solo profesores y administradores pueden crear cuentas. Todo el contenido y la comunicación están moderados y supervisados.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg">¿Qué beneficios aporta aprender programación a temprana edad?</p>
+                        <p class="mt-2">Desarrolla habilidades clave como pensamiento lógico, creatividad, resolución de problemas y trabajo en equipo. Además, fomenta la confianza y la autonomía digital.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg">¿Puedo monitorear el avance de mi hijo?</p>
+                        <p class="mt-2">Sí. Los profesores pueden compartir reportes de progreso y logros. Si tienes dudas, puedes contactar al docente responsable del grupo.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg">¿Qué hago si tengo un problema técnico?</p>
+                        <p class="mt-2">Puedes consultar el <span class="font-semibold text-purple-600">Centro de Ayuda</span> o escribirnos a través de la sección de contacto. ¡Estamos para apoyarte!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ayuda -->
+    <div id="modal-ayuda" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-ayuda">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Centro de Ayuda</h3>
+                <p class="text-gray-700">¿Necesitas ayuda? Consulta nuestras guías rápidas y recursos.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Contacto -->
+    <div id="modal-contacto" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-contacto">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Contáctanos</h3>
+                <form class="space-y-3">
+                    <input type="text" placeholder="Tu Nombre" class="w-full border rounded p-2" />
+                    <input type="email" placeholder="Tu Email" class="w-full border rounded p-2" />
+                    <textarea rows="4" placeholder="Mensaje" class="w-full border rounded p-2"></textarea>
+                    <button type="button" class="w-full bg-gray-300 text-gray-600 cursor-not-allowed px-4 py-2 rounded">Enviar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+            <!-- Modal Política de Privacidad -->
+            <div id="modal-priv" class="fixed inset-0 z-50 hidden place-items-center p-4">
+                <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl relative">
+                    <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-priv">✕</button>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold mb-4">Política de Privacidad</h3>
+                        <div class="text-gray-700 max-h-[60vh] overflow-auto space-y-4">
+                            <p><strong>Preámbulo y Compromiso</strong><br>
+                            La presente Política de Privacidad describe cómo CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación Comunitaria (en adelante, "Code Kids", "Nosotros" o el "Proveedor") recopila, utiliza, divulga y protege la información personal de sus Usuarios (Estudiantes, Padres/Tutores y Profesores) a través de la plataforma Code Kids.
+                            Nuestro Compromiso Principal: La seguridad y privacidad de los niños son nuestra máxima prioridad. Solo recopilamos la información estrictamente necesaria para fines educativos y operativos, siempre bajo supervisión adulta.</p>
+
+                            <h4 class="font-semibold">1. Aplicabilidad y Consentimiento</h4>
+                            <p>Esta política se aplica a todos los datos recopilados a través de la plataforma. Al utilizar Code Kids, el Usuario (Padre/Tutor o Profesor) otorga su consentimiento verificado para la recopilación y el uso de la información según se describe en esta política.</p>
+
+                            <h4 class="font-semibold">2. Recopilación de Información Personal</h4>
+                            <p>Recopilamos dos tipos principales de información:</p>
+                            <p><strong>2.1 Información Recopilada de Padres/Tutores y Profesores (Usuarios Adultos)</strong><br>
+                            Información de Registro: Nombre completo, dirección de correo electrónico, contraseña (hash), información de pago (si aplica). Información de Contacto: Datos utilizados para la comunicación y la administración de la cuenta.</p>
+                            <p><strong>2.2 Información Recopilada de Estudiantes (Usuarios Menores)</strong><br>
+                            Identificadores de la Cuenta: Nombre de usuario y nickname (se recomienda no usar el nombre real o apellido), ID interno de la plataforma. Información de Progreso Educativo: Puntajes de tareas, progreso en lecciones, nivel de experiencia (XP), medallas/insignias obtenidas, tiempo de uso, actividad en juegos del Laboratorio. Comunicaciones (Chat): Los mensajes en el módulo de chat son recopilados, almacenados y monitoreados para asegurar un entorno seguro y moderado. Contenido Generado por el Usuario: Código y proyectos creados en la plataforma.
+                            <strong>NOTA CLAVE SOBRE MENORES:</strong> No recopilamos intencionadamente información de contacto real (dirección de correo electrónico, teléfono) de niños menores sin el consentimiento verificable de sus padres/tutores.</p>
+
+                            <h4 class="font-semibold">3. Uso de la Información Recopilada</h4>
+                            <p>Utilizamos la información para fines esenciales como autenticación, fines educativos (monitoreo del progreso, personalización), seguridad y moderación del chat, comunicaciones con Usuarios adultos y mejora de la plataforma mediante análisis agregados.</p>
+
+                            <h4 class="font-semibold">4. Divulgación y Compartición de Información</h4>
+                            <p>Code Kids NO vende ni alquila información personal a terceros con fines de marketing. Compartimos información únicamente con proveedores de servicios que actúan en nuestro nombre, con Padres/Tutores y Profesores relevantes, o si es requerido por ley.</p>
+
+                            <h4 class="font-semibold">5. Cookies y Tecnologías de Seguimiento</h4>
+                            <p>Utilizamos cookies de sesión y persistentes únicamente para fines operativos esenciales y analítica agregada. No utilizamos cookies de terceros para publicidad dirigida a niños.</p>
+
+                            <h4 class="font-semibold">6. Derechos del Usuario (Padres/Tutores)</h4>
+                            <p>Los Padres/Tutores Legales pueden acceder, rectificar, solicitar eliminación o revocar el consentimiento para los datos de sus hijos contactando a [CORREO ELECTRÓNICO LEGAL].</p>
+
+                            <h4 class="font-semibold">7. Seguridad de los Datos</h4>
+                            <p>Empleamos medidas de seguridad técnicas, administrativas y físicas estándar de la industria (ej. cifrado, firewalls, hashing de contraseñas) para proteger la información personal.</p>
+
+                            <h4 class="font-semibold">8. Contacto</h4>
+                            <p>Si tiene preguntas sobre esta Política de Privacidad o las prácticas de datos de Code Kids, por favor contáctenos en:
+                            CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación ComunitARIA<br>[DIRECCIÓN LEGAL]<br>[CORREO ELECTRÓNICO LEGAL]</p>
+
+                            <h4 class="font-semibold">9. Modificaciones a la Política de Privacidad</h4>
+                            <p>Nos reservamos el derecho de modificar esta Política de Privacidad en cualquier momento. Notificaremos a los Usuarios adultos sobre cambios significativos mediante aviso en la plataforma o por correo electrónico.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    <!-- Modal Términos -->
+    <div id="modal-terminos" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-terminos">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Términos y Condiciones</h3>
+                <div class="text-gray-700 max-h-[60vh] overflow-auto space-y-4">
+                    <p><strong>Preámbulo y Aceptación</strong><br>
+                    El presente documento establece los Términos y Condiciones (TyC) que rigen el acceso y uso de la plataforma digital Code Kids, sus aplicaciones, contenido y servicios asociados. El uso de la plataforma por parte del Usuario (estudiante, padre/tutor o profesor) implica la aceptación plena y sin reservas de todas las disposiciones incluidas en estos TyC, así como de la Política de Privacidad anexa.</p>
+
+                    <h4 class="font-semibold">1. Partes del Acuerdo</h4>
+                    <p>Este acuerdo se celebra entre:</p>
+                    <p><strong>Proveedor del Servicio:</strong> CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación Comunitaria, propietaria y operadora de la plataforma Code Kids, con domicilio legal en [DIRECCIÓN LEGAL] y contacto en [CORREO ELECTRÓNICO LEGAL].</p>
+                    <p><strong>Usuario:</strong> La persona que accede, utiliza o se registra en la plataforma.</p>
+
+                    <h4 class="font-semibold">2. Objeto y Alcance del Servicio</h4>
+                    <p>El objeto de Code Kids es proporcionar una plataforma educativa en línea, segura y gamificada, destinada a la enseñanza de los fundamentos de la programación a niños y jóvenes.</p>
+                    <p>El servicio incluye acceso a lecciones, juegos interactivos, tareas asignables, dashboards de progreso y comunicación supervisada (chats).</p>
+                    <p>CODEKIDS Manager se reserva el derecho de modificar, suspender o discontinuar cualquier aspecto del servicio en cualquier momento, con previo aviso a los usuarios registrados.</p>
+
+                    <h4 class="font-semibold">3. Uso de la Plataforma y Cuentas de Usuario</h4>
+                    <p><strong>Cuentas de Menores:</strong> Las cuentas de los estudiantes menores de edad deben ser creadas y supervisadas por un Padre/Tutor Legal o un Profesor. El Proveedor del Servicio no recopila intencionadamente información personal de niños menores de 13 años (o la edad legal aplicable) sin el consentimiento verificable de los padres.</p>
+                    <p><strong>Responsabilidad de la Cuenta:</strong> El Usuario (Padre/Tutor o Profesor) es responsable de mantener la confidencialidad de sus credenciales de acceso y de toda la actividad que ocurra bajo su cuenta.</p>
+                    <p><strong>Restricciones de Contenido:</strong> Está estrictamente prohibido cargar, compartir o transmitir contenido que sea ilegal, difamatorio, obsceno, abusivo o que infrinja los derechos de propiedad intelectual de terceros.</p>
+
+                    <h4 class="font-semibold">4. Propiedad Intelectual y Licencia de Uso</h4>
+                    <p><strong>Propiedad de Code Kids:</strong> Todo el contenido de la plataforma, incluyendo el software, el código fuente, el diseño, los gráficos, la mascota robot, las ilustraciones y las lecciones (material educativo), es propiedad exclusiva de CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación Comunitaria y está protegido por las leyes de propiedad intelectual.</p>
+                    <p><strong>Licencia Limitada:</strong> Se otorga al Usuario una licencia no exclusiva, intransferible y revocable para acceder y usar la plataforma únicamente con fines educativos personales, según lo establecido en estos TyC.</p>
+                    <p><strong>Contenido Generado por el Usuario:</strong> Al utilizar las herramientas de programación o chat, el Usuario otorga a Code Kids una licencia mundial, libre de regalías, para usar, reproducir y distribuir el contenido generado por el Usuario (ej. código creado o mensajes de chat) con el único fin de operar y mejorar la plataforma.</p>
+
+                    <h4 class="font-semibold">5. Entorno Seguro y Comunicación (Chat)</h4>
+                    <p><strong>Seguridad y Supervisión:</strong> Code Kids se compromete a mantener un entorno seguro (100% Seguro). Todas las comunicaciones (Chat) son moderadas y supervisadas.</p>
+                    <p><strong>Restricción de Comunicación:</strong> Las herramientas de comunicación están diseñadas para la interacción entre Estudiante-Profesor y Estudiante-Tutor Legal. La comunicación directa entre estudiantes puede estar restringida o monitorizada según las políticas de seguridad internas.</p>
+
+                    <h4 class="font-semibold">6. Limitación de Responsabilidad</h4>
+                    <p><strong>Exención de Garantías:</strong> Code Kids se proporciona "tal cual" y "según disponibilidad". El Proveedor del Servicio no garantiza que la plataforma estará libre de errores o que el acceso será ininterrumpido.</p>
+                    <p><strong>Límite de Daños:</strong> El Proveedor del Servicio no será responsable por daños indirectos, incidentales, especiales o consecuentes derivados del uso o la incapacidad de usar la plataforma. En ningún caso la responsabilidad total excederá el monto pagado por el Usuario por el acceso al servicio.</p>
+
+                    <h4 class="font-semibold">7. Vigencia y Terminación</h4>
+                    <p><strong>Vigencia:</strong> Estos TyC entran en vigor desde el momento de la aceptación por parte del Usuario.</p>
+                    <p><strong>Terminación:</strong> CODEKIDS Manager se reserva el derecho de suspender o terminar el acceso de cualquier Usuario a la plataforma de forma inmediata y sin previo aviso en caso de incumplimiento grave de estos TyC (ej. infracción de propiedad intelectual o conducta abusiva).</p>
+
+                    <h4 class="font-semibold">8. Ley Aplicable y Jurisdicción</h4>
+                    <p>Estos Términos y Condiciones se regirán e interpretarán de acuerdo con las leyes de [PAÍS / JURISDICCIÓN LEGAL]. Cualquier controversia se someterá a la jurisdicción de los tribunales competentes de [CIUDAD / JURISDICCIÓN].</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Navegación y modales - El mapa se inicializa en main.js
+        document.addEventListener('DOMContentLoaded', function() {
+            // Navegación entre pantallas
+            const screens = {
+                'nav-sobre': 'pantalla-sobre-nosotros',
+                'nav-caracteristicas': 'pantalla-caracteristicas',
+                'nav-profesores': 'pantalla-profesores',
+                'ft-sobre': 'pantalla-sobre-nosotros',
+                'ft-caract': 'pantalla-caracteristicas'
+            };
+
+            Object.keys(screens).forEach(btnId => {
+                document.getElementById(btnId)?.addEventListener('click', () => {
+                    document.getElementById('pantalla-principal').classList.add('hidden');
+                    document.querySelectorAll('[id^="pantalla-"]').forEach(el => el.classList.add('hidden'));
+                    document.getElementById(screens[btnId]).classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                });
+            });
+
+            // Botones de volver
+            document.querySelectorAll('[data-back]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('[id^="pantalla-"]').forEach(el => el.classList.add('hidden'));
+                    document.getElementById('pantalla-principal').classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                });
+            });
+
+            // Modales
+            const modals = ['modal-faq', 'modal-ayuda', 'modal-contacto', 'modal-terminos'];
+            const triggers = {
+                'ft-faq': 'modal-faq',
+                'ft-ayuda': 'modal-ayuda',
+                'ft-contacto': 'modal-contacto',
+                'ft-terminos': 'modal-terminos',
+                'ft-priv': 'modal-terminos'
+            };
+
+            Object.keys(triggers).forEach(btnId => {
+                document.getElementById(btnId)?.addEventListener('click', () => {
+                    document.getElementById('overlay').classList.remove('hidden');
+                    document.getElementById(triggers[btnId]).classList.remove('hidden');
+                    document.getElementById(triggers[btnId]).style.display = 'grid';
+                });
+            });
+
+            document.querySelectorAll('[data-close]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const modalId = btn.getAttribute('data-close');
+                    document.getElementById('overlay').classList.add('hidden');
+                    document.getElementById(modalId).classList.add('hidden');
+                    document.getElementById(modalId).style.display = 'none';
+                });
+            });
+
+            document.getElementById('overlay')?.addEventListener('click', () => {
+                document.getElementById('overlay').classList.add('hidden');
+                modals.forEach(modalId => {
+                    document.getElementById(modalId).classList.add('hidden');
+                    document.getElementById(modalId).style.display = 'none';
+                });
+            });
+        });
+    </script>
+    
+    <script type="module" src="js/main.js"></script>
+        <script>
+                (function(){
+                    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                                        function rocketSVG(variant = 0, c1 = '#7C5CFF', c2 = '#FF8C42'){
+                                                // Three friendlier, more expressive rocket icons (SVG) with clear windows and flame
+                                                if(variant === 1) return `
+                                                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                            <defs>
+                                                                <linearGradient id="rg1" x1="0" x2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+                                                                <radialGradient id="fg1" cx="50%" cy="80%" r="60%"><stop offset="0%" stop-color="#FFD27A"/><stop offset="70%" stop-color="#FF8C42"/></radialGradient>
+                                                            </defs>
+                                                            <g>
+                                                                <!-- body -->
+                                                                <path d="M32 6c6 0 12 6 12 12s-2 10-6 14c-4 4-6 6-6 6s-2-2-6-6c-4-4-6-8-6-14S26 6 32 6z" fill="url(#rg1)" stroke="#3b2b7a" stroke-width="0.8"/>
+                                                                <!-- window -->
+                                                                <ellipse cx="32" cy="18" rx="5.5" ry="6" fill="#0b1330" opacity="0.95" />
+                                                                <circle cx="31" cy="17" r="2.2" fill="#BEEBFF" opacity="0.95"/>
+                                                                <!-- fins -->
+                                                                <path d="M22 30c-4 2-6 6-6 8s6 6 10 6l2-10z" fill="#9AF0FF" opacity="0.95" />
+                                                                <path d="M42 30c4 2 6 6 6 8s-6 6-10 6l-2-10z" fill="#9AF0FF" opacity="0.95" />
+                                                                <!-- flame -->
+                                                                <g transform="translate(32,44)">
+                                                                    <path d="M0 0 C -4 6 -2 12 0 14 C2 12 4 6 0 0 Z" fill="url(#fg1)" opacity="0.95" />
+                                                                </g>
+                                                            </g>
+                                                        </svg>`;
+
+                                                if(variant === 2) return `
+                                                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                            <defs>
+                                                                <linearGradient id="rg2" x1="0" x2="1"><stop offset="0" stop-color="#6EC6FF"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+                                                                <radialGradient id="fg2" cx="50%" cy="78%" r="60%"><stop offset="0%" stop-color="#FFF07A"/><stop offset="70%" stop-color="#FF9B5A"/></radialGradient>
+                                                            </defs>
+                                                            <g>
+                                                                <rect x="26" y="8" width="12" height="28" rx="6" fill="url(#rg2)" stroke="#2b2f5a" stroke-width="0.8"/>
+                                                                <circle cx="32" cy="18" r="5" fill="#071832" />
+                                                                <path d="M20 30c-6 3-6 9-4 12 3 4 8 5 12 5l2-11z" fill="#7CD7FF"/>
+                                                                <path d="M44 30c6 3 6 9 4 12-3 4-8 5-12 5l-2-11z" fill="#7CD7FF"/>
+                                                                <path d="M32 44c-3 6-2 10 0 12 2-2 4-6 0-12z" fill="url(#fg2)"/>
+                                                            </g>
+                                                        </svg>`;
+
+                                                // default variant 0 (stylized rocket with clear outline and cute proportions)
+                                                return `
+                                                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                            <defs>
+                                                                <linearGradient id="rg0" x1="0" x2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+                                                                <radialGradient id="fg0" cx="50%" cy="82%" r="60%"><stop offset="0%" stop-color="#FFE18A"/><stop offset="80%" stop-color="#FF7A3D"/></radialGradient>
+                                                            </defs>
+                                                            <g>
+                                                                <path d="M32 8c5 0 10 5 10 11s-1 8-5 12-8 6-8 6-4-2-8-6-5-7-5-12 5-11 10-11z" fill="url(#rg0)" stroke="#352a63" stroke-width="0.9"/>
+                                                                <ellipse cx="32" cy="20" rx="4.8" ry="5.2" fill="#05122a" />
+                                                                <circle cx="31" cy="19" r="2" fill="#CFF7FF" />
+                                                                <path d="M22 32c-4 2-6 6-5 9 1 3 6 6 10 6l2-11z" fill="#A9E1FF"/>
+                                                                <path d="M42 32c4 2 6 6 5 9-1 3-6 6-10 6l-2-11z" fill="#A9E1FF"/>
+                                                                <path d="M32 46c-2 5-1 9 0 11 3-2 6-6 0-11z" fill="url(#fg0)"/>
+                                                            </g>
+                                                        </svg>`;
+                                        }
+
+                        function createRocketsForSection(section, baseCount){
+                                const bg = section.querySelector('.rocket-bg'); if(!bg) return;
+                                const count = Math.max(3, Math.round(baseCount * (window.innerWidth < 768 ? 0.6 : 1)));
+                                const palettes = [ ['#7C5CFF','#9AF0FF'], ['#6EC6FF','#A9E1FF'], ['#FFB07C','#FF8C42'] ];
+                                const dirs = ['bottom','top','left','right'];
+
+                            for(let i=0;i<count;i++){
+                                        const el = document.createElement('div'); el.className = 'rocket';
+                                        const p = palettes[Math.floor(Math.random()*palettes.length)];
+                                        const variant = Math.floor(Math.random()*3);
+                                        el.innerHTML = rocketSVG(variant, p[0], p[1]);
+
+                                        // choose random origin side
+                                        const dir = dirs[Math.floor(Math.random()*dirs.length)];
+                                        el.dataset.dir = dir;
+
+                                        // position depending on origin
+                                        if(dir === 'bottom' || dir === 'top'){
+                                            el.style.left = (5 + Math.random()*90) + '%';
+                                            el.style.removeProperty('top'); el.style.removeProperty('right'); el.style.removeProperty('left');
+                                            // ensure left is set explicitly (left overrides when inserted)
+                                            el.style.left = (5 + Math.random()*90) + '%';
+                                        } else {
+                                            // left or right origin -> random vertical position
+                                            el.style.top = (5 + Math.random()*90) + '%';
+                                        }
+
+                                        // drift is perpendicular movement: for vertical launches -> drift X; for horizontal launches -> drift Y
+                                        const drift = (Math.random()*160 - 80).toFixed(0) + 'px';
+                                        el.style.setProperty('--drift', drift);
+
+                                        const duration = (12 + Math.random()*28).toFixed(2) + 's';
+                                        const delay = (i < 2) ? '0s' : (Math.random()*10).toFixed(2) + 's';
+                                        const scale = (0.6 + Math.random()*1.0).toFixed(2);
+                                        const rotStart = (Math.random()*60 - 30).toFixed(1) + 'deg';
+                                        const rotEnd = (Math.random()*60 - 30).toFixed(1) + 'deg';
+                                        el.style.setProperty('--scale', scale);
+                                        el.style.setProperty('--rot-start', rotStart);
+                                        el.style.setProperty('--rot-end', rotEnd);
+
+                                        // pick animation name based on direction
+                                        el.style.animation = `rocket-move-${dir} ${duration} linear ${delay} infinite`;
+                                        const svg = el.querySelector('svg'); if(svg) svg.style.animation = `rocket-wobble ${3 + Math.random()*2}s ease-in-out ${Math.random()*2}s infinite`;
+                                        bg.appendChild(el);
+                                }
+                        }
+
+                        // For users who prefer reduced motion, create static decorative rockets (no animation)
+                        function createStaticRocketsForSection(section, baseCount){
+                            const bg = section.querySelector('.rocket-bg'); if(!bg) return;
+                            const count = Math.max(2, Math.round(baseCount * (window.innerWidth < 768 ? 0.5 : 0.7)));
+                            const palettes = [ ['#7C5CFF','#9AF0FF'], ['#6EC6FF','#A9E1FF'], ['#FFB07C','#FF8C42'] ];
+                            const dirs = ['bottom','top','left','right'];
+                            for(let i=0;i<count;i++){
+                                const el = document.createElement('div'); el.className = 'rocket';
+                                const p = palettes[Math.floor(Math.random()*palettes.length)];
+                                const variant = Math.floor(Math.random()*3);
+                                el.innerHTML = rocketSVG(variant, p[0], p[1]);
+                                const dir = dirs[Math.floor(Math.random()*dirs.length)];
+                                el.dataset.dir = dir;
+                                if(dir === 'bottom' || dir === 'top'){
+                                    el.style.left = (10 + Math.random()*80) + '%';
+                                } else {
+                                    el.style.top = (10 + Math.random()*80) + '%';
+                                }
+                                el.style.opacity = '0.75';
+                                el.style.transform = `scale(${0.9 + Math.random()*0.4})`;
+                                bg.appendChild(el);
+                            }
+                        }
+
+                        document.addEventListener('DOMContentLoaded', ()=>{
+                            document.querySelectorAll('.rocket-section').forEach(sec=> {
+                                if(prefersReduced){
+                                    createStaticRocketsForSection(sec, 6);
+                                } else {
+                                    createRocketsForSection(sec, 8);
+                                }
+                            });
+                            // debug: log counts after a short timeout so dynamic rockets are appended
+                            setTimeout(()=>{
+                                console.log('rocket count (DOM):', document.querySelectorAll('.rocket').length);
+                            }, 500);
+                        });
+                })();
+        </script>
+                        <script src="js/theme-toggle.js"></script>
+</body>
+</html>

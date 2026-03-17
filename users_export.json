@@ -1,0 +1,37 @@
+{"users": [
+{
+  "localId": "UvJnqvZWqdTj17VbJmVmbyjen6K2",
+  "email": "admin1@codekids.com",
+  "emailVerified": false,
+  "passwordHash": "YR7sQCHq6xm0Vn10915W0ng2itPgthKx+C3fPny1njrgmmve8GRTOydtwB3bQ6WvwbLTM7SHNzMFkAPv0srV7g==",
+  "salt": "kziiAEWz2kborg==",
+  "lastSignedInAt": "1763425150069",
+  "createdAt": "1763423933908",
+  "disabled": false,
+  "customAttributes": "{\"admin\":true}",
+  "providerUserInfo": []
+},
+{
+  "localId": "b2DhnOyiEJgsllO88dP8uE7puJ03",
+  "email": "j2025p1@codekids.com",
+  "emailVerified": false,
+  "passwordHash": "ESdrnl8TMoq/4wER120F/H7z8hBQCTMXU6P7vQRNdyvOy5QTBztJ0e5bJ+Yt02BoJY1X+4Urf6k68mIdcAMCXA==",
+  "salt": "WVNCvHpUBfhcTg==",
+  "displayName": "Juan Pérez",
+  "lastSignedInAt": "1763432925564",
+  "createdAt": "1763425494461",
+  "disabled": false,
+  "providerUserInfo": []
+},
+{
+  "localId": "bplbxWpP16QV45N9RaA4aKUvB993",
+  "email": "m2025e1@codekids.com",
+  "emailVerified": false,
+  "passwordHash": "9WjcszxMfGPKb6IHY7WgeFDcL3SiT8h6qFcWLh9QKt9aqwDVdqty6x43kqg5ncD5unfeU6MageIvD9nD0GLwEg==",
+  "salt": "J+jWNwWJmQ390g==",
+  "displayName": "María González",
+  "lastSignedInAt": "1763434989722",
+  "createdAt": "1763425861922",
+  "disabled": false,
+  "providerUserInfo": []
+}]}

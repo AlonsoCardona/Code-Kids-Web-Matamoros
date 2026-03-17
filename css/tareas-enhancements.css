@@ -1,0 +1,281 @@
+/* ========================================
+   TAREAS - DISEÑO GAMIFICADO PARA NIÑOS
+   ======================================== */
+
+/* Header de Misiones */
+.missions-header-tareas {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.missions-header-tareas::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: floatCircle 6s ease-in-out infinite;
+}
+
+@keyframes floatCircle {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-20px, -20px) scale(1.1); }
+}
+
+.missions-title-tareas {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 1;
+}
+
+.missions-subtitle-tareas {
+    font-size: 1.1rem;
+    color: rgba(255,255,255,0.9);
+    margin-top: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+/* Filtros de Misiones */
+.mission-filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    background: white;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+}
+
+.filter-tab:hover {
+    border-color: #667eea;
+    color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.filter-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Tarjetas de Misión */
+.mission-card-tarea {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.mission-card-tarea:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    border-color: #667eea;
+}
+
+.mission-card-tarea.urgent::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+    animation: urgentPulse 2s ease-in-out infinite;
+}
+
+@keyframes urgentPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.mission-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.mission-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.mission-status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.mission-status-badge.pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.mission-status-badge.overdue {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #dc2626;
+    border: 2px solid #ef4444;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+}
+
+.mission-status-badge.completed {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #059669;
+    border: 2px solid #10b981;
+}
+
+.mission-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.mission-description {
+    color: #6b7280;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.mission-timer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #f3f4f6;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.mission-timer.urgent {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #dc2626;
+}
+
+.mission-rewards {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.reward-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-radius: 10px;
+    font-weight: 700;
+    color: #92400e;
+    font-size: 0.9rem;
+    border: 2px solid #fbbf24;
+}
+
+.mission-action-btn {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.mission-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 768px) {
+    .missions-title-tareas {
+        font-size: 1.8rem;
+    }
+}
+
+/* Modo Oscuro */
+.dark .mission-card-tarea {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+.dark .mission-card-tarea:hover {
+    border-color: #667eea;
+}
+
+.dark .mission-title {
+    color: #f9fafb;
+}
+
+.dark .mission-description {
+    color: #d1d5db;
+}
+
+.dark .mission-timer {
+    background: #374151;
+    color: #e5e7eb;
+}
+
+.dark .mission-timer.urgent {
+    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+    color: #fca5a5;
+}
+
+.dark .filter-tab {
+    background: #374151;
+    color: #d1d5db;
+    border-color: #4b5563;
+}
+
+.dark .filter-tab:hover {
+    border-color: #667eea;
+    color: #a5b4fc;
+}
+
+.dark .filter-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}

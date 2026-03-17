@@ -1,0 +1,497 @@
+/* ========================================
+   LECCIONES ENHANCEMENTS CSS
+   Transformación de lecciones en misiones gamificadas
+   ======================================== */
+
+/* ============ ANIMACIONES KEYFRAMES ============ */
+
+@keyframes mission-glow {
+    0%, 100% { 
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    50% { 
+        box-shadow: 0 8px 30px rgba(124, 58, 237, 0.3);
+    }
+}
+
+@keyframes badge-pop {
+    0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+    50% { transform: scale(1.2) rotate(10deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes stars-collect {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-50px) scale(0.5); opacity: 0; }
+}
+
+@keyframes map-reveal {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes rocket-float {
+    0%, 100% { transform: translateY(0px) rotate(-5deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+@keyframes difficulty-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes progress-fill {
+    0% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+}
+
+/* ============ CONTENEDOR PRINCIPAL ============ */
+
+.missions-container {
+    animation: map-reveal 0.6s ease-out;
+}
+
+.missions-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 3rem 2rem;
+    border-radius: 20px;
+    color: white;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.missions-header::before {
+    content: '🚀';
+    position: absolute;
+    font-size: 8rem;
+    right: -20px;
+    top: -20px;
+    opacity: 0.1;
+    animation: rocket-float 3s ease-in-out infinite;
+}
+
+.missions-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    margin-bottom: 0.5rem;
+}
+
+.missions-subtitle {
+    font-size: 1.125rem;
+    opacity: 0.9;
+}
+
+/* ============ TARJETAS DE MISIÓN ============ */
+
+.mission-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.mission-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 12px 35px rgba(124, 58, 237, 0.3);
+}
+
+.mission-card.completed {
+    border: 3px solid #10b981;
+}
+
+/* ============ IMAGEN DE MISIÓN ============ */
+
+.mission-image {
+    height: 200px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mission-image-python {
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+}
+
+.mission-image-javascript {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.mission-image-html {
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+}
+
+.mission-image-css {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.mission-icon {
+    font-size: 6rem;
+    animation: float-mascot 3s ease-in-out infinite;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+}
+
+.mission-badge-completed {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    animation: badge-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============ CONTENIDO DE LA TARJETA ============ */
+
+.mission-content {
+    padding: 1.5rem;
+}
+
+.mission-title-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.mission-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1f2937;
+}
+
+.mission-difficulty {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.difficulty-star {
+    font-size: 1rem;
+    animation: difficulty-pulse 2s ease-in-out infinite;
+}
+
+.mission-description {
+    color: #6b7280;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.mission-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-top: 1rem;
+    border-top: 2px dashed #e5e7eb;
+}
+
+.mission-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.mission-stat-icon {
+    font-size: 1.125rem;
+}
+
+/* ============ BARRA DE PROGRESO ============ */
+
+.mission-progress {
+    margin-bottom: 1rem;
+}
+
+.mission-progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.mission-progress-text {
+    color: #667eea;
+}
+
+.mission-progress-percentage {
+    color: #10b981;
+    font-size: 1rem;
+}
+
+.mission-progress-bar-container {
+    height: 12px;
+    background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 100%);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mission-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    transform-origin: left;
+}
+
+.mission-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    animation: shimmer 2s infinite;
+}
+
+.mission-progress-bar.complete {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+/* ============ BOTÓN DE ACCIÓN ============ */
+
+.mission-action-btn {
+    width: 100%;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.mission-action-btn.continue {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.mission-action-btn.continue:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+}
+
+.mission-action-btn.review {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.mission-action-btn.review:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+}
+
+.mission-action-btn.locked {
+    background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+    color: white;
+    cursor: not-allowed;
+}
+
+.mission-action-icon {
+    font-size: 1.25rem;
+}
+
+/* ============ CARRUSEL DE NAVEGACIÓN ============ */
+
+.missions-carousel {
+    position: relative;
+}
+
+.carousel-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border: 3px solid #667eea;
+    color: #667eea;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-nav-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-nav-btn.prev {
+    left: -25px;
+}
+
+.carousel-nav-btn.next {
+    right: -25px;
+}
+
+.carousel-nav-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* ============ TOOLTIP DE RECOMPENSAS ============ */
+
+.reward-tooltip {
+    position: absolute;
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 4px 15px rgba(251, 191, 36, 0.5);
+    animation: bounce-soft 0.6s ease;
+    z-index: 20;
+}
+
+.reward-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #f59e0b;
+}
+
+/* ============ RESPONSIVE ============ */
+
+@media (max-width: 768px) {
+    .missions-header {
+        padding: 2rem 1.5rem;
+    }
+    
+    .missions-title {
+        font-size: 2rem;
+    }
+    
+    .mission-image {
+        height: 160px;
+    }
+    
+    .mission-icon {
+        font-size: 4rem;
+    }
+    
+    .carousel-nav-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .carousel-nav-btn.prev {
+        left: -10px;
+    }
+    
+    .carousel-nav-btn.next {
+        right: -10px;
+    }
+}
+
+/* ============ TEMA OSCURO ============ */
+
+.theme-dark .mission-card {
+    background: #1f2937;
+}
+
+.theme-dark .mission-title {
+    color: #f3f4f6;
+}
+
+.theme-dark .mission-description {
+    color: #9ca3af;
+}
+
+.theme-dark .mission-stat {
+    color: #9ca3af;
+}
+
+.theme-dark .mission-progress-bar-container {
+    background: #374151;
+}
+
+/* ============ VIDEO PLAYER RESPONSIVE ============ */
+
+/* Asegurar que el contenedor del reproductor de YouTube sea responsive y 16:9 */
+#ytPlayerContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Forzar que el iframe de YouTube se ajuste perfectamente sin recortes */
+#ytPlayerContainer iframe,
+#ytPlayerContainer video {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    object-fit: contain; /* Mantiene proporciones sin recortar */
+}
+
+/* Contenedor aspect-video mejorado para mejor compatibilidad */
+.aspect-video {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 ratio */
+    overflow: hidden;
+}
+
+/* Asegurar que todos los hijos absolutos se ajusten */
+.aspect-video > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+

@@ -1,0 +1,2627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - CodeKids</title>
+    <script>
+        // Preaplicar tema guardado para evitar parpadeo (incluye clase 'dark')
+        try {
+            const savedTheme = localStorage.getItem('app-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) { /* noop */ }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Theme toggle styles */
+        .theme-toggle { background: transparent; border: none; cursor: pointer; display:flex; align-items:center; gap:8px; }
+        .theme-toggle .icon-sun, .theme-toggle .icon-moon { font-size: 18px; line-height:1; }
+        .toggle-switch { width:44px; height:24px; background:#E6E6E6; border-radius:999px; position:relative; display:inline-block; }
+        .toggle-thumb { width:20px; height:20px; background:#fff; border-radius:50%; position:absolute; top:2px; left:2px; box-shadow:0 6px 14px rgba(0,0,0,0.12); transition:transform 220ms cubic-bezier(.2,.9,.2,1); }
+        .theme-on .toggle-switch { background: linear-gradient(90deg,#8B39FF,#6EC6FF); }
+        .theme-on .toggle-thumb { transform: translateX(20px); }
+        .theme-on .icon-sun { opacity:0.2; }
+        .theme-off .icon-moon { opacity:0.2; }
+        .theme-toggle:focus-visible { outline: 3px solid rgba(111,66,193,0.12); border-radius: 8px; }
+        
+        /* Card glow effects (light and dark mode) */
+        .card-usuarios:hover { border-color: #3b82f6 !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.5) !important; }
+        .card-estudiantes:hover { border-color: #10b981 !important; box-shadow: 0 0 20px rgba(16, 185, 129, 0.5) !important; }
+        .card-profesores:hover { border-color: #a855f7 !important; box-shadow: 0 0 20px rgba(168, 85, 247, 0.5) !important; }
+        .card-escuelas:hover { border-color: #f97316 !important; box-shadow: 0 0 20px rgba(249, 115, 22, 0.5) !important; }
+        
+        /* Quick access buttons glow effects */
+        .quick-access-btn { transition: all 0.3s ease; }
+        .quick-access-btn:hover { transform: translateY(-2px); }
+        
+        /* Individual button colors - Purple */
+        .btn-crear-usuario { color: #9333ea !important; }
+        .btn-crear-usuario:hover { border-color: #9333ea !important; box-shadow: 0 0 20px rgba(147, 51, 234, 0.5) !important; }
+        
+        /* Individual button colors - Blue */
+        .btn-crear-escuela { color: #3b82f6 !important; }
+        .btn-crear-escuela:hover { border-color: #3b82f6 !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.5) !important; }
+        
+        /* Individual button colors - Green */
+        .btn-gestionar-contenidos { color: #10b981 !important; }
+        .btn-gestionar-contenidos:hover { border-color: #10b981 !important; box-shadow: 0 0 20px rgba(16, 185, 129, 0.5) !important; }
+        
+        /* Individual button colors - Orange */
+        .btn-ver-solicitudes { color: #f97316 !important; }
+        .btn-ver-solicitudes:hover { border-color: #f97316 !important; box-shadow: 0 0 20px rgba(249, 115, 22, 0.5) !important; }
+        
+        /* Dark mode card backgrounds */
+        .dark .card-usuarios, .dark .card-estudiantes, .dark .card-profesores, .dark .card-escuelas { background-color: #1e293b !important; border-color: #334155 !important; }
+        .dark .card-usuarios .bg-blue-50 { background-color: #1e3a5f !important; }
+        .dark .card-estudiantes .bg-green-50 { background-color: #1a4d2e !important; }
+        .dark .card-profesores .bg-purple-50 { background-color: #3d2b5a !important; }
+        .dark .card-escuelas .bg-orange-50 { background-color: #5a3825 !important; }
+        
+        /* Dark mode quick access buttons */
+        .dark .quick-access-btn { background-color: #1e293b !important; border-color: #334155 !important; }
+        .dark .btn-crear-usuario { color: #c4b5fd !important; }
+        .dark .btn-crear-escuela { color: #93c5fd !important; }
+        .dark .btn-gestionar-contenidos { color: #6ee7b7 !important; }
+        .dark .btn-ver-solicitudes { color: #fdba74 !important; }
+        
+        /* Toggle Switch Styles for Course Modal */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #7c3aed;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #7c3aed;
+        }
+        
+        /* Line clamp for truncating text */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* Header styles for light mode */
+        body:not(.dark) .header-title {
+            color: #1f2937 !important;
+        }
+        
+        body:not(.dark) .header-subtitle {
+            color: #4b5563 !important;
+        }
+        
+        body:not(.dark) .status-badge {
+            background-color: #10b981 !important;
+            color: white !important;
+        }
+        
+        /* Header styles for dark mode */
+        .dark body {
+            background-color: #111827 !important;
+        }
+        
+        .dark header {
+            background-color: #1f2937 !important;
+        }
+        
+        .dark header .absolute {
+            background-color: transparent !important;
+        }
+        
+        .dark .header-title {
+            color: #ffffff !important;
+        }
+        
+        .dark header .header-title {
+            color: #ffffff !important;
+        }
+        
+        .dark .header-subtitle {
+            color: #d1d5db !important;
+        }
+        
+        .dark header button {
+            background-color: #374151 !important;
+        }
+        
+        .dark header button:hover {
+            background-color: #4b5563 !important;
+        }
+        
+        .dark header svg {
+            color: white !important;
+        }
+        
+        .dark header .bg-gray-300 {
+            background-color: #4b5563 !important;
+        }
+        
+        .dark header p {
+            color: #d1d5db !important;
+        }
+        
+        /* Fondo de la página en modo día */
+        body:not(.dark) {
+            background-color: #ffffff !important;
+        }
+        
+        body:not(.dark) main {
+            background-color: #ffffff !important;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900">
+    <!--
+    ========================================
+    CODEKIDS - PANEL DE ADMINISTRACIÓN
+    ========================================
+    
+    ACCESO: Solo usuarios con role === "Admin"
+    
+    FUNCIONALIDADES:
+    - Dashboard con estadísticas del sistema
+    - Gestión completa de usuarios (CRUD)
+    - Gestión de escuelas con mapa interactivo
+    - Gestión de contenidos (cursos, minijuegos, insignias)
+    
+    SEGURIDAD:
+    - NO existe registro público
+    - Solo Admins pueden crear usuarios
+    - Contraseñas temporales generadas automáticamente
+    - Usuarios forzados a cambiar contraseña en primer login
+    -->
+    
+    <!-- Header Mejorado Responsivo -->
+    <header class="bg-white text-black shadow-2xl relative">
+        <!-- Efecto de fondo animado -->
+        <div class="absolute inset-0 bg-gray-50/50 animate-pulse"></div>
+        
+        <div class="container mx-auto px-4 sm:px-6 py-3 sm:py-5 relative z-10">
+            <div class="flex justify-between items-center gap-2">
+                <!-- Logo y Título -->
+                <div class="flex items-center space-x-10 sm:space-x-16 flex-1 min-w-0">
+                    <div class="relative flex-shrink-0">
+                        <div class="relative flex items-center">
+                            <span class="text-xl sm:text-3xl font-black" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Code Kids</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="header-title text-lg sm:text-2xl md:text-3xl font-black tracking-tight truncate text-gray-900 dark:text-white">Panel de Administración</h1>
+                        <div class="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 flex-wrap">
+                            <span class="header-subtitle text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">CodeKids Control Center</span>
+                            <span class="status-badge px-1.5 sm:px-2 py-0.5 bg-green-500 text-white text-[10px] sm:text-xs font-bold rounded-full whitespace-nowrap">ACTIVO</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Perfil y Acciones -->
+                <div class="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+                    <!-- Notificaciones -->
+                    <button class="relative p-1.5 sm:p-2 bg-gray-100 hover:bg-gray-200 rounded-lg sm:rounded-xl transition-all duration-300 transform hover:scale-110">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        <span class="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-[10px] sm:text-xs rounded-full flex items-center justify-center font-bold animate-bounce">3</span>
+                    </button>
+
+                    <!-- Theme Toggle -->
+                    <button id="themeToggle" class="theme-toggle theme-off" aria-pressed="false" title="Alternar modo claro/oscuro">
+                        <span class="icon-sun" aria-hidden="true">☀️</span>
+                        <div class="toggle-switch" aria-hidden="true"><span class="toggle-thumb"></span></div>
+                        <span class="icon-moon" aria-hidden="true">🌙</span>
+                    </button>
+
+                    <!-- Separador (oculto en móvil) -->
+                    <div class="hidden sm:block h-10 w-px bg-gray-300"></div>
+
+                    <!-- Info de Admin (oculto en móvil) -->
+                    <div class="hidden md:block text-right">
+                        <p id="adminName" class="font-bold text-base lg:text-lg"></p>
+                        <p class="text-xs text-gray-700">Administrador</p>
+                    </div>
+
+                    <!-- Avatar con Menú -->
+                    <div id="adminAvatarWrapper" class="relative flex-shrink-0">
+                        <div class="relative">
+                            <div class="absolute inset-0 bg-gradient-to-r from-yellow-400 to-pink-500 rounded-full blur-sm"></div>
+                            <img id="adminAvatar" src="" alt="Avatar" class="relative w-9 h-9 sm:w-12 sm:h-12 rounded-full border-2 sm:border-3 border-white cursor-pointer shadow-xl hover:scale-110 transition-transform duration-300" aria-haspopup="true" aria-expanded="false">
+                        </div>
+                        <div id="adminProfileMenu" class="hidden absolute right-0 top-full mt-2 sm:mt-3 w-48 sm:w-56 bg-white text-gray-700 rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-[100]">
+                            <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 text-white">
+                                <p class="font-bold text-sm">Cuenta de Administrador</p>
+                                <p class="text-xs text-purple-200 mt-1">Acceso completo al sistema</p>
+                            </div>
+                            <div class="py-2">
+                                <button type="button" id="adminLogout" class="w-full text-left px-4 py-3 hover:bg-red-50 text-red-600 text-sm font-semibold flex items-center gap-3 transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        /* Lines 109-110 omitted */
+                                    </svg>
+                                    Cerrar Sesión
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navegación de Pestañas Mejorada y Responsiva -->
+    <nav class="bg-white border-b-2 border-gray-200 shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-2 sm:px-4 lg:px-6">
+            <div class="flex overflow-x-auto scrollbar-hide space-x-1 sm:space-x-2">
+                <button data-tab="dashboard" class="tab-button group relative py-3 sm:py-4 px-3 sm:px-4 lg:px-6 border-b-4 border-indigo-600 text-indigo-600 font-bold transition-all duration-300 hover:bg-indigo-50 whitespace-nowrap flex-shrink-0">
+                    <div class="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <span class="text-xs sm:text-base">Dashboard</span>
+                    </div>
+                </button>
+                <button data-tab="users" class="tab-button group relative py-3 sm:py-4 px-3 sm:px-4 lg:px-6 border-b-4 border-transparent text-purple-600 font-semibold hover:text-indigo-600 hover:bg-gray-50 transition-all duration-300 whitespace-nowrap flex-shrink-0">
+                    <div class="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <span class="text-xs sm:text-base">Usuarios</span>
+                    </div>
+                </button>
+                <button data-tab="schools" class="tab-button group relative py-3 sm:py-4 px-3 sm:px-4 lg:px-6 border-b-4 border-transparent text-purple-600 font-semibold hover:text-green-600 hover:bg-gray-50 transition-all duration-300 whitespace-nowrap flex-shrink-0">
+                    <div class="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        <span class="text-xs sm:text-base">Escuelas</span>
+                    </div>
+                </button>
+                <button data-tab="content" class="tab-button group relative py-3 sm:py-4 px-3 sm:px-4 lg:px-6 border-b-4 border-transparent text-purple-600 font-semibold hover:text-purple-600 hover:bg-gray-50 transition-all duration-300 whitespace-nowrap flex-shrink-0">
+                    <div class="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                        <span class="text-xs sm:text-base">Contenidos</span>
+                    </div>
+                </button>
+                <button data-tab="requests" class="tab-button group relative py-3 sm:py-4 px-3 sm:px-4 lg:px-6 border-b-4 border-transparent text-purple-600 font-semibold hover:text-orange-600 hover:bg-gray-50 transition-all duration-300 whitespace-nowrap flex-shrink-0">
+                    <div class="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="text-xs sm:text-base">Solicitudes</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Estilo para ocultar scrollbar en navegación -->
+    <style>
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+
+    <!-- Área de Contenido Responsivo -->
+    <main class="container mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8 bg-white dark:bg-gray-900">
+        <div id="tabContent">
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content">
+                <!-- Header de Bienvenida -->
+                <div class="p-8 mb-8">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-4xl font-bold dark:text-white mb-2" style="color: #1f2937;">¡Bienvenido al Panel de Control! </h2>
+                            <p class="dark:text-gray-300 text-lg" style="color: #1f2937;">Aquí está el resumen de tu plataforma CodeKids</p>
+                            <p class="dark:text-gray-400 text-sm mt-2" style="color: #1f2937;">📅 Última actualización: <span id="lastUpdate"> 15/12/2025 </span></p>
+                        </div>
+                        <div class="hidden md:block text-center">
+                            <p class="dark:text-gray-300 text-sm font-semibold mb-2" style="color: #1f2937;">Estado del Sistema</p>
+                            <div class="flex items-center justify-center gap-2">
+                                <span class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
+                                <span class="dark:text-white text-xl font-bold" style="color: #1f2937;">Online</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjetas de Estadísticas Mejoradas -->
+                <div class="grid md:grid-cols-4 gap-6 mb-8">
+                    <!-- Card Total Usuarios -->
+                    <div class="card-usuarios bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 transform transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-blue-500 cursor-pointer">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="bg-blue-100 rounded-xl p-3">
+                                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="text-right">
+                                <p id="totalUsers" class="text-4xl font-bold text-gray-800">0</p>
+                                <p class="text-gray-500 text-xs mt-1">+0% vs mes anterior</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-gray-700 text-sm font-semibold">Total Usuarios</p>
+                            <p class="text-gray-500 text-xs mt-1">Todos los roles del sistema</p>
+                        </div>
+                    </div>
+
+                    <!-- Card Estudiantes -->
+                    <div class="card-estudiantes bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 transform transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-green-500 cursor-pointer">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="bg-green-100 rounded-xl p-3">
+                                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
+                            </div>
+                            <div class="text-right">
+                                <p id="totalStudents" class="text-4xl font-bold text-green-500">0</p>
+                                <p class="text-gray-500 text-xs mt-1">Activos</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-gray-700 text-sm font-semibold">Estudiantes</p>
+                            <p class="text-gray-500 text-xs mt-1">Aprendiendo en la plataforma</p>
+                        </div>
+                    </div>
+
+                    <!-- Card Profesores -->
+                    <div class="card-profesores bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 transform transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-purple-500 cursor-pointer">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="bg-purple-100 rounded-xl p-3">
+                                <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="text-right">
+                                <p id="totalTeachers" class="text-4xl font-bold text-purple-500">0</p>
+                                <p class="text-gray-500 text-xs mt-1">Enseñando</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-gray-700 text-sm font-semibold">Profesores</p>
+                            <p class="text-gray-500 text-xs mt-1">Guiando el aprendizaje</p>
+                        </div>
+                    </div>
+
+                    <!-- Card Escuelas -->
+                    <div class="card-escuelas bg-white rounded-2xl shadow-lg p-6 border-2 border-gray-200 transform transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:border-orange-500 cursor-pointer">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="bg-orange-100 rounded-xl p-3">
+                                <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </div>
+                            <div class="text-right">
+                                <p id="totalSchools" class="text-4xl font-bold text-orange-500">0</p>
+                                <p class="text-gray-500 text-xs mt-1">Instituciones</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-gray-700 text-sm font-semibold">Escuelas</p>
+                            <p class="text-gray-500 text-xs mt-1">Centros educativos</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Accesos Rápidos -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+                    <div class="bg-purple-600 p-5">
+                        <h3 class="text-xl font-bold text-white">⚡ Accesos Rápidos</h3>
+                        <p class="text-purple-50 text-sm">Atajos útiles</p>
+                    </div>
+                    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button data-action="createUser" class="quick-access-btn btn-crear-usuario w-full bg-white hover:bg-gray-50 px-4 py-3 rounded-xl font-semibold transition text-left flex items-center gap-3 border-2 border-gray-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Crear Usuario
+                        </button>
+                        <button data-action="createSchool" class="quick-access-btn btn-crear-escuela w-full bg-white hover:bg-gray-50 px-4 py-3 rounded-xl font-semibold transition text-left flex items-center gap-3 border-2 border-gray-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Crear Escuela
+                        </button>
+                        <button data-tab="content" class="quick-access-btn btn-gestionar-contenidos w-full bg-white hover:bg-gray-50 px-4 py-3 rounded-xl font-semibold transition text-left flex items-center gap-3 border-2 border-gray-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                            Gestionar Contenidos
+                        </button>
+                        <button data-tab="requests" class="quick-access-btn btn-ver-solicitudes w-full bg-white hover:bg-gray-50 px-4 py-3 rounded-xl font-semibold transition text-left flex items-center gap-3 border-2 border-gray-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Ver Solicitudes
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Actividad en Tiempo Real -->
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <!-- Usuarios Activos Ahora -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-800"> Usuarios Activos Ahora</h3>
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                                <span id="activeUsersCount" class="text-2xl font-bold text-green-600">0</span>
+                            </div>
+                        </div>
+                        <div id="activeUsersList" class="space-y-2 max-h-48 overflow-y-auto">
+                            <p class="text-sm text-gray-500">Esperando conexiones...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Últimos Inicios de Sesión -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4"> Últimos Inicios de Sesión</h3>
+                        <div id="recentLogins" class="space-y-2 max-h-48 overflow-y-auto">
+                            <p class="text-sm text-gray-500">Sin actividad reciente...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Grupos Creados Hoy -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4"> Grupos Creados Hoy</h3>
+                        <div id="groupsCreatedToday" class="space-y-3">
+                            <p class="text-sm text-gray-500">Sin grupos nuevos hoy...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Alertas de Seguridad -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4"> Alertas de Seguridad</h3>
+                        <div id="securityAlerts" class="space-y-3">
+                            <p class="text-sm text-gray-500">Sin alertas...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="users" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h2>
+                            <button id="exportUsersBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 flex items-center gap-2" title="Exportar PDF">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Exportar PDF
+                            </button>
+                        </div>
+                        <button id="createUserBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-xl hover:scale-105 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                            </svg>
+                            Crear Usuario
+                        </button>
+                    </div>
+                    <div class="mb-4 flex gap-4 items-center">
+                        <select id="roleFilter" class="px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="">Todos los Roles</option>
+                            <option value="Estudiante">Estudiantes</option>
+                            <option value="Profesor">Profesores</option>
+                            <option value="Admin">Administradores</option>
+                        </select>
+                        <select id="schoolFilter" class="px-4 py-2 border border-gray-300 rounded-lg flex-1">
+                            <option value="">Todas las Escuelas</option>
+                        </select>
+                        <div class="flex-1 max-w-sm">
+                            <input id="userSearch" type="search" placeholder="Buscar por nombre o email" class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">#</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Nombre</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Email</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Rol</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Escuela</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Contraseña</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">UIT</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Calificaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">Cargando usuarios...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schools Tab -->
+            <div id="schools" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">Gestión de Escuelas</h2>
+                        <button id="createSchoolBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-xl hover:scale-105 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                            Crear Escuela
+                        </button>
+                    </div>
+                    <div id="schoolsMap" class="w-full h-96 rounded-lg mb-6"></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Nombre</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Dirección</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Estado</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schoolsTableBody">
+                                <tr>
+                                    <td colspan="4" class="px-4 py-8 text-center text-gray-500">Cargando escuelas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Sección de Maestros de Servicio Social -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Profesores de Servicio Social</h2>
+                            <p class="text-gray-600 text-sm mt-1">Gestiona profesores en servicio social</p>
+                        </div>
+                        <button id="addServiceTeacherBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all duration-200 shadow-md hover:shadow-xl hover:scale-105 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Agregar Profesor
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Nombre del Profesor</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Fecha de Inicio</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Fecha de Finalización</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Tiempo en Servicio</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Progreso</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Asistencias</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Constancia</th>
+                                </tr>
+                            </thead>
+                            <tbody id="serviceTeachersTableBody">
+                                <!-- Ejemplo de maestro 1 -->
+                                <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                    <td class="px-4 py-4">
+                                        <div class="font-semibold text-gray-800">Ana López</div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <input type="date" value="2023-09-01" class="start-date px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <input type="date" value="2024-03-01" class="end-date px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <span class="time-worked text-gray-700 font-medium">3 meses, 14 días</span>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <div class="space-y-2">
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex-1">
+                                                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                        <div class="progress-bar bg-green-500 h-3 rounded-full transition-all duration-500" style="width: 70%"></div>
+                                                    </div>
+                                                </div>
+                                                <span class="progress-percentage text-sm font-semibold text-green-600">70%</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <button class="view-attendance-btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition text-sm">
+                                            Ver Asistencias
+                                        </button>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <button class="generate-certificate-btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition text-sm flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            Generar
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Ejemplo de maestro 2 (con alerta) -->
+                                <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                                    <td class="px-4 py-4">
+                                        <div class="font-semibold text-gray-800">Carlos Ruiz</div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <input type="date" value="2023-09-01" class="start-date px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <input type="date" value="2024-03-15" class="end-date px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <span class="time-worked text-gray-700 font-medium">5 meses, 28 días</span>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <div class="space-y-2">
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex-1">
+                                                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                        <div class="progress-bar bg-orange-500 h-3 rounded-full transition-all duration-500" style="width: 95%"></div>
+                                                    </div>
+                                                </div>
+                                                <span class="progress-percentage text-sm font-semibold text-orange-600">95%</span>
+                                                <svg class="w-5 h-5 text-orange-500 alert-icon" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                                </svg>
+                                            </div>
+                                            <div class="text-xs text-orange-600 font-semibold days-remaining">⚠️ Faltan 10 días para terminar</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <button class="view-attendance-btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition text-sm">
+                                            Ver Asistencias
+                                        </button>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <button class="generate-certificate-btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition text-sm flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            Generar
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Historial de Asistencias -->
+            <div id="attendanceModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm hidden z-[9999] overflow-y-auto">
+                <div class="flex items-center justify-center min-h-screen p-4">
+                    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-auto my-8 relative overflow-hidden">
+                        <!-- Header del Modal -->
+                        <div class="bg-gradient-to-r from-purple-600 to-purple-700 p-6 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                                </svg>
+                                <h2 id="attendanceModalTitle" class="text-2xl font-bold text-white">Historial de Asistencias: Ana López</h2>
+                            </div>
+                            <button id="closeAttendanceModalBtn" class="text-white hover:text-gray-200 transition">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Cuerpo del Modal -->
+                        <div class="p-6 max-h-[70vh] overflow-y-auto">
+                            <!-- Formulario para Registrar Nueva Asistencia -->
+                            <div id="newAttendanceForm" class="bg-purple-50 border-2 border-purple-200 rounded-xl p-6 mb-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-bold text-purple-800 flex items-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                        Registrar Nueva Asistencia
+                                    </h3>
+                                </div>
+                                
+                                <form id="attendanceRegistrationForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Fecha -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Fecha</label>
+                                        <input type="date" id="newAttendanceDate" required
+                                            class="w-full px-4 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    </div>
+
+                                    <!-- Hora de Entrada -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Hora de Entrada</label>
+                                        <input type="time" id="newAttendanceEntry" required
+                                            class="w-full px-4 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    </div>
+
+                                    <!-- Hora de Salida -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Hora de Salida</label>
+                                        <input type="time" id="newAttendanceExit"
+                                            class="w-full px-4 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    </div>
+
+                                    <!-- Estado -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Estado</label>
+                                        <select id="newAttendanceStatus" required
+                                            class="w-full px-4 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white">
+                                            <option value="presente">Presente</option>
+                                            <option value="retardo">Retardo</option>
+                                            <option value="falta">Falta</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Botón Guardar -->
+                                    <div class="md:col-span-2 flex justify-end gap-3 mt-2">
+                                        <button type="button" id="cancelNewAttendanceBtn" 
+                                            class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition">
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" 
+                                            class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition flex items-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            Guardar Asistencia
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Tabla de Asistencias -->
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-100 border-b-2 border-gray-200">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Fecha</th>
+                                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Día</th>
+                                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Hora de Entrada</th>
+                                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Hora de Salida</th>
+                                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attendanceTableBody" class="divide-y divide-gray-100">
+                                        <!-- Ejemplo de registro Presente -->
+                                        <tr class="hover:bg-gray-50 transition">
+                                            <td class="px-4 py-3 text-gray-800 font-medium">12/10/2023</td>
+                                            <td class="px-4 py-3 text-gray-600">Jueves</td>
+                                            <td class="px-4 py-3 text-gray-700">09:00 AM</td>
+                                            <td class="px-4 py-3 text-gray-700">02:00 PM</td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    Presente
+                                                </span>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Ejemplo de registro Retardo -->
+                                        <tr class="hover:bg-gray-50 transition">
+                                            <td class="px-4 py-3 text-gray-800 font-medium">11/10/2023</td>
+                                            <td class="px-4 py-3 text-gray-600">Miércoles</td>
+                                            <td class="px-4 py-3 text-gray-700">09:15 AM</td>
+                                            <td class="px-4 py-3 text-gray-700">02:00 PM</td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    Retardo
+                                                </span>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Ejemplo de registro Falta -->
+                                        <tr class="hover:bg-gray-50 transition">
+                                            <td class="px-4 py-3 text-gray-800 font-medium">10/10/2023</td>
+                                            <td class="px-4 py-3 text-gray-600">Martes</td>
+                                            <td class="px-4 py-3 text-gray-400">-</td>
+                                            <td class="px-4 py-3 text-gray-400">-</td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    Falta
+                                                </span>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Ejemplo adicional Presente -->
+                                        <tr class="hover:bg-gray-50 transition">
+                                            <td class="px-4 py-3 text-gray-800 font-medium">09/10/2023</td>
+                                            <td class="px-4 py-3 text-gray-600">Lunes</td>
+                                            <td class="px-4 py-3 text-gray-700">09:00 AM</td>
+                                            <td class="px-4 py-3 text-gray-700">02:00 PM</td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    Presente
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Footer del Modal -->
+                        <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
+                            <button id="toggleAttendanceFormBtn" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Pasar Asistencia
+                            </button>
+                            <button id="closeAttendanceModalFooterBtn" class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition border border-gray-300">
+                                Cerrar Ventana
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal para Seleccionar Profesor -->
+            <div id="selectTeacherModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm hidden z-[9999] overflow-y-auto">
+                <div class="flex items-center justify-center min-h-screen p-4">
+                    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-auto my-8 relative overflow-hidden">
+                        <!-- Header del Modal -->
+                        <div class="bg-gradient-to-r from-purple-600 to-purple-700 p-6 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                </svg>
+                                <h2 class="text-2xl font-bold text-white">Seleccionar Profesor</h2>
+                            </div>
+                            <button id="closeSelectTeacherModalBtn" class="text-white hover:text-gray-200 transition">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Buscador -->
+                        <div class="p-6 border-b border-gray-200">
+                            <div class="relative">
+                                <input type="text" id="searchTeacherInput" placeholder="Buscar profesor por nombre o email..."
+                                    class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Profesores -->
+                        <div class="p-6 max-h-[60vh] overflow-y-auto">
+                            <div id="teachersList" class="space-y-3">
+                                <!-- Loader mientras carga -->
+                                <div class="text-center py-8">
+                                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-600 border-t-transparent"></div>
+                                    <p class="text-gray-600 mt-3">Cargando profesores...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer del Modal -->
+                        <div class="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-200">
+                            <button id="closeSelectTeacherModalFooterBtn" class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition border border-gray-300">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Confirmación de Constancia -->
+            <div id="confirmCertificateModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm hidden z-[9999] flex items-center justify-center p-4">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(to right, #9333ea, #7e22ce);" class="text-white p-6 rounded-t-2xl">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-white bg-opacity-20 p-3 rounded-full">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-bold">Generar Constancia</h3>
+                        </div>
+                    </div>
+                    
+                    <!-- Body -->
+                    <div class="p-6">
+                        <p class="text-gray-700 font-medium mb-4" id="certificateConfirmQuestion"></p>
+                        
+                        <div class="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                            <div class="flex items-start gap-2">
+                                <span class="text-gray-500 font-medium min-w-[140px]">Fecha de inicio:</span>
+                                <span class="text-gray-900 font-semibold" id="confirmStartDate"></span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-gray-500 font-medium min-w-[140px]">Fecha de finalización:</span>
+                                <span class="text-gray-900 font-semibold" id="confirmEndDate"></span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-gray-500 font-medium min-w-[140px]">Tiempo en servicio:</span>
+                                <span class="text-gray-900 font-semibold" id="confirmServiceDuration"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="p-6 pt-0 flex gap-3">
+                        <button id="closeCertificateModalBtn" class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors">
+                            Cancelar
+                        </button>
+                        <button id="confirmGenerateCertificateBtn" style="background: linear-gradient(to right, #9333ea, #7e22ce);" class="flex-1 px-4 py-3 hover:opacity-90 text-white font-semibold rounded-xl transition-all transform hover:scale-105">
+                            Generar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Tab -->
+            <div id="content" class="tab-content hidden">
+                <div class="max-w-7xl mx-auto p-6">
+                    <!-- Header de Gestión de Cursos -->
+                    <div class="bg-purple-600 rounded-2xl shadow-lg p-8 mb-6 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-white bg-opacity-20 rounded-xl p-3">
+                                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-3xl font-bold text-white">Gestión de Cursos</h2>
+                                <p class="text-purple-50 mt-1">Administra el contenido educativo de la plataforma</p>
+                            </div>
+                        </div>
+                        <button id="showCreateCourseBtn" class="bg-white hover:bg-purple-50 text-purple-600 px-6 py-3 rounded-xl font-bold text-lg transition-all transform hover:scale-105 shadow-lg flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Nuevo Curso
+                        </button>
+                    </div>
+
+                    <!-- Lista de Cursos -->
+                    <div id="coursesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Los cursos se cargarán aquí dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal de Crear Curso -->
+            <div id="createCourseModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm hidden z-[9999] overflow-y-auto">
+                <div class="flex items-center justify-center min-h-screen p-4">
+                    <div class="bg-white rounded-2xl shadow-2xl max-w-7xl w-full mx-auto my-8 relative overflow-hidden">
+                        <!-- Header con fondo morado -->
+                        <div class="bg-purple-600 p-6 flex items-center justify-between">
+                            <h2 class="text-3xl font-bold text-white">Crear Nuevo Curso</h2>
+                            <button id="closeModalBtn" class="text-white hover:text-gray-200 transition">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Contenido del modal con scroll -->
+                        <div class="max-h-[75vh] overflow-y-auto p-8">
+                            <!-- Formulario de Crear Curso -->
+                            <form id="createCourseForm">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <!-- Columna Izquierda: Detalles Generales -->
+                                    <div class="space-y-6">
+                                        <!-- Nombre del curso -->
+                                        <div>
+                                            <label class="block text-gray-900 font-medium mb-2">Nombre del curso</label>
+                                            <input type="text" id="courseName" placeholder="Nombre del curso" 
+                                                class="w-full px-4 py-3 bg-gray-100 text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                        </div>
+
+                                        <!-- Descripción del curso -->
+                                        <div>
+                                            <label class="block text-gray-900 font-medium mb-2">Descripción del curso</label>
+                                            <textarea id="courseDescription" rows="4" placeholder="Descripción del curso"
+                                                class="w-full px-4 py-3 bg-gray-100 text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"></textarea>
+                                        </div>
+
+                                        <!-- Imagen del curso -->
+                                        <div>
+                                            <label class="block text-gray-900 font-medium mb-2">Imagen del curso</label>
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-400">
+                                                    <svg class="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                </div>
+                                                <button type="button" id="uploadImageBtn" class="px-6 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition flex items-center gap-2 border border-dashed border-gray-400">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                                    </svg>
+                                                    Upload Image
+                                                </button>
+                                                <input type="file" id="courseImage" accept="image/*" class="hidden">
+                                            </div>
+                                        </div>
+
+                                        <!-- Duración del curso -->
+                                        <div>
+                                            <label class="block text-gray-900 font-medium mb-2">Duración del curso</label>
+                                            <input type="text" id="courseDuration" placeholder="horas/minutos"
+                                                class="w-full px-4 py-3 bg-gray-100 text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                        </div>
+
+                                        <!-- Nivel del curso -->
+                                        <div>
+                                            <label class="block text-gray-900 font-medium mb-3">Nivel del curso</label>
+                                            <div class="space-y-3">
+                                                <label class="flex items-center gap-3 cursor-pointer">
+                                                    <input type="radio" name="courseLevel" value="principiante" checked
+                                                        class="w-5 h-5 text-purple-600 focus:ring-purple-500">
+                                                    <span class="text-gray-900">Principiante</span>
+                                                </label>
+                                                <label class="flex items-center gap-3 cursor-pointer">
+                                                    <input type="radio" name="courseLevel" value="intermedio"
+                                                        class="w-5 h-5 text-purple-600 focus:ring-purple-500">
+                                                    <span class="text-gray-900">Intermedio</span>
+                                                </label>
+                                                <label class="flex items-center gap-3 cursor-pointer">
+                                                    <input type="radio" name="courseLevel" value="dificil"
+                                                        class="w-5 h-5 text-purple-600 focus:ring-purple-500">
+                                                    <span class="text-gray-900">Difícil</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Columna Derecha: Pasos del curso -->
+                                    <div>
+                                        <label class="block text-gray-900 font-medium mb-4">Pasos para el curso</label>
+                                        <div id="courseStepsContainer" class="space-y-6">
+                                            <!-- Paso 1 (inicial) -->
+                                            <div class="course-step bg-gray-100 p-6 rounded-lg space-y-4 border border-gray-300">
+                                                <input type="text" placeholder="Paso 1: Título"
+                                                    class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent step-title">
+                                                
+                                                <input type="url" placeholder="URL de YouTube"
+                                                    class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent step-url">
+                                                
+                                                <!-- Preview del video -->
+                                                <div class="video-preview bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
+                                                    <svg class="w-16 h-16 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Botón para agregar más pasos -->
+                                        <button type="button" id="addStepBtn" 
+                                            class="w-full mt-6 bg-purple-600 text-white py-3 rounded-lg font-semibold text-lg hover:bg-purple-700 transition-all flex items-center justify-center gap-2">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                            </svg>
+                                            Agregar más pasos para el curso
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Botones de acción -->
+                                <div class="mt-8 flex gap-4">
+                                    <button type="button" id="cancelCourseBtn"
+                                        class="w-1/2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white py-4 rounded-lg font-bold text-xl hover:bg-gray-400 dark:hover:bg-gray-600 transition-all shadow-lg">
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" 
+                                        class="w-1/2 bg-purple-600 text-white py-4 rounded-lg font-bold text-xl hover:bg-purple-700 transition-all shadow-lg">
+                                        Guardar Curso
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requests Tab -->
+            <div id="requests" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">Restablecimientos de contraseña</h2>
+                        <span class="text-sm text-gray-500">Listado de solicitudes PENDIENTES</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Nombre</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Correo</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">UID</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Fecha</th>
+                                    <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requestsTableBody">
+                                <tr>
+                                    <td colspan="5" class="px-4 py-8 text-center text-gray-500">Cargando solicitudes...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de instrucción para crear escuela -->
+    <div id="mapInstructionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 transform transition-all">
+            <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full mx-auto mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 text-center mb-3">📍 Modo Creación Activado</h3>
+            <p class="text-gray-600 text-center mb-6">Haz clic en cualquier punto del mapa para ubicar la nueva escuela</p>
+            <button id="closeMapInstructionBtn" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                ✓ Entendido
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal de Calificaciones -->
+    <div id="gradesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="bg-purple-700 px-6 py-4 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white">Calificaciones de <span id="modalStudentName"></span></h2>
+                <button id="closeGradesModal" class="text-white hover:text-purple-200 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">➕ Agregar Nueva Calificación</h3>
+                    <div class="grid md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Grupo</label>
+                            <select id="modalGroupSelect" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900">
+                                <option value="">Seleccionar grupo...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Unidad/Tema</label>
+                            <input type="text" id="modalUnitName" placeholder="Ej: Unidad 1" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Calificación (0-100)</label>
+                            <input type="number" id="modalScore" min="0" max="100" placeholder="85" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="addGradeBtn" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-semibold py-2.5 rounded-lg transition">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                    <div id="modalGradeError" class="hidden mt-3 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded text-sm"></div>
+                    <div id="modalGradeSuccess" class="hidden mt-3 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded text-sm"></div>
+                </div>
+                <div class="bg-white rounded-lg border border-gray-200">
+                    <div class="px-4 py-3 bg-gray-50 border-b">
+                        <h3 class="text-lg font-bold text-gray-800">Historial de Calificaciones</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">#</th>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Grupo</th>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Unidad</th>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Calificación</th>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Profesor</th>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Fecha</th>
+                                    <th class="px-4 py-2 text-left text-sm font-semibold text-gray-600">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalGradesTable">
+                                <tr>
+                                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">No hay calificaciones registradas</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-3 gap-4 mt-6">
+                    <div class="bg-white rounded-lg p-4 border-l-4 border-blue-600 shadow-sm">
+                        <p class="text-sm font-semibold text-gray-700">Total Calificaciones</p>
+                        <p id="modalTotalGrades" class="text-2xl font-bold text-blue-600">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border-l-4 border-green-600 shadow-sm">
+                        <p class="text-sm font-semibold text-gray-700">Promedio</p>
+                        <p id="modalAverageGrade" class="text-2xl font-bold text-green-600">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border-l-4 border-yellow-600 shadow-sm">
+                        <p class="text-sm font-semibold text-gray-700">Grupos Evaluados</p>
+                        <p id="modalGroupsCount" class="text-2xl font-bold text-yellow-600">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación de Cierre de Sesión -->
+    <div id="logoutConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 transform transition-all animate-fadeIn">
+            <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-500 to-red-600 rounded-full mx-auto mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 text-center mb-3">¿Estás seguro?</h3>
+            <p class="text-gray-600 text-center mb-6">Estás a punto de cerrar sesión. Tendrás que volver a iniciar sesión para acceder al panel de administración.</p>
+            <div class="flex gap-3">
+                <button id="cancelLogoutBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105">
+                    Cancelar
+                </button>
+                <button id="confirmLogoutBtn" class="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                    Sí, cerrar sesión
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/theme-toggle.js"></script>
+    <script type="module" src="js/global-ui.js"></script>
+    
+    <!-- Script para funcionalidad de Crear Curso -->
+    <script>
+        let stepCounter = 1;
+
+        // Función para extraer ID de video de YouTube
+        function getYouTubeVideoId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // Función para crear un nuevo paso
+        function createNewStep() {
+            stepCounter++;
+            const stepHTML = `
+                <div class="course-step bg-gray-100 p-6 rounded-lg space-y-4 border border-gray-300">
+                    <input type="text" placeholder="Paso ${stepCounter}: Título"
+                        class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent step-title">
+                    
+                    <input type="url" placeholder="URL de YouTube"
+                        class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent step-url">
+                    
+                    <div class="video-preview bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
+                        <svg class="w-16 h-16 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            `;
+            return stepHTML;
+        }
+
+        // Event Listeners cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Referencias al modal
+            const showCreateCourseBtn = document.getElementById('showCreateCourseBtn');
+            const createCourseModal = document.getElementById('createCourseModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            
+            // Abrir modal
+            if (showCreateCourseBtn) {
+                showCreateCourseBtn.addEventListener('click', function() {
+                    createCourseModal.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden'; // Prevenir scroll del fondo
+                });
+            }
+
+            // Cerrar modal con botón X
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', function() {
+                    createCourseModal.classList.add('hidden');
+                    document.body.style.overflow = ''; // Restaurar scroll
+                });
+            }
+
+            // Cerrar modal al hacer clic fuera del contenido
+            if (createCourseModal) {
+                createCourseModal.addEventListener('click', function(e) {
+                    if (e.target === createCourseModal) {
+                        createCourseModal.classList.add('hidden');
+                        document.body.style.overflow = ''; // Restaurar scroll
+                    }
+                });
+            }
+
+            // Cerrar modal con tecla ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !createCourseModal.classList.contains('hidden')) {
+                    createCourseModal.classList.add('hidden');
+                    document.body.style.overflow = ''; // Restaurar scroll
+                }
+            });
+
+            // Botón cancelar
+            const cancelCourseBtn = document.getElementById('cancelCourseBtn');
+            if (cancelCourseBtn) {
+                cancelCourseBtn.addEventListener('click', function() {
+                    createCourseModal.classList.add('hidden');
+                    document.body.style.overflow = ''; // Restaurar scroll
+                });
+            }
+
+            // Botón para agregar más pasos
+            const addStepBtn = document.getElementById('addStepBtn');
+            if (addStepBtn) {
+                addStepBtn.addEventListener('click', function() {
+                    const container = document.getElementById('courseStepsContainer');
+                    const newStepDiv = document.createElement('div');
+                    newStepDiv.innerHTML = createNewStep();
+                    container.appendChild(newStepDiv.firstElementChild);
+                    attachStepEventListeners();
+                });
+            }
+
+            // Botón de upload de imagen
+            const uploadImageBtn = document.getElementById('uploadImageBtn');
+            const courseImageInput = document.getElementById('courseImage');
+            if (uploadImageBtn && courseImageInput) {
+                uploadImageBtn.addEventListener('click', function() {
+                    courseImageInput.click();
+                });
+            }
+
+            // Manejar vista previa de URLs de YouTube
+            function attachStepEventListeners() {
+                const urlInputs = document.querySelectorAll('.step-url');
+                urlInputs.forEach(input => {
+                    input.removeEventListener('input', handleUrlInput);
+                    input.addEventListener('input', handleUrlInput);
+                });
+            }
+
+            function handleUrlInput(e) {
+                const url = e.target.value;
+                const videoId = getYouTubeVideoId(url);
+                const preview = e.target.closest('.course-step').querySelector('.video-preview');
+                
+                if (videoId && preview) {
+                    preview.innerHTML = `
+                        <iframe 
+                            width="100%" 
+                            height="100%" 
+                            src="https://www.youtube.com/embed/${videoId}" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    `;
+                } else if (preview) {
+                    preview.innerHTML = `
+                        <svg class="w-16 h-16 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    `;
+                }
+            }
+
+            // Inicializar event listeners para el primer paso
+            attachStepEventListeners();
+
+            // Array para almacenar cursos (en producción vendría de Firebase)
+            let courses = [];
+
+            // Función para renderizar la tarjeta de un curso
+            function renderCourse(courseData) {
+                const levelColors = {
+                    'principiante': 'bg-green-100 text-green-700',
+                    'intermedio': 'bg-yellow-100 text-yellow-700',
+                    'dificil': 'bg-red-100 text-red-700'
+                };
+
+                const levelNames = {
+                    'principiante': 'Principiante',
+                    'intermedio': 'Intermedio',
+                    'dificil': 'Difícil'
+                };
+
+                return `
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all duration-300 hover:shadow-2xl transform hover:scale-105">
+                        <div class="bg-gradient-to-br from-purple-500 to-purple-700 h-48 flex items-center justify-center">
+                            <svg class="w-20 h-20 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <div class="p-6">
+                            <div class="flex items-start justify-between mb-3">
+                                <h3 class="text-xl font-bold text-gray-900">${courseData.name}</h3>
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold ${levelColors[courseData.level]}">${levelNames[courseData.level]}</span>
+                            </div>
+                            <p class="text-gray-600 text-sm mb-4 line-clamp-2">${courseData.description}</p>
+                            <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                                <div class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    ${courseData.duration}
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path>
+                                    </svg>
+                                    ${courseData.steps.length} pasos
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="editCourse(${courseData.id})" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                                    Editar
+                                </button>
+                                <button onclick="deleteCourse(${courseData.id})" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition">
+                                    Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Función para mostrar todos los cursos
+            function displayCourses() {
+                const coursesList = document.getElementById('coursesList');
+                if (courses.length === 0) {
+                    coursesList.innerHTML = `
+                        <div class="col-span-full text-center py-20">
+                            <svg class="w-20 h-20 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                            <h3 class="text-xl font-semibold text-gray-600 mb-2">No hay cursos creados</h3>
+                            <p class="text-gray-500">Comienza creando tu primer curso</p>
+                        </div>
+                    `;
+                } else {
+                    coursesList.innerHTML = courses.map(course => renderCourse(course)).join('');
+                }
+            }
+
+            // Función para eliminar un curso
+            window.deleteCourse = function(courseId) {
+                if (confirm('¿Estás seguro de que deseas eliminar este curso?')) {
+                    courses = courses.filter(course => course.id !== courseId);
+                    displayCourses();
+                    alert('✅ Curso eliminado exitosamente');
+                }
+            };
+
+            // Función para editar un curso
+            window.editCourse = function(courseId) {
+                const course = courses.find(c => c.id === courseId);
+                if (!course) return;
+
+                // Llenar el formulario con los datos del curso
+                document.getElementById('courseName').value = course.name;
+                document.getElementById('courseDescription').value = course.description;
+                document.getElementById('courseDuration').value = course.duration;
+                document.querySelector(`input[name="courseLevel"][value="${course.level}"]`).checked = true;
+
+                // Limpiar pasos existentes
+                const stepsContainer = document.getElementById('courseStepsContainer');
+                stepsContainer.innerHTML = '';
+
+                // Agregar pasos del curso
+                course.steps.forEach((step, index) => {
+                    const stepHTML = `
+                        <div class="course-step border-2 border-gray-200 rounded-xl p-4 bg-gray-50">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-bold text-gray-900">Paso ${index + 1}</h4>
+                                ${index > 0 ? '<button type="button" class="remove-step text-red-500 hover:text-red-700"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>' : ''}
+                            </div>
+                            <div class="space-y-3">
+                                <input type="text" placeholder="Título del paso" value="${step.title}"
+                                    class="step-title w-full px-4 py-2 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                <input type="url" placeholder="URL del video de YouTube" value="${step.videoUrl}"
+                                    class="step-url w-full px-4 py-2 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                <div class="video-preview bg-gray-200 rounded-lg h-40 flex flex-col items-center justify-center">
+                                    ${step.videoUrl ? `<iframe class="w-full h-full rounded-lg" src="https://www.youtube.com/embed/${getYouTubeVideoId(step.videoUrl)}" frameborder="0" allowfullscreen></iframe>` : `
+                                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <p class="text-gray-500 text-sm mt-2">Vista previa del video</p>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    stepsContainer.insertAdjacentHTML('beforeend', stepHTML);
+                });
+
+                // Reattach event listeners
+                attachStepEventListeners();
+
+                // Cambiar el comportamiento del formulario para actualizar en lugar de crear
+                const form = document.getElementById('createCourseForm');
+                form.dataset.editingId = courseId;
+
+                // Abrir el modal
+                createCourseModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            };
+
+            // Manejar envío del formulario
+            const createCourseForm = document.getElementById('createCourseForm');
+            if (createCourseForm) {
+                createCourseForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const editingId = createCourseForm.dataset.editingId;
+                    
+                    // Recopilar datos del formulario
+                    const courseData = {
+                        id: editingId ? parseInt(editingId) : Date.now(),
+                        name: document.getElementById('courseName').value,
+                        description: document.getElementById('courseDescription').value,
+                        duration: document.getElementById('courseDuration').value,
+                        level: document.querySelector('input[name="courseLevel"]:checked').value,
+                        steps: []
+                    };
+
+                    // Recopilar pasos
+                    const steps = document.querySelectorAll('.course-step');
+                    steps.forEach((step, index) => {
+                        const title = step.querySelector('.step-title').value;
+                        const url = step.querySelector('.step-url').value;
+                        if (title && url) {
+                            courseData.steps.push({
+                                number: index + 1,
+                                title: title,
+                                videoUrl: url
+                            });
+                        }
+                    });
+
+                    if (editingId) {
+                        // Actualizar curso existente
+                        const index = courses.findIndex(c => c.id === parseInt(editingId));
+                        if (index !== -1) {
+                            courses[index] = courseData;
+                        }
+                        alert('✅ Curso actualizado exitosamente');
+                        delete createCourseForm.dataset.editingId;
+                    } else {
+                        // Agregar nuevo curso
+                        courses.push(courseData);
+                        alert('✅ Curso creado exitosamente');
+                    }
+                    
+                    // Mostrar cursos actualizados
+                    displayCourses();
+
+                    console.log('Curso guardado:', courseData);
+                    
+                    // Cerrar modal y resetear formulario
+                    createCourseModal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                    createCourseForm.reset();
+                    
+                    // Limpiar pasos adicionales (dejar solo el primero)
+                    const stepsContainer = document.getElementById('courseStepsContainer');
+                    const allSteps = stepsContainer.querySelectorAll('.course-step');
+                    for (let i = 1; i < allSteps.length; i++) {
+                        allSteps[i].remove();
+                    }
+                    
+                    // Limpiar el primer paso
+                    const firstStepTitle = document.querySelector('.step-title');
+                    const firstStepUrl = document.querySelector('.step-url');
+                    const firstVideoPreview = document.querySelector('.video-preview');
+                    
+                    if (firstStepTitle) firstStepTitle.value = '';
+                    if (firstStepUrl) firstStepUrl.value = '';
+                    if (firstVideoPreview) {
+                        firstVideoPreview.innerHTML = `
+                            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p class="text-gray-500 text-sm mt-2">Vista previa del video</p>
+                        `;
+                    }
+                });
+            }
+
+            // Cargar cursos al inicio
+            displayCourses();
+
+            // =====================================================
+            // SISTEMA DE MAESTROS DE SERVICIO SOCIAL
+            // =====================================================
+
+            // Función para calcular el tiempo trabajado entre dos fechas
+            function calculateTimeWorked(startDate, currentDate) {
+                const start = new Date(startDate);
+                const current = new Date(currentDate);
+                
+                let years = current.getFullYear() - start.getFullYear();
+                let months = current.getMonth() - start.getMonth();
+                let days = current.getDate() - start.getDate();
+                
+                if (days < 0) {
+                    months--;
+                    const prevMonth = new Date(current.getFullYear(), current.getMonth(), 0);
+                    days += prevMonth.getDate();
+                }
+                
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+                
+                let result = [];
+                if (years > 0) result.push(`${years} año${years > 1 ? 's' : ''}`);
+                if (months > 0) result.push(`${months} mes${months > 1 ? 'es' : ''}`);
+                if (days > 0) result.push(`${days} día${days > 1 ? 's' : ''}`);
+                
+                return result.join(', ') || '0 días';
+            }
+
+            // Función para calcular días restantes
+            function calculateDaysRemaining(endDate) {
+                const end = new Date(endDate);
+                const today = new Date();
+                const diffTime = end - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays;
+            }
+
+            // Función para calcular el porcentaje de progreso
+            function calculateProgress(startDate, endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                const today = new Date();
+                
+                const totalTime = end - start;
+                const elapsedTime = today - start;
+                
+                const percentage = Math.min(100, Math.max(0, (elapsedTime / totalTime) * 100));
+                return Math.round(percentage);
+            }
+
+            // Función para actualizar una fila de maestro
+            function updateTeacherRow(row) {
+                const startDateInput = row.querySelector('.start-date');
+                const endDateInput = row.querySelector('.end-date');
+                const timeWorkedSpan = row.querySelector('.time-worked');
+                const progressBar = row.querySelector('.progress-bar');
+                const progressPercentage = row.querySelector('.progress-percentage');
+                const daysRemainingDiv = row.querySelector('.days-remaining');
+                const alertIcon = row.querySelector('.alert-icon');
+                
+                if (!startDateInput || !endDateInput) return;
+                
+                const startDate = startDateInput.value;
+                const endDate = endDateInput.value;
+                
+                if (!startDate || !endDate) return;
+                
+                // Calcular tiempo trabajado
+                const timeWorked = calculateTimeWorked(startDate, new Date());
+                timeWorkedSpan.textContent = timeWorked;
+                
+                // Calcular progreso
+                const progress = calculateProgress(startDate, endDate);
+                progressBar.style.width = `${progress}%`;
+                progressPercentage.textContent = `${progress}%`;
+                
+                // Calcular días restantes
+                const daysRemaining = calculateDaysRemaining(endDate);
+                
+                // Cambiar color según días restantes
+                if (daysRemaining <= 15 && daysRemaining >= 0) {
+                    // Alerta naranja - faltan 15 días o menos
+                    progressBar.classList.remove('bg-green-500', 'bg-red-500');
+                    progressBar.classList.add('bg-orange-500');
+                    progressPercentage.classList.remove('text-green-600', 'text-red-600');
+                    progressPercentage.classList.add('text-orange-600');
+                    
+                    if (alertIcon) alertIcon.style.display = 'block';
+                    if (daysRemainingDiv) {
+                        daysRemainingDiv.style.display = 'block';
+                        daysRemainingDiv.textContent = `⚠️ Faltan ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''} para terminar`;
+                        daysRemainingDiv.classList.remove('text-green-600', 'text-red-600');
+                        daysRemainingDiv.classList.add('text-orange-600');
+                    }
+                } else if (daysRemaining < 0) {
+                    // Rojo - ya terminó
+                    progressBar.classList.remove('bg-green-500', 'bg-orange-500');
+                    progressBar.classList.add('bg-red-500');
+                    progressPercentage.classList.remove('text-green-600', 'text-orange-600');
+                    progressPercentage.classList.add('text-red-600');
+                    
+                    if (alertIcon) alertIcon.style.display = 'block';
+                    if (daysRemainingDiv) {
+                        daysRemainingDiv.style.display = 'block';
+                        daysRemainingDiv.textContent = `🔴 Servicio terminado hace ${Math.abs(daysRemaining)} día${Math.abs(daysRemaining) !== 1 ? 's' : ''}`;
+                        daysRemainingDiv.classList.remove('text-green-600', 'text-orange-600');
+                        daysRemainingDiv.classList.add('text-red-600');
+                    }
+                } else {
+                    // Verde - todo bien
+                    progressBar.classList.remove('bg-orange-500', 'bg-red-500');
+                    progressBar.classList.add('bg-green-500');
+                    progressPercentage.classList.remove('text-orange-600', 'text-red-600');
+                    progressPercentage.classList.add('text-green-600');
+                    
+                    if (alertIcon) alertIcon.style.display = 'none';
+                    if (daysRemainingDiv) {
+                        daysRemainingDiv.style.display = 'block';
+                        daysRemainingDiv.textContent = `✅ Faltan ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''} para terminar`;
+                        daysRemainingDiv.classList.remove('text-orange-600', 'text-red-600');
+                        daysRemainingDiv.classList.add('text-green-600');
+                    }
+                }
+            }
+
+            // Actualizar todas las filas de maestros
+            function updateAllTeachers() {
+                const rows = document.querySelectorAll('#serviceTeachersTableBody tr');
+                rows.forEach(row => updateTeacherRow(row));
+            }
+
+            // Event listeners para los inputs de fecha
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('start-date') || e.target.classList.contains('end-date')) {
+                    const row = e.target.closest('tr');
+                    if (row) updateTeacherRow(row);
+                }
+            });
+
+            // =====================================================
+            // SISTEMA DE MODAL DE ASISTENCIAS
+            // =====================================================
+
+            // Datos de ejemplo para asistencias de cada maestro
+            const attendanceData = {
+                'Ana López': [
+                    { date: '12/10/2023', day: 'Jueves', entry: '09:00 AM', exit: '02:00 PM', status: 'presente' },
+                    { date: '11/10/2023', day: 'Miércoles', entry: '09:15 AM', exit: '02:00 PM', status: 'retardo' },
+                    { date: '10/10/2023', day: 'Martes', entry: '-', exit: '-', status: 'falta' },
+                    { date: '09/10/2023', day: 'Lunes', entry: '09:00 AM', exit: '02:00 PM', status: 'presente' },
+                    { date: '06/10/2023', day: 'Viernes', entry: '08:58 AM', exit: '02:05 PM', status: 'presente' },
+                    { date: '05/10/2023', day: 'Jueves', entry: '09:20 AM', exit: '02:00 PM', status: 'retardo' },
+                ],
+                'Carlos Ruiz': [
+                    { date: '12/10/2023', day: 'Jueves', entry: '09:00 AM', exit: '02:00 PM', status: 'presente' },
+                    { date: '11/10/2023', day: 'Miércoles', entry: '09:00 AM', exit: '02:00 PM', status: 'presente' },
+                    { date: '10/10/2023', day: 'Martes', entry: '09:10 AM', exit: '02:00 PM', status: 'retardo' },
+                    { date: '09/10/2023', day: 'Lunes', entry: '09:00 AM', exit: '02:00 PM', status: 'presente' },
+                    { date: '06/10/2023', day: 'Viernes', entry: '-', exit: '-', status: 'falta' },
+                ]
+            };
+
+            // Función para renderizar una fila de asistencia
+            function renderAttendanceRow(record) {
+                const statusConfig = {
+                    'presente': {
+                        bgColor: 'bg-green-100',
+                        textColor: 'text-green-700',
+                        icon: `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>`,
+                        label: 'Presente'
+                    },
+                    'retardo': {
+                        bgColor: 'bg-orange-100',
+                        textColor: 'text-orange-700',
+                        icon: `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                            </svg>`,
+                        label: 'Retardo'
+                    },
+                    'falta': {
+                        bgColor: 'bg-red-100',
+                        textColor: 'text-red-700',
+                        icon: `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>`,
+                        label: 'Falta'
+                    }
+                };
+
+                const config = statusConfig[record.status] || statusConfig['presente'];
+                const entryColor = record.entry === '-' ? 'text-gray-400' : 'text-gray-700';
+                const exitColor = record.exit === '-' ? 'text-gray-400' : 'text-gray-700';
+
+                return `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-4 py-3 text-gray-800 font-medium">${record.date}</td>
+                        <td class="px-4 py-3 text-gray-600">${record.day}</td>
+                        <td class="px-4 py-3 ${entryColor}">${record.entry}</td>
+                        <td class="px-4 py-3 ${exitColor}">${record.exit}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${config.bgColor} ${config.textColor}">
+                                ${config.icon}
+                                ${config.label}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            // Función para abrir el modal de asistencias
+            function openAttendanceModal(teacherName) {
+                const modal = document.getElementById('attendanceModal');
+                const modalTitle = document.getElementById('attendanceModalTitle');
+                const tableBody = document.getElementById('attendanceTableBody');
+
+                // Actualizar título
+                modalTitle.textContent = `Historial de Asistencias: ${teacherName}`;
+
+                // Obtener datos de asistencia del maestro
+                const records = attendanceData[teacherName] || [];
+
+                if (records.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                <div class="flex flex-col items-center gap-2">
+                                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <p class="text-sm">No hay registros de asistencia para este maestro</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tableBody.innerHTML = records.map(record => renderAttendanceRow(record)).join('');
+                }
+
+                // Mostrar modal
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+
+            // Función para cerrar el modal de asistencias
+            function closeAttendanceModal() {
+                const modal = document.getElementById('attendanceModal');
+                const form = document.getElementById('newAttendanceForm');
+                modal.classList.add('hidden');
+                form.style.display = 'none'; // Ocultar formulario al cerrar
+                document.body.style.overflow = '';
+            }
+
+            // Variable para guardar el nombre del maestro actual en el modal
+            let currentTeacherInModal = '';
+
+            // Función para abrir el modal de asistencias
+            function openAttendanceModal(teacherName) {
+                const modal = document.getElementById('attendanceModal');
+                const modalTitle = document.getElementById('attendanceModalTitle');
+                const tableBody = document.getElementById('attendanceTableBody');
+                const form = document.getElementById('newAttendanceForm');
+
+                // Guardar el nombre del maestro actual
+                currentTeacherInModal = teacherName;
+
+                // Ocultar formulario al abrir
+                form.style.display = 'none';
+
+                // Actualizar título
+                modalTitle.textContent = `Historial de Asistencias: ${teacherName}`;
+
+                // Obtener datos de asistencia del maestro
+                const records = attendanceData[teacherName] || [];
+
+                if (records.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                <div class="flex flex-col items-center gap-2">
+                                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <p class="text-sm">No hay registros de asistencia para este maestro</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tableBody.innerHTML = records.map(record => renderAttendanceRow(record)).join('');
+                }
+
+                // Mostrar modal
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+
+                // Establecer fecha actual en el formulario
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('newAttendanceDate').value = today;
+            }
+
+            // Función para obtener el nombre del día de la semana en español
+            function getDayName(dateString) {
+                const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                const date = new Date(dateString + 'T00:00:00');
+                return days[date.getDay()];
+            }
+
+            // Función para formatear hora
+            function formatTime(timeString) {
+                if (!timeString) return '-';
+                const [hours, minutes] = timeString.split(':');
+                const hour = parseInt(hours);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const hour12 = hour % 12 || 12;
+                return `${hour12.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+            }
+
+            // Toggle del formulario de nueva asistencia
+            document.getElementById('toggleAttendanceFormBtn')?.addEventListener('click', function() {
+                const form = document.getElementById('newAttendanceForm');
+                if (form.style.display === 'none' || form.style.display === '') {
+                    form.style.display = 'block';
+                    this.innerHTML = `
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Ocultar Formulario
+                    `;
+                } else {
+                    form.style.display = 'none';
+                    this.innerHTML = `
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Pasar Asistencia
+                    `;
+                }
+            });
+
+            // Cancelar nueva asistencia
+            document.getElementById('cancelNewAttendanceBtn')?.addEventListener('click', function() {
+                const form = document.getElementById('newAttendanceForm');
+                const toggleBtn = document.getElementById('toggleAttendanceFormBtn');
+                form.style.display = 'none';
+                document.getElementById('attendanceRegistrationForm').reset();
+                
+                // Restablecer fecha actual
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('newAttendanceDate').value = today;
+                
+                // Restablecer botón toggle
+                toggleBtn.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Pasar Asistencia
+                `;
+            });
+
+            // Manejar el envío del formulario de nueva asistencia
+            document.getElementById('attendanceRegistrationForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const date = document.getElementById('newAttendanceDate').value;
+                const entry = document.getElementById('newAttendanceEntry').value;
+                const exit = document.getElementById('newAttendanceExit').value;
+                const status = document.getElementById('newAttendanceStatus').value;
+
+                // Formatear fecha para mostrar (dd/mm/yyyy)
+                const [year, month, day] = date.split('-');
+                const formattedDate = `${day}/${month}/${year}`;
+
+                // Obtener día de la semana
+                const dayName = getDayName(date);
+
+                // Crear nuevo registro
+                const newRecord = {
+                    date: formattedDate,
+                    day: dayName,
+                    entry: entry ? formatTime(entry) : '-',
+                    exit: exit ? formatTime(exit) : '-',
+                    status: status
+                };
+
+                // Agregar al array de datos del maestro actual
+                if (!attendanceData[currentTeacherInModal]) {
+                    attendanceData[currentTeacherInModal] = [];
+                }
+                attendanceData[currentTeacherInModal].unshift(newRecord); // Agregar al inicio
+
+                // Actualizar la tabla
+                const tableBody = document.getElementById('attendanceTableBody');
+                tableBody.innerHTML = attendanceData[currentTeacherInModal].map(record => renderAttendanceRow(record)).join('');
+
+                // Resetear formulario
+                this.reset();
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('newAttendanceDate').value = today;
+
+                // Ocultar formulario
+                const form = document.getElementById('newAttendanceForm');
+                form.style.display = 'none';
+
+                // Restablecer botón toggle
+                const toggleBtn = document.getElementById('toggleAttendanceFormBtn');
+                toggleBtn.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Pasar Asistencia
+                `;
+
+                // Mostrar mensaje de éxito
+                alert('✅ Asistencia registrada exitosamente');
+            });
+
+            // Event listeners para botones de ver asistencias
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('view-attendance-btn') || e.target.closest('.view-attendance-btn')) {
+                    const btn = e.target.classList.contains('view-attendance-btn') ? e.target : e.target.closest('.view-attendance-btn');
+                    const row = btn.closest('tr');
+                    const teacherNameElement = row.querySelector('.font-semibold');
+                    let teacherName = 'Maestro';
+                    
+                    // Verificar si es un input (nuevo maestro) o span (maestro existente)
+                    if (teacherNameElement) {
+                        if (teacherNameElement.tagName === 'INPUT') {
+                            teacherName = teacherNameElement.value || 'Maestro sin nombre';
+                        } else {
+                            teacherName = teacherNameElement.textContent || 'Maestro';
+                        }
+                    }
+                    
+                    openAttendanceModal(teacherName);
+                }
+            });
+
+            // Event listeners para cerrar el modal
+            document.getElementById('closeAttendanceModalBtn')?.addEventListener('click', closeAttendanceModal);
+            document.getElementById('closeAttendanceModalFooterBtn')?.addEventListener('click', closeAttendanceModal);
+
+            // Cerrar modal al hacer clic fuera de él
+            document.getElementById('attendanceModal')?.addEventListener('click', function(e) {
+                if (e.target.id === 'attendanceModal') {
+                    closeAttendanceModal();
+                }
+            });
+
+            // Cerrar modal con tecla ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const modal = document.getElementById('attendanceModal');
+                    if (modal && !modal.classList.contains('hidden')) {
+                        closeAttendanceModal();
+                    }
+                }
+            });
+
+            // Botón para agregar nuevo maestro (ahora abre modal de selección)
+            document.getElementById('addServiceTeacherBtn')?.addEventListener('click', function() {
+                openSelectTeacherModal();
+            });
+
+            // =====================================================
+            // MODAL DE SELECCIÓN DE PROFESORES
+            // =====================================================
+
+            let allTeachersFromDB = [];
+
+            // Función para abrir el modal de selección de profesores
+            async function openSelectTeacherModal() {
+                const modal = document.getElementById('selectTeacherModal');
+                const teachersList = document.getElementById('teachersList');
+                
+                // Mostrar modal
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+
+                // Mostrar loader
+                teachersList.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-600 border-t-transparent"></div>
+                        <p class="text-gray-600 mt-3">Cargando profesores...</p>
+                    </div>
+                `;
+
+                try {
+                    // Obtener profesores de Firestore
+                    const usersRef = window.db.collection('users');
+                    const snapshot = await usersRef.where('role', '==', 'profesor').get();
+                    
+                    allTeachersFromDB = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        allTeachersFromDB.push({
+                            id: doc.id,
+                            name: data.displayName || data.nombre || 'Sin nombre',
+                            email: data.email || 'Sin email',
+                            ...data
+                        });
+                    });
+
+                    displayTeachersList(allTeachersFromDB);
+                } catch (error) {
+                    console.error('Error al cargar profesores:', error);
+                    teachersList.innerHTML = `
+                        <div class="text-center py-8 text-red-600">
+                            <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p>Error al cargar profesores</p>
+                            <p class="text-sm text-gray-600 mt-2">${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // Función para mostrar la lista de profesores
+            function displayTeachersList(teachers) {
+                const teachersList = document.getElementById('teachersList');
+
+                if (teachers.length === 0) {
+                    teachersList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                            <p>No se encontraron profesores</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                teachersList.innerHTML = teachers.map(teacher => `
+                    <div class="teacher-card flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all cursor-pointer" data-teacher-id="${teacher.id}" data-teacher-name="${teacher.name}" data-teacher-email="${teacher.email}">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800">${teacher.name}</h4>
+                                <p class="text-sm text-gray-600">${teacher.email}</p>
+                            </div>
+                        </div>
+                        <button class="select-teacher-btn bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                            Seleccionar
+                        </button>
+                    </div>
+                `).join('');
+
+                // Agregar event listeners a las tarjetas
+                document.querySelectorAll('.teacher-card').forEach(card => {
+                    card.addEventListener('click', function(e) {
+                        if (e.target.closest('.select-teacher-btn')) {
+                            const teacherId = this.dataset.teacherId;
+                            const teacherName = this.dataset.teacherName;
+                            const teacherEmail = this.dataset.teacherEmail;
+                            selectTeacherForService(teacherId, teacherName, teacherEmail);
+                        }
+                    });
+                });
+            }
+
+            // Función para agregar un profesor a la tabla de servicio social
+            function selectTeacherForService(teacherId, teacherName, teacherEmail) {
+                const tbody = document.getElementById('serviceTeachersTableBody');
+                
+                // Verificar si el profesor ya está en la lista
+                const existingRows = tbody.querySelectorAll('tr');
+                for (let row of existingRows) {
+                    const nameElement = row.querySelector('.font-semibold');
+                    if (nameElement && nameElement.textContent === teacherName) {
+                        alert('⚠️ Este profesor ya está en la lista de servicio social');
+                        return;
+                    }
+                }
+
+                // Crear nueva fila con el profesor seleccionado
+                const newRow = document.createElement('tr');
+                newRow.className = 'border-b border-gray-100 hover:bg-gray-50 transition';
+                newRow.dataset.teacherId = teacherId;
+                newRow.innerHTML = `
+                    <td class="px-4 py-4">
+                        <div class="font-semibold text-gray-800">${teacherName}</div>
+                        <div class="text-xs text-gray-500">${teacherEmail}</div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <div class="flex items-center gap-2">
+                            <input type="date" class="start-date px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <div class="flex items-center gap-2">
+                            <input type="date" class="end-date px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm">
+                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <span class="time-worked text-gray-700 font-medium">-</span>
+                    </td>
+                    <td class="px-4 py-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1">
+                                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                        <div class="progress-bar bg-green-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <span class="progress-percentage text-sm font-semibold text-green-600">0%</span>
+                                <svg class="w-5 h-5 text-orange-500 alert-icon" style="display: none;" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="text-xs text-green-600 font-semibold days-remaining" style="display: none;"></div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <div class="flex gap-2">
+                            <button class="view-attendance-btn bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg font-semibold transition text-sm">
+                                Ver Asistencias
+                            </button>
+                            <button class="remove-teacher-btn bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg font-semibold transition text-sm">
+                                Eliminar
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <button class="generate-certificate-btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition text-sm flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Generar
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(newRow);
+
+                // Agregar event listener para el botón de eliminar
+                newRow.querySelector('.remove-teacher-btn').addEventListener('click', function() {
+                    if (confirm('¿Estás seguro de que deseas eliminar a este maestro de la lista de servicio social?')) {
+                        newRow.remove();
+                    }
+                });
+
+                // Cerrar modal
+                closeSelectTeacherModal();
+
+                // Mostrar mensaje de éxito
+                alert(`✅ ${teacherName} agregado a la lista de servicio social`);
+            }
+
+            // Función para cerrar el modal de selección
+            function closeSelectTeacherModal() {
+                const modal = document.getElementById('selectTeacherModal');
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+                document.getElementById('searchTeacherInput').value = '';
+            }
+
+            // =====================================================
+            // GENERAR CONSTANCIA DE SERVICIO SOCIAL
+            // =====================================================
+
+            // Event listener para botones de generar constancia
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('generate-certificate-btn') || e.target.closest('.generate-certificate-btn')) {
+                    const btn = e.target.classList.contains('generate-certificate-btn') ? e.target : e.target.closest('.generate-certificate-btn');
+                    const row = btn.closest('tr');
+                    
+                    // Obtener datos del profesor
+                    const teacherNameElement = row.querySelector('.font-semibold');
+                    const startDateInput = row.querySelector('.start-date');
+                    const endDateInput = row.querySelector('.end-date');
+                    const timeWorked = row.querySelector('.time-worked');
+                    
+                    let teacherName = 'Profesor';
+                    if (teacherNameElement) {
+                        teacherName = teacherNameElement.textContent || 'Profesor';
+                    }
+                    
+                    const startDate = startDateInput?.value || 'No especificado';
+                    const endDate = endDateInput?.value || 'No especificado';
+                    const serviceDuration = timeWorked?.textContent || '-';
+                    
+                    // Validar que tenga fechas
+                    if (!startDateInput?.value || !endDateInput?.value) {
+                        alert('⚠️ Por favor, completa las fechas de inicio y finalización antes de generar la constancia.');
+                        return;
+                    }
+                    
+                    // Abrir modal de confirmación
+                    openCertificateConfirmModal(teacherName, startDate, endDate, serviceDuration);
+                }
+            });
+
+            // Variables para el modal de confirmación
+            let pendingCertificateData = null;
+
+            // Función para abrir el modal de confirmación de constancia
+            function openCertificateConfirmModal(teacherName, startDate, endDate, serviceDuration) {
+                pendingCertificateData = { teacherName, startDate, endDate, serviceDuration };
+                
+                const modal = document.getElementById('confirmCertificateModal');
+                document.getElementById('certificateConfirmQuestion').textContent = `¿Deseas generar la constancia de servicio social para ${teacherName}?`;
+                document.getElementById('confirmStartDate').textContent = startDate;
+                document.getElementById('confirmEndDate').textContent = endDate;
+                document.getElementById('confirmServiceDuration').textContent = serviceDuration;
+                
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+
+            // Función para cerrar el modal de confirmación
+            function closeCertificateModal() {
+                const modal = document.getElementById('confirmCertificateModal');
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+                pendingCertificateData = null;
+            }
+
+            // Función para confirmar y generar la constancia
+            function confirmGenerateCertificate() {
+                if (pendingCertificateData) {
+                    const { teacherName, startDate, endDate, serviceDuration } = pendingCertificateData;
+                    closeCertificateModal();
+                    generateCertificate(teacherName, startDate, endDate, serviceDuration);
+                }
+            }
+
+            // Función para generar la constancia (PDF)
+            function generateCertificate(teacherName, startDate, endDate, serviceDuration) {
+                // Mostrar mensaje de generación
+                const loadingMsg = document.createElement('div');
+                loadingMsg.className = 'fixed top-4 right-4 bg-purple-600 text-white px-6 py-4 rounded-lg shadow-2xl z-[10000] flex items-center gap-3';
+                loadingMsg.innerHTML = `
+                    <div class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    <span class="font-semibold">Generando constancia...</span>
+                `;
+                document.body.appendChild(loadingMsg);
+
+                // Simular generación (aquí integrarías con una librería de PDF como jsPDF)
+                setTimeout(() => {
+                    loadingMsg.remove();
+                    
+                    // Formatear fechas para mostrar
+                    const startFormatted = new Date(startDate + 'T00:00:00').toLocaleDateString('es-MX', { 
+                        day: 'numeric', 
+                        month: 'long', 
+                        year: 'numeric' 
+                    });
+                    const endFormatted = new Date(endDate + 'T00:00:00').toLocaleDateString('es-MX', { 
+                        day: 'numeric', 
+                        month: 'long', 
+                        year: 'numeric' 
+                    });
+                    
+                    // Crear ventana con vista previa de la constancia
+                    const printWindow = window.open('', '_blank', 'width=800,height=600');
+                    printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>Constancia de Servicio Social - ${teacherName}</title>
+                            <style>
+                                body {
+                                    font-family: 'Times New Roman', serif;
+                                    padding: 60px;
+                                    max-width: 800px;
+                                    margin: 0 auto;
+                                    line-height: 1.8;
+                                }
+                                .header {
+                                    text-align: center;
+                                    margin-bottom: 50px;
+                                }
+                                .logo {
+                                    font-size: 32px;
+                                    font-weight: bold;
+                                    color: #7c3aed;
+                                    margin-bottom: 10px;
+                                }
+                                .title {
+                                    font-size: 28px;
+                                    font-weight: bold;
+                                    text-transform: uppercase;
+                                    margin: 30px 0;
+                                    border-top: 3px solid #7c3aed;
+                                    border-bottom: 3px solid #7c3aed;
+                                    padding: 15px 0;
+                                }
+                                .content {
+                                    text-align: justify;
+                                    font-size: 16px;
+                                    margin: 30px 0;
+                                }
+                                .teacher-name {
+                                    font-weight: bold;
+                                    text-transform: uppercase;
+                                    text-decoration: underline;
+                                }
+                                .footer {
+                                    margin-top: 80px;
+                                    text-align: center;
+                                }
+                                .signature {
+                                    margin-top: 60px;
+                                    border-top: 2px solid #000;
+                                    display: inline-block;
+                                    padding-top: 10px;
+                                    min-width: 300px;
+                                }
+                                .date {
+                                    margin-top: 40px;
+                                    text-align: right;
+                                    font-style: italic;
+                                }
+                                @media print {
+                                    .no-print { display: none; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header">
+                                <div class="logo" style="color: #6366f1; font-size: 48px; font-weight: 800; font-family: 'Arial Black', sans-serif; margin: 0 auto 10px;">Code Kids</div>
+                                <p style="margin: 0; color: #666;">Plataforma Educativa de Programación</p>
+                            </div>
+
+                            <div class="title">
+                                Constancia de Servicio Social
+                            </div>
+
+                            <div class="content">
+                                <p>Por medio de la presente, se hace constar que <span class="teacher-name">${teacherName}</span> 
+                                ha prestado sus servicios de manera satisfactoria en el programa de Servicio Social de la plataforma 
+                                educativa CODE KIDS.</p>
+
+                                <p>Durante el periodo comprendido del <strong>${startFormatted}</strong> 
+                                al <strong>${endFormatted}</strong>, con un tiempo total de servicio de 
+                                <strong>${serviceDuration}</strong>, el profesor realizó actividades de apoyo educativo, 
+                                enseñanza de programación y guía de estudiantes en diversos proyectos de tecnología.</p>
+
+                                <p>Su desempeño fue ejemplar, demostrando compromiso, responsabilidad y dedicación en cada una 
+                                de las actividades asignadas, contribuyendo significativamente al desarrollo educativo de nuestros estudiantes.</p>
+
+                                <p>Se extiende la presente constancia para los fines que al interesado convenga.</p>
+                            </div>
+
+                            <div class="date">
+                                H.Matamoros Tamps, ${new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </div>
+
+                            <div class="footer">
+                                <div class="signature">
+                                    <strong>Director General</strong><br>
+                                    CODE KIDS
+                                </div>
+                            </div>
+
+                            <div class="no-print" style="margin-top: 40px; text-align: center; padding: 20px; background: #f3f4f6; border-radius: 8px;">
+                                <button onclick="window.print()" style="background: #7c3aed; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-right: 10px;">
+                                    🖨️ Imprimir / Guardar como PDF
+                                </button>
+                                <button onclick="window.close()" style="background: #6b7280; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
+                                    Cerrar
+                                </button>
+                            </div>
+                        </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                    
+                    // Mostrar mensaje de éxito
+                    const successMsg = document.createElement('div');
+                    successMsg.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-4 rounded-lg shadow-2xl z-[10000] flex items-center gap-3';
+                    successMsg.innerHTML = `
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="font-semibold">✅ Constancia generada exitosamente</span>
+                    `;
+                    document.body.appendChild(successMsg);
+                    
+                    setTimeout(() => successMsg.remove(), 3000);
+                }, 1500);
+            }
+
+            // Event listeners para cerrar el modal
+            document.getElementById('closeSelectTeacherModalBtn')?.addEventListener('click', closeSelectTeacherModal);
+            document.getElementById('closeSelectTeacherModalFooterBtn')?.addEventListener('click', closeSelectTeacherModal);
+
+            // Cerrar modal al hacer clic fuera
+            document.getElementById('selectTeacherModal')?.addEventListener('click', function(e) {
+                if (e.target.id === 'selectTeacherModal') {
+                    closeSelectTeacherModal();
+                }
+            });
+
+            // Event listeners para el modal de confirmación de constancia
+            document.getElementById('closeCertificateModalBtn')?.addEventListener('click', closeCertificateModal);
+            document.getElementById('confirmGenerateCertificateBtn')?.addEventListener('click', confirmGenerateCertificate);
+
+            // Cerrar modal de confirmación al hacer clic fuera
+            document.getElementById('confirmCertificateModal')?.addEventListener('click', function(e) {
+                if (e.target.id === 'confirmCertificateModal') {
+                    closeCertificateModal();
+                }
+            });
+
+            // Buscador de profesores
+            document.getElementById('searchTeacherInput')?.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredTeachers = allTeachersFromDB.filter(teacher => 
+                    teacher.name.toLowerCase().includes(searchTerm) ||
+                    teacher.email.toLowerCase().includes(searchTerm)
+                );
+                displayTeachersList(filteredTeachers);
+            });
+
+            // Actualizar todos los maestros al cargar
+            updateAllTeachers();
+
+            // Actualizar cada minuto (opcional, para mantener actualizado)
+            setInterval(updateAllTeachers, 60000);
+
+        });
+    </script>
+    
+    <script type="module" src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laberinto de Comandos - CodeKids</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        #gameCanvas {
+            border: 4px solid white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        #score {
+            color: white;
+            font-size: 24px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Laberinto de Comandos</h1>
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <div id="score">Puntos: 0</div>
+    
+    <script>
+        // Juego simple de laberinto
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let score = 0;
+        let playerX = 50;
+        let playerY = 50;
+        
+        function draw() {
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibujar jugador
+            ctx.fillStyle = '#4f46e5';
+            ctx.fillRect(playerX, playerY, 40, 40);
+            
+            // Dibujar meta
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(500, 500, 60, 60);
+        }
+        
+        // Controles
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') playerY -= 10;
+            if (e.key === 'ArrowDown') playerY += 10;
+            if (e.key === 'ArrowLeft') playerX -= 10;
+            if (e.key === 'ArrowRight') playerX += 10;
+            
+            // Verificar meta
+            if (playerX >= 500 && playerY >= 500) {
+                score += 100;
+                document.getElementById('score').textContent = `Puntos: ${score}`;
+                
+                // Enviar puntuación al padre
+                window.parent.postMessage({
+                    type: 'gameEvent',
+                    event: 'levelComplete',
+                    score: score
+                }, '*');
+                
+                // Reset
+                playerX = 50;
+                playerY = 50;
+            }
+            
+            draw();
+        });
+        
+        draw();
+    </script>
+</body>
+</html>

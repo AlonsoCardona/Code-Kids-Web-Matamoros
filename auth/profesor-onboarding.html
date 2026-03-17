@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tu Aula Digital Potenciada - Code Kids</title>
+  <script>
+    // Preaplicar tema guardado para evitar parpadeo
+    try {
+      const savedTheme = localStorage.getItem('app-theme');
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('theme-dark');
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) { /* noop */ }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    body { font-family:'Poppins',system-ui; }
+
+    /* Palette adaptada Code Kids - púrpura/magenta */
+    :root {
+      --ck-purple-main: hsl(280,70%,55%);
+      --ck-purple-dark: hsl(250,40%,30%);
+      --ck-magenta: hsl(320,80%,58%);
+      --ck-white: #ffffff;
+      --ck-card-bg: #ffffff;
+      --ck-card-border: rgba(0,0,0,0.06);
+      --ck-card-shadow: 0 6px 18px rgba(99,66,255,0.08);
+      --ck-radius: 12px;
+      --color-texto-principal: #1F2937;
+      --color-texto-secundario: #6b7280;
+      --bg-body: #ffffff;
+    }
+
+    /* Dark Mode Variables */
+    .theme-dark {
+      --ck-purple-main: hsl(280,65%,62%);
+      --ck-purple-dark: hsl(280,50%,85%);
+      --ck-magenta: hsl(320,75%,65%);
+      --ck-white: #1F2937;
+      --ck-card-bg: #1F2937;
+      --ck-card-border: rgba(255,255,255,0.08);
+      --ck-card-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      --color-texto-principal: #F9FAFB;
+      --color-texto-secundario: #D1D5DB;
+      --bg-body: #111827;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      color: var(--color-texto-principal);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Hero with purple/magenta gradient and subtle animated overlay */
+    .hero-header {
+      position: relative;
+      background: linear-gradient(135deg, rgba(88,24,152,0.92) 0%, rgba(163,98,255,0.88) 60%);
+      color: var(--ck-white);
+      overflow: hidden;
+    }
+    .hero-header::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mix-blend-mode: overlay;
+      animation: slow-drift 18s linear infinite;
+      opacity: .7;
+      pointer-events: none;
+    }
+    
+    .theme-dark .hero-header {
+      background: linear-gradient(135deg, rgba(88,24,152,0.95) 0%, rgba(79,70,229,0.90) 60%);
+    }
+    
+    @keyframes slow-drift { from { transform: translateY(0); } to { transform: translateY(-30px); } }
+
+    /* Page header / titles */
+    .page-header h1 { 
+      color: var(--ck-purple-dark);
+      transition: color 0.3s ease;
+    }
+    .page-header p { 
+      color: var(--color-texto-secundario);
+      transition: color 0.3s ease;
+    }
+
+    .benefits-grid { display:grid; gap:1.25rem; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+
+    /* Benefit card style + hover glow */
+    .benefit {
+      background: var(--ck-card-bg);
+      border: 1px solid var(--ck-card-border);
+      border-radius: var(--ck-radius);
+      padding:1.25rem 1rem;
+      box-shadow: var(--ck-card-shadow);
+      display:flex; flex-direction:column; gap:.5rem;
+      position:relative; overflow:visible;
+      transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .benefit::before {
+      content: ""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; transition: opacity .25s ease, transform .35s ease; opacity:0;
+      background: linear-gradient(135deg, rgba(163,98,255,0.12), rgba(255,79,166,0.08)); transform: scale(.98);
+    }
+    .benefit:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(139,92,246,0.12); }
+    .benefit:hover::before { opacity:1; transform: scale(1.02); }
+
+    .benefit h3 { font-size:1rem; font-weight:600; margin:0; color:var(--color-texto-principal); display:flex; align-items:center; gap:.6rem; transition: color 0.3s ease; }
+    .benefit p { font-size:.95rem; margin:0; color:var(--color-texto-secundario); transition: color 0.3s ease; }
+
+    /* Icon inside card */
+    .benefit .icon { width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 40px; }
+    .benefit svg { width:28px; height:28px; stroke: var(--ck-purple-main); fill: none; transition: stroke .22s ease, transform .22s ease; }
+    .benefit:hover svg { stroke: var(--ck-magenta); transform: translateX(4px) scale(1.03); }
+
+    /* Dark mode improvements for benefit cards */
+    .theme-dark .benefit {
+      background: var(--ck-card-bg);
+      border-color: var(--ck-card-border);
+      box-shadow: var(--ck-card-shadow);
+    }
+    
+    .theme-dark .benefit:hover {
+      box-shadow: 0 12px 30px rgba(139,92,246,0.25);
+    }
+    
+    .theme-dark .benefit::before {
+      background: linear-gradient(135deg, rgba(163,98,255,0.18), rgba(255,79,166,0.12));
+    }
+
+    /* Staggered entrance for benefit cards */
+    .benefit { opacity:0; transform: translateY(16px); animation: card-entrance .6s ease forwards; }
+    .benefit:nth-child(1) { animation-delay: .08s; }
+    .benefit:nth-child(2) { animation-delay: .16s; }
+    .benefit:nth-child(3) { animation-delay: .24s; }
+    .benefit:nth-child(4) { animation-delay: .32s; }
+    @keyframes card-entrance { to { opacity:1; transform: translateY(0); } }
+
+    /* Primary button override for purple/magenta gradient + arrow micro-interaction */
+    .btn-primary-token {
+      background: linear-gradient(90deg, var(--ck-purple-main) 0%, var(--ck-magenta) 100%);
+      color: var(--ck-white);
+      padding: .85rem 1.4rem; border-radius: 10px; font-weight:700; display:inline-flex; align-items:center; gap:.6rem; border:none;
+      box-shadow: 0 8px 26px rgba(139,92,246,0.12);
+      transition: transform .18s ease, box-shadow .2s ease;
+    }
+    .btn-primary-token:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(163,98,255,0.18); }
+    .btn-primary-token .arrow { transition: transform .22s ease; display:inline-block; }
+    .btn-primary-token:hover .arrow { transform: translateX(6px); }
+
+    /* Small helpers */
+    .text-secundario { 
+      color: var(--color-texto-secundario);
+      transition: color 0.3s ease;
+    }
+    
+    .theme-dark .text-secundario:hover {
+      color: var(--ck-purple-main);
+    }
+    
+    /* Footer dark mode */
+    .theme-dark footer {
+      color: var(--color-texto-secundario);
+    }
+    /* Rocket background styles (matching main site) */
+    .rocket-section { position: relative; overflow: hidden; }
+    .rocket-section .rocket-bg { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+    .rocket-section .rocket-overlay { position: absolute; inset: 0; background: transparent; z-index: 2; pointer-events: none; }
+    .rocket-section .container { position: relative; z-index: 3; }
+    .rocket { position: absolute; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; will-change: transform, opacity; opacity: 0.98; transform-origin: center; filter: drop-shadow(0 8px 18px rgba(0,0,0,0.14)); }
+    .rocket svg { width: 100%; height: 100%; display: block; }
+
+    .rocket[data-dir="bottom"] { bottom: -18vh; }
+    .rocket[data-dir="top"] { top: -18vh; }
+    .rocket[data-dir="left"] { left: -12vw; }
+    .rocket[data-dir="right"] { right: -12vw; }
+
+    @keyframes rocket-move-bottom { 0% { transform: translateY(0) translateX(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; } 8% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-140vh) translateX(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; } }
+    @keyframes rocket-move-top { 0% { transform: translateY(0) translateX(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; } 8% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(140vh) translateX(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; } }
+    @keyframes rocket-move-left { 0% { transform: translateX(0) translateY(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; } 8% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateX(140vw) translateY(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; } }
+    @keyframes rocket-move-right { 0% { transform: translateX(0) translateY(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; } 8% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateX(-140vw) translateY(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; } }
+    @keyframes rocket-wobble { 0% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } 100% { transform: rotate(-6deg); } }
+    @media (prefers-reduced-motion: reduce) { .rocket { animation: none !important; opacity: 0.8; transform: translateY(-20px) !important; } }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <header class="hero-header text-white py-16 px-6">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-4xl md:text-5xl font-extrabold leading-tight mb-4">Tu Aula Digital Potenciada</h1>
+      <p class="text-lg md:text-xl max-w-2xl">Simplifica la gestión, impulsa la participación y ofrece feedback personalizado. Todo en un entorno seguro.</p>
+    </div>
+  </header>
+  <main class="flex-1 px-6 py-12 max-w-5xl mx-auto w-full">
+    <section class="mb-10 rocket-section">
+      <div class="rocket-bg" aria-hidden></div>
+      <div class="rocket-overlay" aria-hidden></div>
+      <div class="page-header mb-8">
+        <h1 class="text-3xl font-bold">Beneficios para Profesores</h1>
+        <p>Herramientas clave para optimizar tu tiempo y mejorar el aprendizaje.</p>
+      </div>
+      <div class="benefits-grid">
+        <div class="benefit">
+          <h3><span class="icon" aria-hidden>
+            <!-- Outline chat icon -->
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </span>Creación de Foros</h3>
+          <p>Inicia debates y resuelve dudas en comunidad.</p>
+        </div>
+        <div class="benefit">
+          <h3><span class="icon" aria-hidden>
+            <!-- Outline clipboard icon -->
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 2h6a2 2 0 0 1 2 2v2H7V4a2 2 0 0 1 2-2z" />
+              <rect x="7" y="8" width="10" height="12" rx="2" />
+            </svg>
+          </span>Gestión de Tareas</h3>
+          <p>Asigna, revisa y califica proyectos desde un solo lugar.</p>
+        </div>
+        <div class="benefit">
+          <h3><span class="icon" aria-hidden>
+            <!-- Outline megaphone icon -->
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 11v4a1 1 0 0 0 1 1h2l7 4V7L6 11H4a1 1 0 0 0-1 1z" />
+              <path d="M21 8a3 3 0 0 1-3 3" />
+            </svg>
+          </span>Panel de Anuncios</h3>
+          <p>Mantén informada a tu clase con actualizaciones importantes.</p>
+        </div>
+        <div class="benefit">
+          <h3><span class="icon" aria-hidden>
+            <!-- Outline user-message icon -->
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <path d="M7 10a4 4 0 1 1 8 0" />
+            </svg>
+          </span>Comunicación Directa</h3>
+          <p>Tutoría y feedback personalizado para cada alumno.</p>
+        </div>
+      </div>
+    </section>
+    <div class="text-center mt-8">
+      <button onclick="location.href='login.html?role=profesor'" class="btn-primary-token text-lg" aria-label="Iniciar sesión como profesor">
+        Iniciar Sesión como Profesor
+        <span class="arrow" aria-hidden>
+          <!-- simple arrow -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M13 5l7 7-7 7" /></svg>
+        </span>
+      </button>
+    </div>
+    <div class="text-center mt-6">
+      <a href="../index.html" class="text-sm text-secundario hover:text-indigo-600">← Volver al inicio</a>
+    </div>
+  </main>
+  <footer class="py-10 text-center text-sm text-secundario">
+    © 2025 Code Kids
+  </footer>
+  <script>
+    (function(){
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function rocketSVG(variant = 0, c1 = '#7C5CFF', c2 = '#FF8C42'){
+        if(variant === 1) return `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="rg1a" x1="0" x2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+              <radialGradient id="fg1a" cx="50%" cy="80%" r="60%"><stop offset="0%" stop-color="#FFD27A"/><stop offset="70%" stop-color="#FF8C42"/></radialGradient>
+            </defs>
+            <g>
+              <path d="M32 6c6 0 12 6 12 12s-2 10-6 14c-4 4-6 6-6 6s-2-2-6-6c-4-4-6-8-6-14S26 6 32 6z" fill="url(#rg1a)" stroke="#3b2b7a" stroke-width="0.8"/>
+              <ellipse cx="32" cy="18" rx="5.5" ry="6" fill="#0b1330" opacity="0.95" />
+              <circle cx="31" cy="17" r="2.2" fill="#BEEBFF" opacity="0.95"/>
+              <path d="M22 30c-4 2-6 6-6 8s6 6 10 6l2-10z" fill="#9AF0FF" opacity="0.95" />
+              <path d="M42 30c4 2 6 6 6 8s-6 6-10 6l-2-10z" fill="#9AF0FF" opacity="0.95" />
+              <g transform="translate(32,44)"><path d="M0 0 C -4 6 -2 12 0 14 C2 12 4 6 0 0 Z" fill="url(#fg1a)" opacity="0.95" /></g>
+            </g>
+          </svg>`;
+
+        if(variant === 2) return `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="rg2a" x1="0" x2="1"><stop offset="0" stop-color="#6EC6FF"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+              <radialGradient id="fg2a" cx="50%" cy="78%" r="60%"><stop offset="0%" stop-color="#FFF07A"/><stop offset="70%" stop-color="#FF9B5A"/></radialGradient>
+            </defs>
+            <g>
+              <rect x="26" y="8" width="12" height="28" rx="6" fill="url(#rg2a)" stroke="#2b2f5a" stroke-width="0.8"/>
+              <circle cx="32" cy="18" r="5" fill="#071832" />
+              <path d="M20 30c-6 3-6 9-4 12 3 4 8 5 12 5l2-11z" fill="#7CD7FF"/>
+              <path d="M44 30c6 3 6 9 4 12-3 4-8 5-12 5l-2-11z" fill="#7CD7FF"/>
+              <path d="M32 44c-3 6-2 10 0 12 2-2 4-6 0-12z" fill="url(#fg2a)"/>
+            </g>
+          </svg>`;
+
+        return `
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="rg0a" x1="0" x2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+              <radialGradient id="fg0a" cx="50%" cy="82%" r="60%"><stop offset="0%" stop-color="#FFE18A"/><stop offset="80%" stop-color="#FF7A3D"/></radialGradient>
+            </defs>
+            <g>
+              <path d="M32 8c5 0 10 5 10 11s-1 8-5 12-8 6-8 6-4-2-8-6-5-7-5-12 5-11 10-11z" fill="url(#rg0a)" stroke="#352a63" stroke-width="0.9"/>
+              <ellipse cx="32" cy="20" rx="4.8" ry="5.2" fill="#05122a" />
+              <circle cx="31" cy="19" r="2" fill="#CFF7FF" />
+              <path d="M22 32c-4 2-6 6-5 9 1 3 6 6 10 6l2-11z" fill="#A9E1FF"/>
+              <path d="M42 32c4 2 6 6 5 9-1 3-6 6-10 6l-2-11z" fill="#A9E1FF"/>
+              <path d="M32 46c-2 5-1 9 0 11 3-2 6-6 0-11z" fill="url(#fg0a)"/>
+            </g>
+          </svg>`;
+      }
+
+      function createRocketsForSection(section, baseCount){
+        const bg = section.querySelector('.rocket-bg'); if(!bg) return;
+        const count = Math.max(3, Math.round(baseCount * (window.innerWidth < 768 ? 0.6 : 1)));
+        const palettes = [ ['#7C5CFF','#9AF0FF'], ['#6EC6FF','#A9E1FF'], ['#FFB07C','#FF8C42'] ];
+        const dirs = ['bottom','top','left','right'];
+        for(let i=0;i<count;i++){
+          const el = document.createElement('div'); el.className = 'rocket';
+          const p = palettes[Math.floor(Math.random()*palettes.length)];
+          const variant = Math.floor(Math.random()*3);
+          el.innerHTML = rocketSVG(variant, p[0], p[1]);
+
+          const dir = dirs[Math.floor(Math.random()*dirs.length)];
+          el.dataset.dir = dir;
+
+          if(dir === 'bottom' || dir === 'top'){
+            el.style.left = (5 + Math.random()*90) + '%';
+          } else {
+            el.style.top = (5 + Math.random()*90) + '%';
+          }
+
+          const drift = (Math.random()*160 - 80).toFixed(0) + 'px'; el.style.setProperty('--drift', drift);
+          const duration = (12 + Math.random()*28).toFixed(2) + 's';
+          const delay = (i < 2) ? '0s' : (Math.random()*10).toFixed(2) + 's';
+          const scale = (0.6 + Math.random()*1.0).toFixed(2); el.style.setProperty('--scale', scale);
+          const rotStart = (Math.random()*60 - 30).toFixed(1) + 'deg'; el.style.setProperty('--rot-start', rotStart);
+          const rotEnd = (Math.random()*60 - 30).toFixed(1) + 'deg'; el.style.setProperty('--rot-end', rotEnd);
+
+          el.style.animation = `rocket-move-${dir} ${duration} linear ${delay} infinite`;
+          const svg = el.querySelector('svg'); if(svg) svg.style.animation = `rocket-wobble ${3 + Math.random()*2}s ease-in-out ${Math.random()*2}s infinite`;
+          bg.appendChild(el);
+        }
+      }
+
+      function createStaticRocketsForSection(section, baseCount){
+        const bg = section.querySelector('.rocket-bg'); if(!bg) return;
+        const count = Math.max(2, Math.round(baseCount * (window.innerWidth < 768 ? 0.5 : 0.7)));
+        const palettes = [ ['#7C5CFF','#9AF0FF'], ['#6EC6FF','#A9E1FF'], ['#FFB07C','#FF8C42'] ];
+        const dirs = ['bottom','top','left','right'];
+        for(let i=0;i<count;i++){
+          const el = document.createElement('div'); el.className='rocket';
+          const p = palettes[Math.floor(Math.random()*palettes.length)];
+          const variant = Math.floor(Math.random()*3);
+          el.innerHTML = rocketSVG(variant, p[0], p[1]);
+          const dir = dirs[Math.floor(Math.random()*dirs.length)];
+          el.dataset.dir = dir;
+          if(dir === 'bottom' || dir === 'top'){
+            el.style.left = (10 + Math.random()*80) + '%';
+          } else {
+            el.style.top = (10 + Math.random()*80) + '%';
+          }
+          el.style.opacity = '0.75';
+          el.style.transform = `scale(${0.9 + Math.random()*0.4})`;
+          bg.appendChild(el);
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', ()=>{
+        document.querySelectorAll('.rocket-section').forEach(sec=>{
+          if(prefersReduced) createStaticRocketsForSection(sec,6); else createRocketsForSection(sec,8);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

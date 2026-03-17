@@ -1,0 +1,95 @@
+﻿async function loadUsers() {
+  const usersTableBody = document.getElementById('usersTableBody');
+  if (!usersTableBody) return;
+  usersTableBody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Cargando usuarios...</td></tr>';
+
+  try {
+    // Construir query por rol si aplica (usar campo 'rol' normalizado)
+    const baseRef = collection(db, 'users');
+    let qRef = null;
+    if (__usersRoleFilter) {
+      const roleLower = __usersRoleFilter.toString().toLowerCase();
+      qRef = query(baseRef, where('rol', '==', roleLower));
+    }
+    const [usersSnapshot, schoolsSnapshot] = await Promise.all([
+      qRef ? getDocs(qRef) : getDocs(baseRef),
+      getDocs(collection(db, 'schools'))
+    ]);
+    const schoolsMap = {};
+    schoolsSnapshot.forEach(d => { schoolsMap[d.id] = d.data().name; });
+
+    if (usersSnapshot.empty) {
+      usersTableBody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No hay usuarios</td></tr>';
+      return;
+    }
+
+    // Filtrado adicional por escuela y bÃºsqueda en cliente
+    const rows = usersSnapshot.docs
+      .map(d => ({ id: d.id, data: d.data() }))
+      .filter(({ data }) => {
+        if (__usersSchoolFilter && data.schoolId !== __usersSchoolFilter) return false;
+        if (__usersSearchTerm) {
+          const name = (data.displayName || '').toString().toLowerCase();
+          const email = (data.email || '').toString().toLowerCase();
+          if (!name.includes(__usersSearchTerm) && !email.includes(__usersSearchTerm)) return false;
+        }
+        return true;
+      });
+
+    if (!rows.length) {
+      usersTableBody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Sin resultados con los filtros actuales</td></tr>';
+      return;
+    }
+
+    usersTableBody.innerHTML = rows.map(({ id, data: user }, idx) => {
+      const roleRaw = user.role || user.rol || 'Desconocido';
+      const roleLower = roleRaw.toString().toLowerCase();
+      const roleBadge = (roleLower === 'admin') ? 'bg-red-100 text-red-800' : (roleLower === 'profesor') ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
+      const needsPwChange = user.passwordChangeRequired === true ? '<span class="ml-2 px-2 py-0.5 text-[10px] rounded bg-yellow-100 text-yellow-800">PW Cambio</span>' : '';
+      const uidShort = user.uid ? (user.uid.slice(0,8) + 'â€¦') : (id.slice(0,8) + 'â€¦');
+      
+      // Mostrar contraseÃ±a actual o temporal
+      let passwordDisplay = '<span class="text-gray-400">â€”</span>';
+      if (user.currentPassword) {
+        passwordDisplay = `<span class="font-mono text-green-700">${user.currentPassword}</span>`;
+      } else if (user.tempPassword) {
+        passwordDisplay = `<span class="font-mono text-orange-600">${user.tempPassword}</span>`;
+      }
+      
+      return `
+        <tr class="border-b border-gray-200 hover:bg-gray-50" data-user-id="${id}">
+          <td class="px-4 py-3 text-sm text-gray-500">${idx + 1}</td>
+          <td class="px-4 py-3">${user.displayName || 'Sin nombre'}${needsPwChange}</td>
+          <td class="px-4 py-3 text-sm text-gray-600">${user.email || ''}</td>
+          <td class="px-4 py-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${roleBadge}">${roleRaw}</span></td>
+          <td class="px-4 py-3 text-sm text-gray-600">${schoolsMap[user.schoolId] || 'N/A'}</td>
+          <td class="px-4 py-3 text-sm">${passwordDisplay}</td>
+          <td class="px-4 py-3 text-xs text-gray-500">
+            <div>${uidShort}</div>
+            <div class="mt-1">
+              <button class="text-blue-600 hover:text-blue-800 text-xs font-semibold mr-3" data-action="edit" data-id="${id}">Editar</button>
+              <button class="text-red-600 hover:text-red-800 text-xs font-semibold" data-action="delete" data-id="${id}">Eliminar</button>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-sm">
+            ${roleRaw === 'Estudiante' ? 
+              `<button class="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white transition font-semibold" onclick="openGradesModal('${id}', '${user.displayName || user.email}')">Calificaciones</button>` :
+              `<span class="text-gray-400 text-sm">â€”</span>`
+            }
+          </td>
+        </tr>`;
+    }).join('');
+
+    // Wire Edit/Delete actions
+    usersTableBody.querySelectorAll('[data-action="edit"]').forEach(btn => {
+      btn.addEventListener('click', () => showEditUserModal(btn.getAttribute('data-id')));
+    });
+    usersTableBody.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', () => deleteUser(btn.getAttribute('data-id')));
+    });
+    // La administraciÃ³n de contraseÃ±a ahora vive dentro del modal "Editar Usuario"
+  } catch (error) {
+    console.error('[Usuarios] Error cargando usuarios:', error);
+    usersTableBody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error al cargar usuarios</td></tr>';
+  }
+}

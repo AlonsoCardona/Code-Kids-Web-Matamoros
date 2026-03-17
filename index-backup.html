@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Kids - ¡La Aventura de Crear con Código!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Fredoka', 'Poppins', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Animaciones */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Fondos Animados */
+        .hero-background {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-background::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .floating-shapes {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.15;
+        }
+
+        .shape:nth-child(1) { top: 10%; left: 10%; animation: float 6s ease-in-out infinite; }
+        .shape:nth-child(2) { top: 60%; right: 15%; animation: float 8s ease-in-out infinite 1s; }
+        .shape:nth-child(3) { bottom: 20%; left: 20%; animation: float 7s ease-in-out infinite 2s; }
+        .shape:nth-child(4) { top: 30%; right: 30%; animation: float 9s ease-in-out infinite 1.5s; }
+
+        /* Mascota Robot */
+        .robot-mascot {
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .robot-mascot:hover {
+            animation: wave 0.5s ease-in-out;
+        }
+
+        /* Botones Mejorados */
+        .btn-adventure {
+            background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+            color: white;
+            padding: 18px 36px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(255, 107, 53, 0.4);
+        }
+
+        .btn-adventure:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(255, 107, 53, 0.5);
+        }
+
+        .btn-adventure::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-adventure:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-teacher {
+            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+            color: white;
+            padding: 18px 36px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-teacher:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(76, 175, 80, 0.5);
+        }
+
+        /* Tarjetas de Características */
+        .feature-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 30px;
+            padding: 40px 30px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-15px) scale(1.03);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            border-radius: 25px;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .feature-icon-security {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .feature-icon-game {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+
+        .feature-icon-collab {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        /* Sección CTA Final */
+        .cta-final {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .floating-stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        /* Mapa Estilizado */
+        .map-container {
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            border: 5px solid white;
+        }
+
+        /* Textos con Efectos */
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .code-text {
+            position: relative;
+            display: inline-block;
+        }
+
+        .code-text::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #FF6B35, #FF8C42, #FFB84D);
+            border-radius: 2px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Badge Profesor */
+        .teacher-badge {
+            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        /* Tarjetas Profesor */
+        .teacher-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .teacher-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .btn-adventure, .btn-teacher {
+                font-size: 1rem;
+                padding: 14px 28px;
+            }
+
+            .feature-icon {
+                width: 80px;
+                height: 80px;
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Burbuja de Diálogo */
+        .speech-bubble {
+            position: relative;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border: 20px solid transparent;
+            border-top-color: white;
+            border-bottom: 0;
+            margin-left: -20px;
+            margin-bottom: -20px;
+        }
+    </style>
+    <script>
+        // Apply saved theme
+        try {
+            const savedTheme = localStorage.getItem('app-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            }
+        } catch (e) { /* noop */ }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50">
+    <!-- Header Simplificado -->
+    <header class="bg-white shadow-lg sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <a href="index.html" class="text-3xl font-extrabold gradient-text tracking-tight no-underline hover:opacity-90">
+                    Code Kids
+                </a>
+            </div>
+            <div class="hidden md:flex items-center gap-6">
+                <button id="nav-sobre" class="text-gray-700 hover:text-purple-600 transition font-semibold">Sobre Nosotros</button>
+                <button id="nav-caracteristicas" class="text-gray-700 hover:text-purple-600 transition font-semibold">Características</button>
+                <button id="nav-profesores" class="text-gray-700 hover:text-purple-600 transition font-semibold">Para Profesores</button>
+                <button onclick="location.href='auth/login.html'" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-full font-bold hover:shadow-lg transition">
+                    Iniciar Sesión
+                </button>
+            </div>
+            <div class="md:hidden">
+                <button id="mobile-menu-btn" class="p-2 text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main id="main-views">
+        <!-- SECCIÓN 1: HERO PRINCIPAL -->
+        <div id="pantalla-principal">
+            <section class="hero-background py-20 relative">
+                <!-- Formas Flotantes -->
+                <div class="floating-shapes">
+                    <div class="shape" style="font-size: 4rem;">🔷</div>
+                    <div class="shape" style="font-size: 3rem;">⭐</div>
+                    <div class="shape" style="font-size: 3.5rem;">💻</div>
+                    <div class="shape" style="font-size: 4rem;">🚀</div>
+                </div>
+
+                <div class="container mx-auto px-6 relative z-10">
+                    <div class="grid md:grid-cols-2 gap-12 items-center">
+                        <!-- Columna Izquierda: Texto y CTA -->
+                        <div class="text-white" style="animation: slideIn 0.8s ease-out;">
+                            <h1 class="text-5xl md:text-6xl font-extrabold leading-tight mb-6">
+                                La aventura de crear <span class="code-text">con código!</span>
+                            </h1>
+                            
+                            <!-- Burbuja de Mascota -->
+                            <div class="speech-bubble mb-6 text-gray-800">
+                                <p class="text-lg font-medium">
+                                    🤖 ¡Hola! Soy tu guía en Code Kids. Aprende jugando en un entorno seguro y divertido. 
+                                    Retos, proyectos y aventuras que hacen del código una experiencia mágica.
+                                </p>
+                            </div>
+
+                            <p class="text-xl mb-8 text-purple-100">
+                                Una plataforma diseñada para enseñar los fundamentos de la programación a niños de 6 a 12 años.
+                            </p>
+
+                            <div class="flex flex-wrap gap-4">
+                                <button onclick="location.href='auth/login.html'" class="btn-adventure flex items-center gap-2">
+                                    <span>🚀</span>
+                                    ¡Comenzar la Aventura!
+                                </button>
+                                <button onclick="location.href='profesores/bienvenida/'" class="btn-teacher flex items-center gap-2">
+                                    <span>👨‍🏫</span>
+                                    Acceder como Profesor
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Columna Derecha: Mapa + Mascota -->
+                        <div style="animation: slideIn 0.8s ease-out 0.3s; animation-fill-mode: both;">
+                            <!-- Mascota Robot -->
+                            <div class="text-center mb-6">
+                                <div class="robot-mascot inline-block text-9xl drop-shadow-2xl">
+                                    🤖
+                                </div>
+                            </div>
+
+                            <!-- Mapa con Diseño Mejorado -->
+                            <div>
+                                <div class="speech-bubble mb-4 text-center">
+                                    <p class="text-lg font-bold text-purple-700">
+                                        🌍 ¡Encuentra a tus amigos programadores cerca de ti!
+                                    </p>
+                                </div>
+                                <div class="map-container">
+                                    <div id="hero-map" class="w-full h-[400px]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: ¿POR QUÉ CODE KIDS? -->
+            <section class="py-20 bg-gradient-to-b from-white to-purple-50">
+                <div class="container mx-auto px-6">
+                    <div class="text-center mb-16">
+                        <h2 class="text-5xl md:text-6xl font-extrabold gradient-text mb-4">
+                            ¿Por qué Code Kids?
+                        </h2>
+                        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                            Nuestra comunidad de exploradores digitales aprende con diversión, seguridad y motivación constante.
+                        </p>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-10">
+                        <!-- Tarjeta 1: Seguridad -->
+                        <div class="feature-card">
+                            <div class="feature-icon feature-icon-security">
+                                🛡️
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">100% Seguro</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Crea grupos con códigos únicos. Acceso limitado y filtros activos para mantener a los estudiantes seguros.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta 2: Gamificación -->
+                        <div class="feature-card">
+                            <div class="feature-icon feature-icon-game">
+                                🎮
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Gamificación</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Niveles, insignias y retos que hacen del aprendizaje una aventura llena de motivación y diversión.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta 3: Colaboración -->
+                        <div class="feature-card">
+                            <div class="feature-icon feature-icon-collab">
+                                👥
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Colaboración</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Herramientas para crear, compartir proyectos y trabajar en equipo con moderación y apoyo en tiempo real.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: PARA PROFESORES -->
+            <section class="py-20 bg-gradient-to-b from-purple-50 to-white">
+                <div class="container mx-auto px-6">
+                    <div class="text-center mb-12">
+                        <span class="teacher-badge text-lg">
+                            👨‍🏫 Para Profesores
+                        </span>
+                        <h2 class="text-5xl font-extrabold text-gray-800 mt-6 mb-4">
+                            Herramientas para enseñar mejor
+                        </h2>
+                        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                            Crea grupos, asigna tareas, monitorea el progreso y comunica con tus estudiantes en un entorno moderado y seguro.
+                        </p>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <!-- Tarjeta Gestión -->
+                        <div class="teacher-card">
+                            <div class="text-5xl mb-4">📚</div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Gestión de Clases</h3>
+                            <p class="text-gray-600">
+                                Crea grupos con códigos de acceso únicos y administra estudiantes fácilmente desde tu panel.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta Progreso -->
+                        <div class="teacher-card">
+                            <div class="text-5xl mb-4">📊</div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Seguimiento de Progreso</h3>
+                            <p class="text-gray-600">
+                                Dashboard con métricas claras de lecciones completadas, juegos jugados e insignias ganadas.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta Comunicación -->
+                        <div class="teacher-card">
+                            <div class="text-5xl mb-4">💬</div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Comunicación Segura</h3>
+                            <p class="text-gray-600">
+                                Chat 1 a 1 con estudiantes, moderado y sin mensajes entre estudiantes. Todo supervisado.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN CTA FINAL -->
+            <section class="cta-final py-24 relative">
+                <!-- Estrellas Flotantes -->
+                <div class="floating-stars">
+                    <div class="star" style="top: 10%; left: 15%; animation-delay: 0s;"></div>
+                    <div class="star" style="top: 20%; right: 20%; animation-delay: 0.5s;"></div>
+                    <div class="star" style="bottom: 30%; left: 25%; animation-delay: 1s;"></div>
+                    <div class="star" style="top: 40%; right: 15%; animation-delay: 1.5s;"></div>
+                    <div class="star" style="bottom: 20%; right: 30%; animation-delay: 2s;"></div>
+                    <div class="star" style="top: 60%; left: 40%; animation-delay: 0.8s;"></div>
+                </div>
+
+                <div class="container mx-auto px-6 text-center relative z-10">
+                    <div class="robot-mascot inline-block text-8xl mb-6 drop-shadow-2xl">
+                        🚀
+                    </div>
+                    <h2 class="text-5xl md:text-6xl font-extrabold text-white mb-6">
+                        ¿Listo para comenzar tu aventura?
+                    </h2>
+                    <p class="text-2xl text-purple-100 mb-10 max-w-3xl mx-auto">
+                        Únete a miles de estudiantes que ya están aprendiendo a programar de forma segura y divertida.
+                    </p>
+                    <button onclick="location.href='auth/login.html'" class="btn-adventure text-2xl flex items-center gap-3 mx-auto">
+                        <span>🎮</span>
+                        ¡Comenzar la Aventura!
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- PANTALLAS ADICIONALES (Sobre Nosotros, Características, Para Profesores) -->
+        <!-- Mantengo estructura similar pero con diseño actualizado -->
+        
+        <div id="pantalla-sobre-nosotros" class="hidden">
+            <section class="py-16 bg-white">
+                <div class="container mx-auto px-6">
+                    <button class="mb-6 inline-flex items-center gap-2 text-purple-600 hover:underline font-bold" data-back>
+                        ← Volver
+                    </button>
+                    <h1 class="text-5xl font-extrabold gradient-text mb-6">Sobre Nosotros</h1>
+                    <p class="text-xl text-gray-600 mb-12">Lo que nos impulsa y cómo lo hacemos.</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h2 class="text-4xl font-bold text-gray-800 mb-8">Quiénes somos</h2>
+                            <div class="space-y-6">
+                                <div class="flex gap-4">
+                                    <div class="text-4xl">🎯</div>
+                                    <div>
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Nuestra misión</h4>
+                                        <p class="text-gray-600">Aprender creando, jugando y colaborando en un entorno seguro.</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-4">
+                                    <div class="text-4xl">🧩</div>
+                                    <div>
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Metodología</h4>
+                                        <p class="text-gray-600">Retos cortos + proyectos reales + feedback constante.</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-4">
+                                    <div class="text-4xl">🛡️</div>
+                                    <div>
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Seguridad primero</h4>
+                                        <p class="text-gray-600">Entorno cerrado, cuentas gestionadas por docentes.</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-4">
+                                    <div class="text-4xl">🤝</div>
+                                    <div>
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Comunidad</h4>
+                                        <p class="text-gray-600">Profesores y estudiantes construyendo juntos.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-9xl robot-mascot">🤖</div>
+                            <p class="text-xl text-gray-600 mt-6">¡Aprender a programar nunca fue tan divertido!</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="pantalla-caracteristicas" class="hidden">
+            <section class="py-16 bg-white">
+                <div class="container mx-auto px-6">
+                    <button class="mb-6 inline-flex items-center gap-2 text-purple-600 hover:underline font-bold" data-back>
+                        ← Volver
+                    </button>
+                    <h1 class="text-5xl font-extrabold gradient-text mb-6">Características</h1>
+                    <p class="text-xl text-gray-600 mb-12">Pilares clave de la experiencia Code Kids.</p>
+                    
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <div class="feature-card">
+                            <div class="text-5xl mb-4">🎨</div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Metodología Interactiva</h3>
+                            <p class="text-gray-600">Aprende haciendo con retos progresivos y feedback inmediato.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="text-5xl mb-4">🌍</div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Proyectos del Mundo Real</h3>
+                            <p class="text-gray-600">Crea juegos, apps y soluciones a problemas reales.</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="text-5xl mb-4">👨‍🏫</div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3">Soporte para Educadores</h3>
+                            <p class="text-gray-600">Herramientas completas para gestionar y motivar estudiantes.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="pantalla-profesores" class="hidden">
+            <section class="py-16 bg-white">
+                <div class="container mx-auto px-6">
+                    <button class="mb-6 inline-flex items-center gap-2 text-purple-600 hover:underline font-bold" data-back>
+                        ← Volver
+                    </button>
+                    <h1 class="text-5xl font-extrabold gradient-text mb-6">Para Profesores</h1>
+                    <p class="text-xl text-gray-600 mb-12">Herramientas diseñadas para potenciar tu aula.</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-12 items-center">
+                        <div class="text-center">
+                            <div class="text-9xl robot-mascot">👨‍🏫</div>
+                        </div>
+                        <div>
+                            <h2 class="text-4xl font-bold text-gray-800 mb-8">Beneficios clave</h2>
+                            <div class="grid gap-6">
+                                <div class="teacher-card">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-2">Gestión simple</h3>
+                                    <p class="text-gray-600">Clases privadas con códigos de acceso únicos.</p>
+                                </div>
+                                <div class="teacher-card">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-2">Progreso claro</h3>
+                                    <p class="text-gray-600">Métricas y reportes detallados listos para usar.</p>
+                                </div>
+                                <div class="teacher-card">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-2">Retos a medida</h3>
+                                    <p class="text-gray-600">Actividades adaptadas al nivel de tu grupo.</p>
+                                </div>
+                                <div class="teacher-card">
+                                    <h3 class="text-xl font-bold text-gray-800 mb-2">Comunicación segura</h3>
+                                    <p class="text-gray-600">Chat moderado 1 a 1 con cada estudiante.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-16">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-10 mb-10">
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Compañía</h4>
+                    <ul class="space-y-2">
+                        <li><button class="hover:text-purple-400 transition" id="ft-sobre">Sobre Nosotros</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-caract">Características</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Soporte</h4>
+                    <ul class="space-y-2">
+                        <li><button class="hover:text-purple-400 transition" id="ft-faq">Preguntas Frecuentes</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-ayuda">Centro de Ayuda</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-contacto">Contáctanos</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Legal</h4>
+                    <ul class="space-y-2">
+                        <li><button class="hover:text-purple-400 transition" id="ft-terminos">Términos de Servicio</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-priv">Política de Privacidad</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Síguenos</h4>
+                    <p class="text-gray-400 mb-4">Tutoriales, noticias y actualizaciones.</p>
+                    <div class="flex gap-4">
+                        <a href="#" class="hover:text-purple-400 transition" aria-label="GitHub">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.09 3.29 9.4 7.86 10.93.57.1.78-.25.78-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.71 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.14 1.18a10.9 10.9 0 012.86-.38c.97.01 1.95.13 2.86.38 2.18-1.5 3.14-1.18 3.14-1.18.62 1.59.23 2.76.11 3.05.73.81 1.18 1.83 1.18 3.09 0 4.44-2.7 5.41-5.27 5.7.41.35.77 1.03.77 2.08 0 1.5-.01 2.71-.01 3.08 0 .31.2.67.79.56A10.51 10.51 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="hover:text-purple-400 transition" aria-label="YouTube">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23.5 6.2s-.2-1.6-.8-2.3c-.8-.9-1.7-.9-2.1-1-2.9-.2-7.2-.2-7.2-.2h-.1s-4.3 0-7.2.2c-.4.1-1.3.1-2.1 1C.7 4.6.5 6.2.5 6.2S.2 8.3.2 10.3v1.4c0 2 .3 4.1.3 4.1s.2 1.6.8 2.3c.8.9 1.8.9 2.2 1 1.6.1 6.8.2 6.8.2s4.3 0 7.2-.2c.4-.1 1.3-.1 2.1-1 .6-.7.8-2.3.8-2.3s.3-2.1.3-4.1v-1.4c0-2-.3-4.1-.3-4.1zM9.8 15.6V8.4l6.3 3.6-6.3 3.6z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="hover:text-purple-400 transition" aria-label="Twitter">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19.8 3H16l-4 6.1L7.9 3H2l7.3 10.4L2.3 21H6l4.5-6.8L15.9 21H22l-7.6-10.6L19.8 3z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
+                <p>© 2025 Code Kids. Todos los derechos reservados. Hecho con ❤️ para los futuros programadores.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modales (mantengo los existentes pero sin mostrar aquí por brevedad) -->
+    <div id="overlay" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+
+    <!-- Modal FAQ -->
+    <div id="modal-faq" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-faq">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Preguntas Frecuentes</h3>
+                <div class="space-y-5 text-gray-700">
+                    <div>
+                        <p class="font-semibold">¿Mi hijo necesita experiencia previa?</p>
+                        <p>No. Code Kids está diseñado para principiantes absolutos.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold">¿Cómo garantizan la seguridad?</p>
+                        <p>Entorno cerrado, sin registro público. Solo profesores crean cuentas.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ayuda -->
+    <div id="modal-ayuda" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-ayuda">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Centro de Ayuda</h3>
+                <p class="text-gray-700">¿Necesitas ayuda? Consulta nuestras guías rápidas y recursos.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Contacto -->
+    <div id="modal-contacto" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-contacto">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Contáctanos</h3>
+                <form class="space-y-3">
+                    <input type="text" placeholder="Tu Nombre" class="w-full border rounded p-2" />
+                    <input type="email" placeholder="Tu Email" class="w-full border rounded p-2" />
+                    <textarea rows="4" placeholder="Mensaje" class="w-full border rounded p-2"></textarea>
+                    <button type="button" class="w-full bg-gray-300 text-gray-600 cursor-not-allowed px-4 py-2 rounded">Enviar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Términos -->
+    <div id="modal-terminos" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-terminos">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Términos y Condiciones</h3>
+                <p class="text-gray-600">Términos de uso de la plataforma Code Kids...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Inicializar Mapa de Leaflet
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mapa de Matamoros
+            const map = L.map('hero-map').setView([25.8796, -97.5045], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Marcador personalizado
+            const robotIcon = L.divIcon({
+                className: 'custom-marker',
+                html: '<div style="font-size: 2rem; text-align: center;">🤖</div>',
+                iconSize: [40, 40]
+            });
+
+            L.marker([25.8796, -97.5045], { icon: robotIcon })
+                .addTo(map)
+                .bindPopup('<b>¡Code Kids en Matamoros!</b><br>Únete a nuestra comunidad.')
+                .openPopup();
+
+            // Navegación entre pantallas
+            const screens = {
+                'nav-sobre': 'pantalla-sobre-nosotros',
+                'nav-caracteristicas': 'pantalla-caracteristicas',
+                'nav-profesores': 'pantalla-profesores',
+                'ft-sobre': 'pantalla-sobre-nosotros',
+                'ft-caract': 'pantalla-caracteristicas'
+            };
+
+            Object.keys(screens).forEach(btnId => {
+                document.getElementById(btnId)?.addEventListener('click', () => {
+                    document.getElementById('pantalla-principal').classList.add('hidden');
+                    document.querySelectorAll('[id^="pantalla-"]').forEach(el => el.classList.add('hidden'));
+                    document.getElementById(screens[btnId]).classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                });
+            });
+
+            // Botones de volver
+            document.querySelectorAll('[data-back]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('[id^="pantalla-"]').forEach(el => el.classList.add('hidden'));
+                    document.getElementById('pantalla-principal').classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                });
+            });
+
+            // Modales
+            const modals = ['modal-faq', 'modal-ayuda', 'modal-contacto', 'modal-terminos'];
+            const triggers = {
+                'ft-faq': 'modal-faq',
+                'ft-ayuda': 'modal-ayuda',
+                'ft-contacto': 'modal-contacto',
+                'ft-terminos': 'modal-terminos',
+                'ft-priv': 'modal-terminos'
+            };
+
+            Object.keys(triggers).forEach(btnId => {
+                document.getElementById(btnId)?.addEventListener('click', () => {
+                    document.getElementById('overlay').classList.remove('hidden');
+                    document.getElementById(triggers[btnId]).classList.remove('hidden');
+                    document.getElementById(triggers[btnId]).style.display = 'grid';
+                });
+            });
+
+            document.querySelectorAll('[data-close]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const modalId = btn.getAttribute('data-close');
+                    document.getElementById('overlay').classList.add('hidden');
+                    document.getElementById(modalId).classList.add('hidden');
+                    document.getElementById(modalId).style.display = 'none';
+                });
+            });
+
+            document.getElementById('overlay')?.addEventListener('click', () => {
+                document.getElementById('overlay').classList.add('hidden');
+                modals.forEach(modalId => {
+                    document.getElementById(modalId).classList.add('hidden');
+                    document.getElementById(modalId).style.display = 'none';
+                });
+            });
+        });
+    </script>
+    
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

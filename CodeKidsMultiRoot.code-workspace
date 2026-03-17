@@ -1,0 +1,11 @@
+{
+  "folders": [
+    { "path": "c:\\Users\\USER\\Desktop\\Proyecto_CodeKids" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true
+    }
+  }
+}

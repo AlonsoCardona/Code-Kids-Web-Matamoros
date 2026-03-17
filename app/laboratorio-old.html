@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Laboratorio - CodeKids</title>
+<script>try{const t=localStorage.getItem('app-theme');if(t==='dark')document.documentElement.classList.add('theme-dark','dark')}catch(e){}</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="../css/style.css"></head>
+<body class="bg-gray-50">
+<script type="module">
+  import '../js/firebase-init.js';
+  import { initStudentShell } from '../js/student-shell.js';
+  import '../js/api-mock.js';
+  import { addXP } from '../js/gamification.js';
+  window.addXP = addXP;
+  initStudentShell('laboratorio');
+</script>
+<main class="flex-1 md:ml-64 p-6 pt-20">
+  <h1 class="text-3xl font-bold mb-6">Laboratorio</h1>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="gamesGrid"></div>
+  <div id="gameModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50"></div>
+</main>
+<script>
+  const games = [
+    { id:'g1', title:'Blocky: El Laberinto', desc:'Arrastra bloques para llegar a la meta.', xp:25, icon:'🧩' },
+    { id:'g2', title:'Typo-Racer: Python', desc:'Teclea código Python rápido y preciso.', xp:15, icon:'⌨️' }
+  ];
+  function renderGames(){
+    const grid=document.getElementById('gamesGrid');
+    grid.innerHTML = games.map(g=>`<div class='card hover-lift flex flex-col'><div class='flex items-center justify-between mb-2'><h3 class='font-semibold'>${g.title}</h3><span class='text-2xl'>${g.icon}</span></div><p class='text-xs text-gray-600 mb-3'>${g.desc}</p><button class='mt-auto btn-primary-token text-xs' data-play='${g.id}'>Jugar (+${g.xp} XP)</button></div>`).join('');
+    grid.querySelectorAll('[data-play]').forEach(btn=>btn.addEventListener('click',()=>openGame(btn.dataset.play)));
+  }
+  function openGame(id){
+    const g = games.find(x=>x.id===id); if(!g) return; const modal=document.getElementById('gameModal');
+    modal.innerHTML = `<div class='bg-white rounded-xl w-full max-w-md p-6 shadow-xl relative'>
+      <button onclick='closeGame()' class='absolute top-2 right-2 text-gray-500 hover:text-gray-700'>✕</button>
+      <h2 class='text-xl font-bold mb-2'>${g.title}</h2>
+      <p class='text-sm text-gray-600 mb-4'>${g.desc}</p>
+      <div id='gameArea' class='border rounded p-3 h-48 overflow-auto text-sm bg-gray-50'></div>
+      <button id='btnFinish' class='mt-4 w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 text-sm'>Finalizar y Ganar XP</button>
+    </div>`;
+    modal.classList.remove('hidden');
+    if(g.id==='g1') initBlocky(); else if(g.id==='g2') initTypo();
+    document.getElementById('btnFinish').onclick = async ()=>{ try{ await window.apiComplete('game', g.id); }catch(_){} alert(`+${g.xp} XP otorgados`); closeGame(); };
+  }
+  function closeGame(){ const modal=document.getElementById('gameModal'); modal.classList.add('hidden'); modal.innerHTML=''; }
+  function initBlocky(){ const area=document.getElementById('gameArea'); area.innerHTML='<p>Arrastra pseudo-bloques (placeholder). Orden sugerido:<br>➡️ Avanzar<br>↩️ Girar Izquierda<br>➡️ Avanzar</p>'; }
+  function initTypo(){ const area=document.getElementById('gameArea'); area.innerHTML='<p>Escribe: <code>print("Hola")</code> (placeholder). Precisión no verificada.</p>'; }
+  renderGames();
+</script>
+</body></html>

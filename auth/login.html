@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - CodeKids</title>
+    <script>
+        // Preaplicar tema guardado para evitar parpadeo (soporta Tailwind dark: y CSS theme-dark)
+        try {
+            const savedTheme = localStorage.getItem('app-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) { /* noop */ }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        /* Login: estilos específicos para la pantalla modernizada */
+        :root { --ck-purple: #6f42c1; --ck-indigo: #5b21b6; --ck-blue: #4f46e5; }
+
+        /* ===== ESTILOS PARA MODO PROFESOR (PROFESIONAL) ===== */
+        body[data-role="profesor"] {
+            background: linear-gradient(180deg, #2D1B4E 0%, #1E3A8A 50%, #1F2937 100%);
+        }
+
+        body[data-role="profesor"] .login-bg-layer {
+            background: linear-gradient(180deg, rgba(91, 33, 182, 0.15) 0%, rgba(79, 70, 229, 0.12) 50%, rgba(31, 41, 55, 0.08) 100%);
+        }
+
+        body[data-role="profesor"] .bg-rocket {
+            opacity: 0.5;
+            filter: saturate(0.7) brightness(0.8);
+        }
+
+        body[data-role="profesor"] .logo-ck {
+            background: linear-gradient(135deg, #5B21B6 0%, #1E40AF 100%);
+            box-shadow: 0 8px 30px rgba(91, 33, 182, 0.3), 0 2px 6px rgba(30, 64, 175, 0.2) inset;
+        }
+
+        body[data-role="profesor"] h1 {
+            color: #111827 !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        body[data-role="profesor"] .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 
+                0 16px 32px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(91, 33, 182, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        body[data-role="profesor"] .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.18),
+                0 0 0 2px rgba(30, 64, 175, 0.3);
+        }
+
+        body[data-role="profesor"] .form-input {
+            background: #F9FAFB;
+            border: 1px solid rgba(31, 41, 55, 0.12);
+        }
+
+        body[data-role="profesor"] .form-input:focus {
+            border-color: #1E40AF;
+            box-shadow: 0 6px 18px rgba(30, 64, 175, 0.15);
+            background: #ffffff;
+        }
+
+        body[data-role="profesor"] .btn-primary {
+            background: linear-gradient(135deg, #5B21B6 0%, #1E40AF 100%);
+            box-shadow: 
+                0 12px 28px rgba(91, 33, 182, 0.35),
+                0 4px 12px rgba(30, 64, 175, 0.25);
+        }
+
+        body[data-role="profesor"] .btn-primary:hover {
+            background: linear-gradient(135deg, #6D28D9 0%, #2563EB 100%);
+            box-shadow: 
+                0 16px 36px rgba(91, 33, 182, 0.45),
+                0 6px 16px rgba(30, 64, 175, 0.35);
+        }
+
+        body[data-role="profesor"] .btn-rocket {
+            display: none;
+        }
+
+        body[data-role="profesor"] .btn-primary::before {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 0.5rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5z'/%3E%3Ccircle cx='12' cy='16' r='1' fill='white'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        body[data-role="profesor"] #btnForgot {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        body[data-role="profesor"] #btnForgot:hover {
+            color: #047857;
+        }
+
+        body[data-role="profesor"] .form-label {
+            color: #374151;
+            font-weight: 600;
+        }
+
+        /* ===== FIN ESTILOS MODO PROFESOR ===== */
+
+        /* Animated background gradient */
+        .login-bg-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: linear-gradient(180deg, rgba(79,70,229,0.08) 0%, rgba(99,102,241,0.06) 50%, rgba(236,72,153,0.02) 100%);
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            animation: bg-shift 12s linear infinite;
+        }
+
+        @keyframes bg-shift {
+            0% { filter: hue-rotate(0deg) saturate(100%); }
+            50% { filter: hue-rotate(8deg) saturate(110%); }
+            100% { filter: hue-rotate(0deg) saturate(100%); }
+        }
+
+        /* Decorative rockets */
+        .bg-rocket {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            opacity: 0.95;
+            transform-origin: center;
+            z-index: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            will-change: transform, opacity;
+            animation: rocket-float 8s ease-in-out infinite;
+        }
+        .bg-rocket.r1 { left: 6%; top: 12%; transform: rotate(-15deg) scale(0.9); animation-duration: 9s; }
+        .bg-rocket.r2 { right: 8%; top: 18%; transform: rotate(10deg) scale(1.05); animation-duration: 11s; }
+        .bg-rocket.r3 { left: 30%; bottom: 6%; transform: rotate(-6deg) scale(1.1); animation-duration: 10s; }
+
+        @keyframes rocket-float {
+            0% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-18px) rotate(2deg); }
+            100% { transform: translateY(0) rotate(-2deg); }
+        }
+
+        /* Card styling */
+        .card {
+            position: relative;
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 20px 40px rgba(15,23,42,0.12);
+            z-index: 10;
+            transition: transform 0.28s cubic-bezier(.2,.9,.2,1), box-shadow 0.28s ease;
+        }
+        .card:hover { transform: translateY(-6px); box-shadow: 0 30px 60px rgba(15,23,42,0.14); }
+
+        /* Logo halo */
+        .logo-ck {
+            box-shadow: 0 8px 30px rgba(99,102,241,0.18), 0 2px 6px rgba(79,70,229,0.12) inset;
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+        }
+
+        /* Headings entry */
+        .animate-header { opacity: 0; transform: translateY(8px); animation: header-in 600ms ease forwards; }
+        @keyframes header-in { to { opacity: 1; transform: translateY(0); } }
+
+        /* Inputs */
+        .form-input {
+            width: 100%;
+            padding: 12px 14px 12px 44px;
+            border-radius: 10px;
+            border: 1px solid rgba(15,23,42,0.08);
+            background: #fbfdff;
+            transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+            outline: none;
+        }
+        .form-input::placeholder { color: #9CA3AF; }
+        .form-group { position: relative; }
+        .input-icon {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; opacity: 0.95;
+        }
+        .form-input:focus { border-color: var(--ck-purple); box-shadow: 0 6px 18px rgba(111,66,193,0.12); }
+        .form-input:focus::-webkit-input-placeholder { opacity: 0.6; }
+
+        /* Toggle eye button */
+        #togglePass { background: transparent; border: none; color: var(--ck-indigo); cursor: pointer; display: inline-flex; gap:6px; align-items:center; }
+        #togglePass:focus { outline: 3px solid rgba(99,102,241,0.14); border-radius: 6px; }
+
+        /* Custom checkbox */
+        .ckbox { width: 18px; height: 18px; border-radius: 6px; border: 1px solid rgba(15,23,42,0.12); display:inline-grid; place-items:center; background:#fff; }
+        input[type="checkbox"].hidden-native { appearance:none; -webkit-appearance:none; -moz-appearance:none; }
+        .ckbox.checked { background: linear-gradient(90deg,var(--ck-purple),var(--ck-blue)); border: none; color: white; }
+
+        /* CTA Button */
+        .btn-primary { background: linear-gradient(90deg, var(--ck-purple), var(--ck-blue)); color: white; border-radius: 12px; padding: 12px 18px; font-weight:700; box-shadow: 0 8px 24px rgba(79,70,229,0.18); transition: transform 160ms ease, box-shadow 160ms ease; }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(79,70,229,0.2); }
+        .btn-rocket { width: 22px; height: 22px; display:inline-block; }
+
+        /* Links */
+        a.link-fade { transition: opacity 260ms ease, text-decoration 160ms ease; }
+        a.link-fade:hover { text-decoration: underline; opacity: 0.95; }
+
+        /* Alerts */
+        .alert { border-radius: 10px; padding: 10px; }
+
+        /* Accessibility: reduce motion */
+        @media (prefers-reduced-motion: reduce) {
+            .login-bg-layer, .bg-rocket, .card, .animate-header { animation: none !important; transition: none !important; }
+        }
+
+        /* Dynamic rocket background (similar behavior to main site) */
+        .rocket-section { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .rocket { position: absolute; width: 64px; height: 64px; will-change: transform, opacity; }
+        .rocket svg { width: 100%; height: 100%; display: block; }
+
+        @keyframes rocket-move-up {
+            0% { transform: translateY(30vh) translateX(0) rotate(-10deg); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(-40vh) translateX(40vw) rotate(10deg); opacity: 0.9; }
+        }
+        @keyframes rocket-move-down {
+            0% { transform: translateY(-30vh) translateX(0) rotate(10deg); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(40vh) translateX(-40vw) rotate(-10deg); opacity: 0.9; }
+        }
+        @keyframes rocket-wobble { 0% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } 100% { transform: rotate(-4deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4" data-page="login">
+    <div class="login-bg-layer" aria-hidden="true"></div>
+    <div id="rocketSection" class="rocket-section" aria-hidden="true"></div>
+    <!-- decorative rockets (kept for depth) -->
+    <svg class="bg-rocket r1" viewBox="0 0 48 48" aria-hidden="true"><g fill="none"><path d="M12 36c0 0 6-4 8-6s8-8 12-12 6-5 6-5l-6 18s-10 8-20 5z" fill="#60A5FA" opacity="0.12"/></g><g transform="translate(6,6)"><rect width="36" height="36" rx="6" fill="#7C3AED" opacity="0.06"/></g><g transform="translate(2,2)"><path d="M22 2c-1.1 0-2 .9-2 2v6c0 .6.4 1 1 1 .3 0 .5 0 .7-.2L27 7c.3-.3.3-.8 0-1.1L23.7 3.2C23.5 3.1 23.2 3 23 3c-.1-.1-.3-.1-.4-.1z" fill="#F97316"/></g></svg>
+    <svg class="bg-rocket r2" viewBox="0 0 48 48" aria-hidden="true"><g transform="translate(4,4)"><path d="M24 0l6 12-6 6-6-6 6-12z" fill="#06B6D4"/></g></svg>
+    <svg class="bg-rocket r3" viewBox="0 0 48 48" aria-hidden="true"><g transform="translate(8,8)"><circle cx="12" cy="12" r="12" fill="#A78BFA" opacity="0.12"/></g></svg>
+
+    <!-- Contenedor Principal -->
+    <div class="w-full max-w-md animate-fade-in relative">
+        <!-- Logo y Título -->
+        <div class="text-center mb-8" id="loginHeader">
+            <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl shadow-xl mb-4 logo-ck">
+                <span class="text-white font-extrabold text-4xl">CK</span>
+            </div>
+            <h1 class="text-5xl font-extrabold text-gray-800 mb-2 animate-header">Bienvenido a CodeKids</h1>
+            <p class="text-gray-600 mt-1">Inicia sesión para continuar aprendiendo</p>
+        </div>
+
+        <!-- Formulario de Login -->
+        <div class="card">
+            <form id="loginForm" class="space-y-5" aria-describedby="formDescription">
+                <div id="formDescription" class="sr-only">Formulario de inicio de sesión. Usa Tab para navegar por los campos.</div>
+                
+                <!-- Email -->
+                <div class="form-group">
+                    <label class="form-label block text-sm font-semibold mb-2">Correo Electrónico</label>
+                    <div class="form-group">
+                        <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#6B7280" d="M2 6.5A2.5 2.5 0 014.5 4h15A2.5 2.5 0 0122 6.5v11A2.5 2.5 0 0119.5 20h-15A2.5 2.5 0 012 17.5v-11zM4.8 6.9L12 11l7.2-4.1"/></svg>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            class="form-input" 
+                            placeholder="tu.email@codekids.com"
+                            required
+                            autocomplete="email"
+                            aria-label="Correo electrónico"
+                        >
+                    </div>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="form-group">
+                    <label class="form-label flex justify-between items-center">
+                        <span class="font-semibold">Contraseña</span>
+                        <button type="button" id="togglePass" aria-pressed="false" aria-label="Mostrar contraseña">
+                            <svg id="eyeOpen" class="w-5 h-5 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" stroke="#6B21A8" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="#6B21A8" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <svg id="eyeClosed" class="w-5 h-5 hidden" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3l18 18" stroke="#6B21A8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 9.5A3.5 3.5 0 0114.5 14.5" stroke="#6B21A8" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </label>
+                    <div class="form-group">
+                        <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#6B7280" d="M12 2a5 5 0 015 5v3h1a1 1 0 011 1v8a1 1 0 01-1 1H5a1 1 0 01-1-1v-8a1 1 0 011-1h1V7a5 5 0 015-5zM9 11v-3a3 3 0 016 0v3"/></svg>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            class="form-input" 
+                            placeholder="••••••••"
+                            required
+                            autocomplete="current-password"
+                            aria-label="Contraseña"
+                        >
+                    </div>
+                </div>
+
+                <!-- Recordarme -->
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" id="remember" class="hidden-native" aria-checked="false">
+                        <span class="ckbox" id="ckVisual" aria-hidden="true"></span>
+                        <span class="text-sm text-gray-600">Recordarme</span>
+                    </label>
+                    <button type="button" id="btnForgot" class="text-sm text-indigo-600 hover:text-indigo-700 font-semibold">
+                        ¿Olvidaste tu contraseña?
+                    </button>
+                </div>
+
+                <!-- Mensaje de error -->
+                <div id="errorMessage" class="alert alert-danger hidden" role="alert" aria-live="assertive">
+                    <span>⚠️</span>
+                    <span id="errorText" class="ml-2 text-sm text-red-600"></span>
+                </div>
+
+                <!-- Mensaje de éxito -->
+                <div id="successMessage" class="alert alert-success hidden">
+                    <span>✅</span>
+                    <span id="successText"></span>
+                </div>
+
+                <!-- Botón de Login -->
+                <button 
+                    type="submit" 
+                    id="loginButton"
+                    class="btn-primary w-full flex items-center justify-center gap-3"
+                    aria-live="polite"
+                >
+                    <svg class="btn-rocket" id="btnRocket" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M2 22s10-4 14-8 6-8 6-8-6 2-10 6S2 22 2 22z"/></svg>
+                    <span id="buttonText">Iniciar Sesión</span>
+                    <div id="buttonSpinner" class="spinner spinner-sm hidden" aria-hidden="true"></div>
+                </button>
+
+                <!-- Eliminado: proveedores externos (SSO prohibido) -->
+
+            </form>
+
+            <!-- Registro deshabilitado -->
+            <div class="mt-6 text-center">
+                <p class="text-gray-500 text-sm">
+                    El registro público está deshabilitado. Solicita acceso a tu profesor o administrador.
+                </p>
+            </div>
+
+            <!-- Volver al inicio -->
+            <div class="mt-4 text-center">
+                <a href="../index.html" class="text-sm text-gray-500 hover:text-gray-700">
+                    ← Volver al inicio
+                </a>
+            </div>
+        </div>
+
+        <!-- Información de seguridad -->
+        <div class="mt-6 text-center text-xs text-gray-500">
+            <p>Al iniciar sesión aceptas nuestros <button type="button" id="btnPrivacidad" class="underline text-indigo-600 hover:text-indigo-700">Avisos de Privacidad</button></p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <!-- Modal for force password change -->
+    <div id="forceChangeModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold mb-2">Actualiza tu contraseña</h3>
+            <p class="text-gray-700 mb-4">Por seguridad, debes establecer una nueva contraseña. Tu contraseña actual podría expirar pronto.</p>
+            <button id="btnGoChange" class="btn btn-primary w-full">Cambiar Contraseña Ahora</button>
+        </div>
+    </div>
+
+    <!-- Modal: Recuperar contraseña (admin-mediated) -->
+    <div id="forgotModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="forgotTitle">
+        <div class="bg-white rounded-xl max-w-md w-full p-6">
+            <div class="flex items-start justify-between">
+                <h3 id="forgotTitle" class="text-xl font-bold">Solicitar recuperación</h3>
+                <button id="forgotClose" class="text-gray-500 hover:text-gray-700" aria-label="Cerrar">✕</button>
+            </div>
+            <p class="text-gray-600 mt-2">Ingresa tu correo y enviaremos una solicitud al administrador.</p>
+            <form id="forgotForm" class="mt-4 space-y-3">
+                <label class="form-label">Correo</label>
+                <input id="forgotEmail" type="email" class="form-input" required />
+                <div id="forgotAlert" class="alert alert-danger hidden"><span>⚠️</span><span id="forgotError"></span></div>
+                <div id="forgotOK" class="alert alert-success hidden"><span>✅</span><span id="forgotOkText"></span></div>
+                <button id="forgotSubmit" type="submit" class="btn btn-primary w-full flex items-center justify-center gap-2">
+                    <span id="forgotBtnText">Enviar solicitud</span>
+                    <div id="forgotSpinner" class="spinner spinner-sm hidden"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { 
+            signInWithEmailAndPassword,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence,
+            signInAnonymously
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Importar configuración de Firebase
+        import { auth, db } from '../js/firebase-config.js';
+
+        // Elementos del DOM
+    const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        
+        // Detectar y aplicar modo profesor
+        const params = new URLSearchParams(window.location.search);
+        const roleParam = params.get('role');
+        if (roleParam === 'profesor') {
+            document.body.setAttribute('data-role', 'profesor');
+            const header = document.getElementById('loginHeader');
+            if (header) {
+                header.querySelector('h1').textContent = 'Acceso Profesores';
+                header.querySelector('p').textContent = 'Inicia sesión para gestionar tu aula';
+            }
+        }
+        
+        const rememberCheckbox = document.getElementById('remember');
+    const forgotBtn = document.getElementById('btnForgot');
+    const privacidadBtn = document.getElementById('btnPrivacidad');
+    const forceModal = document.getElementById('forceChangeModal');
+    const btnGoChange = document.getElementById('btnGoChange');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const errorText = document.getElementById('errorText');
+        const successText = document.getElementById('successText');
+        const loginButton = document.getElementById('loginButton');
+        const buttonText = document.getElementById('buttonText');
+        const buttonSpinner = document.getElementById('buttonSpinner');
+
+        // Funciones helper
+        function showError(message) {
+            errorMessage.classList.remove('hidden');
+            successMessage.classList.add('hidden');
+            errorText.textContent = message;
+        }
+
+        function showSuccess(message) {
+            successMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            successText.textContent = message;
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                loginButton.disabled = true;
+                buttonText.textContent = 'Iniciando sesión...';
+                buttonSpinner.classList.remove('hidden');
+            } else {
+                loginButton.disabled = false;
+                buttonText.textContent = 'Iniciar Sesión';
+                buttonSpinner.classList.add('hidden');
+            }
+        }
+
+    // Crear o actualizar datos del usuario en Firestore
+        async function ensureUserData(user) {
+            const userRef = doc(db, 'users', user.uid);
+            const snap = await getDoc(userRef);
+            if (!snap.exists()) {
+                const data = {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName || user.email.split('@')[0],
+                    photoURL: user.photoURL || null,
+                    rol: 'estudiante', // legacy campo
+                    role: 'Estudiante', // campo estandarizado usado por admin.html
+                    createdAt: serverTimestamp(),
+                    lastLogin: serverTimestamp(),
+                    passwordChangeRequired: true,
+                    passwordValidUntil: null,
+                    xp: 0,
+                    nivel: 1,
+                    racha: 0,
+                    leccionesCompletadas: [],
+                    insignias: [],
+                    configuracion: { notificaciones: true, sonido: true, tema: 'claro' }
+                };
+                await setDoc(userRef, data);
+                return { ...data, isNew: true };
+            }
+            await setDoc(userRef, { lastLogin: serverTimestamp() }, { merge: true });
+            return { ...snap.data(), isNew: false };
+        }
+
+        // Redirigir según el rol del usuario
+        function redirectUser(userData) {
+            // Unificar soporte de campos 'role' (estandar) y 'rol' (legacy/minúscula)
+            const raw = userData.role || userData.rol || 'Estudiante';
+            const norm = raw.toLowerCase();
+            if (norm === 'admin') {
+                window.location.href = '../admin.html';
+                return;
+            }
+                if (norm === 'profesor' || norm === 'teacher') {
+                    window.location.href = '../app/dashboard-profesor.html';
+                    return;
+                }
+            // default estudiante
+            window.location.href = '../app/dashboard.html';
+        }
+
+        // Login con Email/Password
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            errorMessage.classList.add('hidden');
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const remember = rememberCheckbox.checked;
+
+            try {
+                // Configurar persistencia
+                const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+
+                // Intentar iniciar sesión
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Crear/actualizar datos del usuario
+                const userData = await ensureUserData(user);
+
+                // Forzar cambio de contraseña si aplica o si expiró la validez (antes de cualquier redirección por rol/claim)
+                const validUntil = userData.passwordValidUntil;
+                let validUntilMs = null;
+                if (validUntil) {
+                    if (typeof validUntil.toMillis === 'function') {
+                        validUntilMs = validUntil.toMillis();
+                    } else {
+                        try { validUntilMs = new Date(validUntil).getTime(); } catch(_) { validUntilMs = null; }
+                    }
+                }
+
+                const isExpired = validUntilMs ? (validUntilMs <= Date.now()) : false;
+                if (userData.passwordChangeRequired === true || isExpired) {
+                    forceModal.classList.remove('hidden');
+                    forceModal.classList.add('flex');
+                    btnGoChange.onclick = () => {
+                        window.location.href = '../app/configuracion/cambiar-password.html';
+                    };
+                    return; // no redirigir aún
+                }
+
+                // Si el usuario tiene claim admin en el token, priorizar redirección a admin
+                try {
+                    const tokenRes = await user.getIdTokenResult();
+                    if (tokenRes?.claims?.admin === true) {
+                        showSuccess('Bienvenido administrador. Redirigiendo…');
+                        setTimeout(() => { window.location.href = '../admin.html'; }, 600);
+                        return;
+                    }
+                } catch (_) { /* sin impacto si falla */ }
+                showSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
+                setTimeout(() => redirectUser(userData), 1000);
+
+            } catch (error) {
+                setLoading(false);
+                console.error('Error de login:', error);
+
+                // Mensajes de error personalizados (unificado para credenciales)
+                const code = error?.code;
+                if (code === 'auth/invalid-email') {
+                    showError('El correo electrónico no es válido');
+                } else if (code === 'auth/user-disabled') {
+                    showError('Esta cuenta ha sido deshabilitada');
+                } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+                    showError('Correo o contraseña incorrectos');
+                } else if (code === 'auth/too-many-requests') {
+                    showError('Demasiados intentos fallidos. Intenta más tarde');
+                } else {
+                    showError('Error al iniciar sesión. Intenta de nuevo');
+                }
+            }
+        });
+
+                // Mostrar error si viene err=inexistente
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('err') === 'inexistente') {
+                        showError('Cuenta inexistente. Contacta a un administrador.');
+                    }
+                } catch(_) {}
+
+        // Flujo de recuperación con modal accesible
+        const forgotModal = document.getElementById('forgotModal');
+        const forgotForm = document.getElementById('forgotForm');
+        const forgotEmail = document.getElementById('forgotEmail');
+        const forgotClose = document.getElementById('forgotClose');
+        const forgotSubmit = document.getElementById('forgotSubmit');
+        const forgotBtnText = document.getElementById('forgotBtnText');
+        const forgotSpinner = document.getElementById('forgotSpinner');
+        const forgotAlert = document.getElementById('forgotAlert');
+        const forgotError = document.getElementById('forgotError');
+        const forgotOK = document.getElementById('forgotOK');
+        const forgotOkText = document.getElementById('forgotOkText');
+
+        function openForgot() {
+            forgotAlert.classList.add('hidden');
+            forgotOK.classList.add('hidden');
+            forgotEmail.value = emailInput.value || '';
+            forgotModal.classList.remove('hidden');
+            forgotModal.classList.add('flex');
+            forgotEmail.focus();
+        }
+        function closeForgot() {
+            forgotModal.classList.add('hidden');
+            forgotModal.classList.remove('flex');
+        }
+        function setForgotLoading(v) {
+            forgotSubmit.disabled = v;
+            forgotBtnText.textContent = v ? 'Enviando…' : 'Enviar solicitud';
+            forgotSpinner.classList.toggle('hidden', !v);
+        }
+
+        forgotBtn.addEventListener('click', openForgot);
+        forgotClose.addEventListener('click', closeForgot);
+        forgotModal.addEventListener('click', (e) => { if (e.target === forgotModal) closeForgot(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeForgot(); });
+
+        forgotForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setForgotLoading(true);
+            forgotAlert.classList.add('hidden');
+            forgotOK.classList.add('hidden');
+            const email = forgotEmail.value.trim();
+            try {
+                // Iniciar sesión anónima temporalmente para poder escribir en Firestore
+                await signInAnonymously(auth);
+                
+                // Buscar si el usuario existe en Firestore
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('email', '==', email));
+                const snapshot = await getDocs(q);
+                
+                let userId = null;
+                let userName = 'Usuario';
+                
+                if (!snapshot.empty) {
+                    const userDoc = snapshot.docs[0];
+                    userId = userDoc.id;
+                    const userData = userDoc.data();
+                    userName = userData.displayName || 
+                              (userData.nombre ? `${userData.nombre} ${userData.apellidoPaterno || ''}`.trim() : null) ||
+                              'Usuario';
+                }
+                
+                // Crear solicitud en Firestore
+                await addDoc(collection(db, 'passwordResetRequests'), {
+                    email: email,
+                    userId: userId,
+                    userName: userName,
+                    requestedAt: serverTimestamp(),
+                    status: 'pending',
+                    resolvedAt: null,
+                    resolvedBy: null,
+                    tempPassword: null
+                });
+                
+                // Cerrar sesión anónima
+                await auth.signOut();
+                
+                forgotOkText.textContent = 'Solicitud enviada. Un administrador te contactará.';
+                forgotOK.classList.remove('hidden');
+                
+                // Limpiar formulario después de 2 segundos
+                setTimeout(() => {
+                    forgotEmail.value = '';
+                    closeForgot();
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Error completo:', err);
+                console.error('Código de error:', err.code);
+                console.error('Mensaje:', err.message);
+                forgotError.textContent = 'No se pudo enviar la solicitud. Intenta más tarde.';
+                forgotAlert.classList.remove('hidden');
+            } finally {
+                setForgotLoading(false);
+            }
+        });
+
+        // Toggle mostrar contraseña (eye icon swap)
+        document.getElementById('togglePass').addEventListener('click', () => {
+            const inp = document.getElementById('password');
+            const btn = document.getElementById('togglePass');
+            const eyeOpen = document.getElementById('eyeOpen');
+            const eyeClosed = document.getElementById('eyeClosed');
+            const isHidden = inp.type === 'password';
+            inp.type = isHidden ? 'text' : 'password';
+            eyeOpen.classList.toggle('hidden', !isHidden);
+            eyeClosed.classList.toggle('hidden', isHidden);
+            btn.setAttribute('aria-pressed', String(!isHidden));
+            btn.setAttribute('aria-label', isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        });
+
+        // Custom checkbox visual toggle
+        const rememberNative = document.getElementById('remember');
+        const ckVisual = document.getElementById('ckVisual');
+        if (rememberNative && ckVisual) {
+            // initialize
+            rememberNative.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                ckVisual.classList.toggle('checked', checked);
+                rememberNative.setAttribute('aria-checked', String(checked));
+            });
+            // click on visual toggles native input
+            ckVisual.addEventListener('click', () => { rememberNative.checked = !rememberNative.checked; rememberNative.dispatchEvent(new Event('change')); });
+        }
+
+        // Modal de privacidad (placeholder)
+        privacidadBtn.addEventListener('click', () => {
+            alert('Avisos de Privacidad: Texto legal placeholder.');
+        });
+
+        // Si ya está autenticado, redirigir
+        window.addEventListener('userLoggedIn', async (e) => {
+            const user = e.detail;
+            try {
+                const tokenRes = await user.getIdTokenResult();
+                if (tokenRes?.claims?.admin === true) {
+                    window.location.href = '../admin.html';
+                    return;
+                }
+            } catch(_) {}
+            const userData = await window.getUserData(user.uid);
+            if (userData) redirectUser(userData);
+        });
+    </script>
+    <script>
+        // Dynamic rockets generator for login background
+        (function(){
+            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const container = document.getElementById('rocketSection');
+            if (!container || prefersReduced) return;
+
+            const rocketSVG = (color1='#7C3AED', color2='#06B6D4') => `
+                <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="g" x1="0" x2="1">
+                            <stop offset="0" stop-color="${color1}" />
+                            <stop offset="1" stop-color="${color2}" />
+                        </linearGradient>
+                    </defs>
+                    <g fill="url(#g)">
+                        <path d="M32 2c-4 0-8 6-8 10v6c0 4 4 10 8 10s8-6 8-10v-6c0-4-4-10-8-10z"/>
+                        <path d="M12 46c0 0 6-6 20-6s20 6 20 6-6 8-20 8S12 46 12 46z" fill="#fff" opacity="0.12"/>
+                    </g>
+                </svg>`;
+
+            const count = 8;
+            for (let i=0;i<count;i++){
+                const el = document.createElement('div');
+                el.className = 'rocket';
+                // random start position
+                const left = Math.round(Math.random()*100);
+                const top = Math.round(20 + Math.random()*60);
+                el.style.left = left + 'vw';
+                el.style.top = top + 'vh';
+                const dur = 8 + Math.random()*8;
+                const delay = Math.random()*6;
+                // choose direction randomly
+                const dir = Math.random() > 0.5 ? 'up' : 'down';
+                el.innerHTML = rocketSVG(i%2? '#8B5CF6' : '#06B6D4', i%2? '#06B6D4' : '#7C3AED');
+                el.style.animation = `rocket-move-${dir} ${dur}s linear ${delay}s infinite`;
+                // small wobble
+                const wob = document.createElement('div'); wob.style.animation = `rocket-wobble ${2+Math.random()*3}s ease-in-out ${delay}s infinite`; el.appendChild(wob);
+                container.appendChild(el);
+            }
+        })();
+    </script>
+</body>
+</html>
