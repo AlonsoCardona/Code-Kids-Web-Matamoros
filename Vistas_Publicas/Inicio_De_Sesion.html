@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - CodeKids</title>
+    <script>
+        // Preaplicar tema guardado para evitar parpadeo (soporta Tailwind dark: y CSS theme-dark)
+        try {
+            const savedTheme = localStorage.getItem('app-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) { /* noop */ }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        /* Login: estilos específicos para la pantalla modernizada */
+        :root { --ck-purple: #6f42c1; --ck-indigo: #5b21b6; --ck-blue: #4f46e5; }
+
+        /* ===== ESTILOS PARA MODO PROFESOR (PROFESIONAL) ===== */
+        body[data-role="profesor"] {
+            background: linear-gradient(180deg, #B8A8D6 0%, #A1BEE8 50%, #B0C4D9 100%);
+        }
+
+        body[data-role="profesor"] .login-bg-layer {
+            background: linear-gradient(180deg, rgba(184, 168, 214, 0.3) 0%, rgba(161, 190, 232, 0.28) 50%, rgba(176, 196, 217, 0.22) 100%);
+        }
+
+        body[data-role="profesor"] .bg-rocket {
+            opacity: 0.5;
+            filter: saturate(0.7) brightness(0.8);
+        }
+
+        body[data-role="profesor"] .logo-ck {
+            background: linear-gradient(135deg, #5B21B6 0%, #1E40AF 100%);
+            box-shadow: 0 8px 30px rgba(91, 33, 182, 0.3), 0 2px 6px rgba(30, 64, 175, 0.2) inset;
+        }
+
+        body[data-role="profesor"] h1 {
+            color: #111827 !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        body[data-role="profesor"] .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 
+                0 16px 32px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(91, 33, 182, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        body[data-role="profesor"] .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.18),
+                0 0 0 2px rgba(30, 64, 175, 0.3);
+        }
+
+        body[data-role="profesor"] .form-input {
+            background: #F9FAFB;
+            border: 1px solid rgba(31, 41, 55, 0.12);
+        }
+
+        body[data-role="profesor"] .form-input:focus {
+            border-color: #1E40AF;
+            box-shadow: 0 6px 18px rgba(30, 64, 175, 0.15);
+            background: #ffffff;
+        }
+
+        body[data-role="profesor"] .btn-primary {
+            background: linear-gradient(135deg, #5B21B6 0%, #1E40AF 100%);
+            box-shadow: 
+                0 12px 28px rgba(91, 33, 182, 0.35),
+                0 4px 12px rgba(30, 64, 175, 0.25);
+        }
+
+        body[data-role="profesor"] .btn-primary:hover {
+            background: linear-gradient(135deg, #6D28D9 0%, #2563EB 100%);
+            box-shadow: 
+                0 16px 36px rgba(91, 33, 182, 0.45),
+                0 6px 16px rgba(30, 64, 175, 0.35);
+        }
+
+        body[data-role="profesor"] .btn-rocket {
+            display: none;
+        }
+
+        body[data-role="profesor"] .btn-primary::before {
+            content: '';
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            margin-right: 0.65rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4'/%3E%3Cpolyline points='10 17 15 12 10 7'/%3E%3Cline x1='15' y1='12' x2='3' y2='12'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.25));
+            transition: transform 0.3s ease;
+        }
+        
+        body[data-role="profesor"] .btn-primary:hover::before {
+            transform: translateX(3px);
+        }
+
+        body[data-role="profesor"] #btnForgot {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        body[data-role="profesor"] #btnForgot:hover {
+            color: #047857;
+        }
+
+        body[data-role="profesor"] .form-label {
+            color: #374151;
+            font-weight: 600;
+        }
+
+        /* ===== MODO OSCURO PARA PROFESOR ===== */
+        .theme-dark body[data-role="profesor"] {
+            background: linear-gradient(180deg, #1A0F2E 0%, #0F1C3A 50%, #0D1117 100%);
+        }
+
+        .theme-dark body[data-role="profesor"] .login-bg-layer {
+            background: linear-gradient(180deg, rgba(58, 33, 102, 0.2) 0%, rgba(30, 58, 138, 0.18) 50%, rgba(17, 24, 39, 0.12) 100%);
+        }
+
+        /* ===== FIN ESTILOS MODO PROFESOR =====
+
+        /* Animated background gradient */
+        .login-bg-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: linear-gradient(180deg, rgba(79,70,229,0.08) 0%, rgba(99,102,241,0.06) 50%, rgba(236,72,153,0.02) 100%);
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            animation: bg-shift 12s linear infinite;
+        }
+
+        @keyframes bg-shift {
+            0% { filter: hue-rotate(0deg) saturate(100%); }
+            50% { filter: hue-rotate(8deg) saturate(110%); }
+            100% { filter: hue-rotate(0deg) saturate(100%); }
+        }
+
+        /* Iconos de código flotantes */
+        .floating-shapes {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .shape {
+            position: absolute;
+            opacity: 0.15;
+            color: #8B5CF6;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .shape:nth-child(1) { top: 10%; left: 10%; animation: float 6s ease-in-out infinite; }
+        .shape:nth-child(2) { top: 60%; right: 15%; animation: float 8s ease-in-out infinite 1s; }
+        .shape:nth-child(3) { bottom: 20%; left: 20%; animation: float 7s ease-in-out infinite 2s; }
+        .shape:nth-child(4) { top: 30%; right: 30%; animation: float 9s ease-in-out infinite 1.5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+
+        /* Card styling */
+        .card {
+            position: relative;
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 20px 40px rgba(15,23,42,0.12);
+            z-index: 10;
+            transition: transform 0.28s cubic-bezier(.2,.9,.2,1), box-shadow 0.28s ease;
+        }
+        .card:hover { transform: translateY(-6px); box-shadow: 0 30px 60px rgba(15,23,42,0.14); }
+
+        /* Logo halo */
+        .logo-ck {
+            box-shadow: 0 8px 30px rgba(139,92,246,0.18), 0 2px 6px rgba(167,139,250,0.12) inset;
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+        }
+
+        /* Headings entry */
+        .animate-header { opacity: 0; transform: translateY(8px); animation: header-in 600ms ease forwards; }
+        @keyframes header-in { to { opacity: 1; transform: translateY(0); } }
+
+        /* Inputs */
+        .form-input {
+            width: 100%;
+            padding: 12px 14px 12px 44px;
+            border-radius: 10px;
+            border: 1px solid rgba(15,23,42,0.08);
+            background: #fbfdff;
+            transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+            outline: none;
+        }
+        .form-input::placeholder { color: #9CA3AF; }
+        .form-group { position: relative; }
+        .input-icon {
+            position: absolute; 
+            left: 12px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            width: 20px; 
+            height: 20px; 
+            opacity: 0.6;
+            stroke: #6B7280;
+            transition: opacity 0.3s ease, stroke 0.3s ease;
+        }
+        .form-input:focus ~ .input-icon,
+        .form-input:not(:placeholder-shown) ~ .input-icon {
+            opacity: 0.9;
+            stroke: var(--ck-purple);
+        }
+        .form-input:focus { border-color: var(--ck-purple); box-shadow: 0 6px 18px rgba(111,66,193,0.12); }
+        .form-input:focus::-webkit-input-placeholder { opacity: 0.6; }
+
+        /* Toggle eye button */
+        #togglePass { background: transparent; border: none; color: var(--ck-indigo); cursor: pointer; display: inline-flex; gap:6px; align-items:center; }
+        #togglePass:focus { outline: 3px solid rgba(99,102,241,0.14); border-radius: 6px; }
+
+        /* Custom checkbox */
+        .ckbox { width: 18px; height: 18px; border-radius: 6px; border: 1px solid rgba(15,23,42,0.12); display:inline-grid; place-items:center; background:#fff; }
+        input[type="checkbox"].hidden-native { appearance:none; -webkit-appearance:none; -moz-appearance:none; }
+        .ckbox.checked { background: linear-gradient(90deg,var(--ck-purple),var(--ck-blue)); border: none; color: white; }
+
+        /* CTA Button */
+        .btn-primary { background: linear-gradient(90deg, var(--ck-purple), var(--ck-blue)); color: white; border-radius: 12px; padding: 12px 18px; font-weight:700; box-shadow: 0 8px 24px rgba(79,70,229,0.18); transition: transform 160ms ease, box-shadow 160ms ease; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(79,70,229,0.2); }
+        .btn-primary::before {
+            content: '';
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            margin-right: 0.65rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4'/%3E%3Cpolyline points='10 17 15 12 10 7'/%3E%3Cline x1='15' y1='12' x2='3' y2='12'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.25));
+            transition: transform 0.3s ease;
+        }
+        .btn-primary:hover::before {
+            transform: translateX(3px);
+        }
+        .btn-rocket { width: 22px; height: 22px; display:inline-block; }
+
+        /* Links */
+        a.link-fade { transition: opacity 260ms ease, text-decoration 160ms ease; }
+        a.link-fade:hover { text-decoration: underline; opacity: 0.95; }
+
+        /* Alerts */
+        .alert { border-radius: 10px; padding: 10px; }
+
+        /* Accessibility: reduce motion */
+        @media (prefers-reduced-motion: reduce) {
+            .login-bg-layer, .bg-rocket, .card, .animate-header { animation: none !important; transition: none !important; }
+        }
+
+        /* Dynamic rocket background (similar behavior to main site) */
+        .rocket-section { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .rocket { position: absolute; width: 64px; height: 64px; will-change: transform, opacity; }
+        .rocket svg { width: 100%; height: 100%; display: block; }
+
+        @keyframes rocket-move-up {
+            0% { transform: translateY(30vh) translateX(0) rotate(-10deg); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(-40vh) translateX(40vw) rotate(10deg); opacity: 0.9; }
+        }
+        @keyframes rocket-move-down {
+            0% { transform: translateY(-30vh) translateX(0) rotate(10deg); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(40vh) translateX(-40vw) rotate(-10deg); opacity: 0.9; }
+        }
+        @keyframes rocket-wobble { 0% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } 100% { transform: rotate(-4deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4" data-page="login">
+    <!-- Iconos de código flotantes -->
+    <div class="floating-shapes">
+        <div class="shape" style="font-size: 4rem; left: 5%; top: 15%;"><i class="fas fa-code"></i></div>
+        <div class="shape" style="font-size: 3rem; left: 15%; top: 65%;"><i class="fas fa-code"></i></div>
+        <div class="shape" style="font-size: 3.5rem; left: 8%; top: 85%;"><i class="fas fa-code"></i></div>
+        <div class="shape" style="font-size: 2.5rem; left: 2%; top: 45%;"><i class="fas fa-code"></i></div>
+    </div>
+
+    <!-- Contenedor Principal con imagen -->
+    <div class="w-full animate-fade-in" style="display: flex; align-items: center; justify-content: flex-start; gap: 20px; max-width: 850px; margin-left: 16%; padding: 0 20px;">
+        <div style="flex: 0 0 450px; width: 450px;">
+        <!-- Logo y Título -->
+        <div class="text-center mb-8" id="loginHeader">
+            <div class="mb-6">
+                <h1 class="text-6xl font-black mb-2 animate-header" style="background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Code Kids</h1>
+            </div>
+            <h2 class="text-4xl font-extrabold text-gray-800 mb-2">Bienvenido a CodeKids</h2>
+            <p class="text-gray-600 mt-1">Inicia sesión para continuar aprendiendo</p>
+        </div>
+
+        <!-- Formulario de Login -->
+        <div class="card">
+            <form id="loginForm" class="space-y-5" aria-describedby="formDescription">
+                <div id="formDescription" class="sr-only">Formulario de inicio de sesión. Usa Tab para navegar por los campos.</div>
+                
+                <!-- Email -->
+                <div class="form-group">
+                    <label class="form-label block text-sm font-semibold mb-2">Correo Electrónico</label>
+                    <div class="form-group">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            class="form-input" 
+                            placeholder="tu.email@codekids.com"
+                            required
+                            autocomplete="email"
+                            aria-label="Correo electrónico"
+                        >
+                    </div>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="font-semibold">Contraseña</span>
+                    </label>
+                    <div class="form-group">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            class="form-input" 
+                            placeholder="••••••••"
+                            required
+                            autocomplete="current-password"
+                            aria-label="Contraseña"
+                        >
+                    </div>
+                </div>
+
+                <!-- Recordarme -->
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-3 cursor-pointer" for="remember">
+                        <input type="checkbox" id="remember" class="hidden-native" aria-checked="false">
+                        <span class="ckbox" id="ckVisual" aria-hidden="true"></span>
+                        <span class="text-sm text-gray-600">Recordarme</span>
+                    </label>
+                    <button type="button" id="btnForgot" class="text-sm text-indigo-600 hover:text-indigo-700 font-semibold">
+                        ¿Olvidaste tu contraseña?
+                    </button>
+                </div>
+
+                <!-- Mensaje de error -->
+                <div id="errorMessage" class="alert alert-danger hidden" role="alert" aria-live="assertive">
+                    <span>⚠️</span>
+                    <span id="errorText" class="ml-2 text-sm text-red-600"></span>
+                </div>
+
+                <!-- Mensaje de éxito -->
+                <div id="successMessage" class="alert alert-success hidden">
+                    <span>✅</span>
+                    <span id="successText"></span>
+                </div>
+
+                <!-- Botón de Login -->
+                <button 
+                    type="submit" 
+                    id="loginButton"
+                    class="btn-primary w-full flex items-center justify-center gap-3"
+                    aria-live="polite"
+                >
+                    <span id="buttonText">Iniciar Sesión</span>
+                    <div id="buttonSpinner" class="spinner spinner-sm hidden" aria-hidden="true"></div>
+                </button>
+
+                <!-- Eliminado: proveedores externos (SSO prohibido) -->
+
+            </form>
+
+            <!-- Registro deshabilitado -->
+            <div class="mt-6 text-center">
+                <p class="text-gray-500 text-sm">
+                    El registro público está deshabilitado. Solicita acceso a tu profesor o administrador.
+                </p>
+            </div>
+
+            <!-- Volver al inicio -->
+            <div class="mt-4 text-center">
+                <a href="Pagina_Inicio.html" class="text-sm text-gray-500 hover:text-gray-700">
+                    ← Volver al inicio
+                </a>
+            </div>
+        </div>
+
+        <!-- Información de seguridad -->
+        <div class="mt-6 text-center text-xs text-gray-500">
+            <p>Al iniciar sesión aceptas nuestros <button type="button" id="btnPrivacidad" class="underline text-indigo-600 hover:text-indigo-700">Avisos de Privacidad</button></p>
+        </div>
+        </div>
+        
+        <!-- Imagen lateral derecha -->
+        <div id="sideImage" style="flex-shrink: 0; display: flex; align-items: center;">
+            <img src="/static/images/fotoinicio.png" alt="Code Kids" style="max-width: 300px; height: auto; display: block;">
+        </div>
+    </div>
+
+    <!-- Modal Aviso de Privacidad -->
+    <div id="modalPrivacidad" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl relative p-8 text-center">
+            <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl" onclick="document.getElementById('modalPrivacidad').classList.add('hidden')">&times;</button>
+            
+            <!-- Icono del escudo -->
+            <div class="mb-6 flex justify-center">
+                <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#06B6D4;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M50 10 L20 25 L20 50 C20 70 35 85 50 90 C65 85 80 70 80 50 L80 25 Z" fill="url(#shieldGradient)" opacity="0.9"/>
+                    <text x="50" y="60" font-size="40" font-weight="bold" fill="white" text-anchor="middle">i</text>
+                </svg>
+            </div>
+            
+            <h3 class="text-2xl font-bold text-gray-800 mb-3">Aviso de Privacidad</h3>
+            <p class="text-gray-600 text-sm mb-6">Información legal importante por su privacidad. Lea nuestros términos y condiciones actualizados.</p>
+            
+            <div class="flex gap-3 justify-center">
+                <button class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold px-8 py-3 rounded-full transition-all transform hover:scale-105 shadow-lg" onclick="document.getElementById('modalPrivacidad').classList.add('hidden')">
+                    Aceptar
+                </button>
+                <button class="text-purple-600 hover:text-purple-800 font-semibold px-6 py-3 rounded-full transition-all" onclick="document.getElementById('modalTerminos').classList.remove('hidden')">
+                    Leer más
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Términos y Condiciones -->
+    <div id="modalTerminos" class="fixed inset-0 z-50 hidden place-items-center p-4" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" onclick="document.getElementById('modalTerminos').classList.add('hidden')">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Términos y Condiciones</h3>
+                <div class="text-gray-700 max-h-[60vh] overflow-auto space-y-4">
+                    <p><strong>Preámbulo y Aceptación</strong><br>
+                    El presente documento establece los Términos y Condiciones (TyC) que rigen el acceso y uso de la plataforma digital Code Kids, sus aplicaciones, contenido y servicios asociados. El uso de la plataforma por parte del Usuario (estudiante, padre/tutor o profesor) implica la aceptación plena y sin reservas de todas las disposiciones incluidas en estos TyC, así como de la Política de Privacidad anexa.</p>
+
+                    <h4 class="font-semibold">1. Partes del Acuerdo</h4>
+                    <p>Este acuerdo se celebra entre:</p>
+                    <p><strong>Proveedor del Servicio:</strong> CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación Comunitaria, propietaria y operadora de la plataforma Code Kids, con domicilio legal en [DIRECCIÓN LEGAL] y contacto en [CORREO ELECTRÓNICO LEGAL].</p>
+                    <p><strong>Usuario:</strong> La persona que accede, utiliza o se registra en la plataforma.</p>
+
+                    <h4 class="font-semibold">2. Objeto y Alcance del Servicio</h4>
+                    <p>El objeto de Code Kids es proporcionar una plataforma educativa en línea, segura y gamificada, destinada a la enseñanza de los fundamentos de la programación a niños y jóvenes.</p>
+                    <p>El servicio incluye acceso a lecciones, juegos interactivos, tareas asignables, dashboards de progreso y comunicación supervisada (chats).</p>
+                    <p>CODEKIDS Manager se reserva el derecho de modificar, suspender o discontinuar cualquier aspecto del servicio en cualquier momento, con previo aviso a los usuarios registrados.</p>
+
+                    <h4 class="font-semibold">3. Uso de la Plataforma y Cuentas de Usuario</h4>
+                    <p><strong>Cuentas de Menores:</strong> Las cuentas de los estudiantes menores de edad deben ser creadas y supervisadas por un Padre/Tutor Legal o un Profesor. El Proveedor del Servicio no recopila intencionadamente información personal de niños menores de 13 años (o la edad legal aplicable) sin el consentimiento verificable de los padres.</p>
+                    <p><strong>Responsabilidad de la Cuenta:</strong> El Usuario (Padre/Tutor o Profesor) es responsable de mantener la confidencialidad de sus credenciales de acceso y de toda la actividad que ocurra bajo su cuenta.</p>
+                    <p><strong>Restricciones de Contenido:</strong> Está estrictamente prohibido cargar, compartir o transmitir contenido que sea ilegal, difamatorio, obsceno, abusivo o que infrinja los derechos de propiedad intelectual de terceros.</p>
+
+                    <h4 class="font-semibold">4. Propiedad Intelectual y Licencia de Uso</h4>
+                    <p><strong>Propiedad de Code Kids:</strong> Todo el contenido de la plataforma, incluyendo el software, el código fuente, el diseño, los gráficos, la mascota robot, las ilustraciones y las lecciones (material educativo), es propiedad exclusiva de CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación Comunitaria y está protegido por las leyes de propiedad intelectual.</p>
+                    <p><strong>Licencia Limitada:</strong> Se otorga al Usuario una licencia no exclusiva, intransferible y revocable para acceder y usar la plataforma únicamente con fines educativos personales, según lo establecido en estos TyC.</p>
+                    <p><strong>Contenido Generado por el Usuario:</strong> Al utilizar las herramientas de programación o chat, el Usuario otorga a Code Kids una licencia mundial, libre de regalías, para usar, reproducir y distribuir el contenido generado por el Usuario (ej. código creado o mensajes de chat) con el único fin de operar y mejorar la plataforma.</p>
+
+                    <h4 class="font-semibold">5. Entorno Seguro y Comunicación (Chat)</h4>
+                    <p><strong>Seguridad y Supervisión:</strong> Code Kids se compromete a mantener un entorno seguro (100% Seguro). Todas las comunicaciones (Chat) son moderadas y supervisadas.</p>
+                    <p><strong>Restricción de Comunicación:</strong> Las herramientas de comunicación están diseñadas para la interacción entre Estudiante-Profesor y Estudiante-Tutor Legal. La comunicación directa entre estudiantes puede estar restringida o monitorizada según las políticas de seguridad internas.</p>
+
+                    <h4 class="font-semibold">6. Limitación de Responsabilidad</h4>
+                    <p><strong>Exención de Garantías:</strong> Code Kids se proporciona "tal cual" y "según disponibilidad". El Proveedor del Servicio no garantiza que la plataforma estará libre de errores o que el acceso será ininterrumpido.</p>
+                    <p><strong>Límite de Daños:</strong> El Proveedor del Servicio no será responsable por daños indirectos, incidentales, especiales o consecuentes derivados del uso o la incapacidad de usar la plataforma. En ningún caso la responsabilidad total excederá el monto pagado por el Usuario por el acceso al servicio.</p>
+
+                    <h4 class="font-semibold">7. Vigencia y Terminación</h4>
+                    <p><strong>Vigencia:</strong> Estos TyC entran en vigor desde el momento de la aceptación por parte del Usuario.</p>
+                    <p><strong>Terminación:</strong> CODEKIDS Manager se reserva el derecho de suspender o terminar el acceso de cualquier Usuario a la plataforma de forma inmediata y sin previo aviso en caso de incumplimiento grave de estos TyC (ej. infracción de propiedad intelectual o conducta abusiva).</p>
+
+                    <h4 class="font-semibold">8. Ley Aplicable y Jurisdicción</h4>
+                    <p>Estos Términos y Condiciones se regirán e interpretarán de acuerdo con las leyes de [PAÍS / JURISDICCIÓN LEGAL]. Cualquier controversia se someterá a la jurisdicción de los tribunales competentes de [CIUDAD / JURISDICCIÓN].</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <!-- Modal for force password change -->
+    <div id="forceChangeModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold mb-2">Actualiza tu contraseña</h3>
+            <p class="text-gray-700 mb-4">Por seguridad, debes establecer una nueva contraseña. Tu contraseña actual podría expirar pronto.</p>
+            <button id="btnGoChange" class="btn btn-primary w-full">Cambiar Contraseña Ahora</button>
+        </div>
+    </div>
+
+    <!-- Modal: Recuperar contraseña (admin-mediated) -->
+    <div id="forgotModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="forgotTitle">
+        <div class="bg-white rounded-xl max-w-md w-full p-6">
+            <div class="flex items-start justify-between">
+                <h3 id="forgotTitle" class="text-xl font-bold">Solicitar recuperación</h3>
+                <button id="forgotClose" class="text-gray-500 hover:text-gray-700" aria-label="Cerrar">✕</button>
+            </div>
+            <p class="text-gray-600 mt-2">Ingresa tu correo y enviaremos una solicitud al administrador.</p>
+            <form id="forgotForm" class="mt-4 space-y-3">
+                <label class="form-label">Correo</label>
+                <input id="forgotEmail" type="email" class="form-input" required />
+                <div id="forgotAlert" class="alert alert-danger hidden"><span>⚠️</span><span id="forgotError"></span></div>
+                <div id="forgotOK" class="alert alert-success hidden"><span>✅</span><span id="forgotOkText"></span></div>
+                <button id="forgotSubmit" type="submit" class="btn btn-primary w-full flex items-center justify-center gap-2">
+                    <span id="forgotBtnText">Enviar solicitud</span>
+                    <div id="forgotSpinner" class="spinner spinner-sm hidden"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { 
+            signInWithEmailAndPassword,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence,
+            signInAnonymously
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Importar configuración de Firebase
+        import { auth, db } from '../js/firebase-config.js';
+
+        // Elementos del DOM
+    const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        
+        // Detectar y aplicar modo profesor
+        const params = new URLSearchParams(window.location.search);
+        const roleParam = params.get('role');
+        if (roleParam === 'profesor') {
+            document.body.setAttribute('data-role', 'profesor');
+            const header = document.getElementById('loginHeader');
+            if (header) {
+                header.querySelector('h1').textContent = 'Acceso Profesores';
+                header.querySelector('p').textContent = 'Inicia sesión para gestionar tu aula';
+            }
+        } else {
+            // Modo alumno: subir más la imagen
+            const sideImage = document.getElementById('sideImage');
+            if (sideImage) {
+                sideImage.style.marginTop = '100px';
+            }
+        }
+        
+        const rememberCheckbox = document.getElementById('remember');
+    const forgotBtn = document.getElementById('btnForgot');
+    const privacidadBtn = document.getElementById('btnPrivacidad');
+    const forceModal = document.getElementById('forceChangeModal');
+    const btnGoChange = document.getElementById('btnGoChange');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const errorText = document.getElementById('errorText');
+        const successText = document.getElementById('successText');
+        const loginButton = document.getElementById('loginButton');
+        const buttonText = document.getElementById('buttonText');
+        const buttonSpinner = document.getElementById('buttonSpinner');
+
+        // Funciones helper
+        function showError(message) {
+            errorMessage.classList.remove('hidden');
+            successMessage.classList.add('hidden');
+            errorText.textContent = message;
+        }
+
+        function showSuccess(message) {
+            successMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            successText.textContent = message;
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                loginButton.disabled = true;
+                buttonText.textContent = 'Iniciando sesión...';
+                buttonSpinner.classList.remove('hidden');
+            } else {
+                loginButton.disabled = false;
+                buttonText.textContent = 'Iniciar Sesión';
+                buttonSpinner.classList.add('hidden');
+            }
+        }
+
+    // Crear o actualizar datos del usuario en Firestore
+        async function ensureUserData(user) {
+            const userRef = doc(db, 'users', user.uid);
+            const snap = await getDoc(userRef);
+            if (!snap.exists()) {
+                const data = {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName || user.email.split('@')[0],
+                    photoURL: user.photoURL || null,
+                    rol: 'estudiante', // legacy campo
+                    role: 'Estudiante', // campo estandarizado usado por admin.html
+                    createdAt: serverTimestamp(),
+                    lastLogin: serverTimestamp(),
+                    passwordChangeRequired: true,
+                    passwordValidUntil: null,
+                    xp: 0,
+                    nivel: 1,
+                    racha: 0,
+                    leccionesCompletadas: [],
+                    insignias: [],
+                    configuracion: { notificaciones: true, sonido: true, tema: 'claro' }
+                };
+                await setDoc(userRef, data);
+                return { ...data, isNew: true };
+            }
+            await setDoc(userRef, { lastLogin: serverTimestamp() }, { merge: true });
+            return { ...snap.data(), isNew: false };
+        }
+
+        // Redirigir según el rol del usuario
+        function redirectUser(userData) {
+            // Unificar soporte de campos 'role' (estandar) y 'rol' (legacy/minúscula)
+            const raw = userData.role || userData.rol || 'Estudiante';
+            const norm = raw.toLowerCase();
+            if (norm === 'admin' || norm === 'administrador') {
+                window.location.href = '../Dashboard/Dashboard_Administrador/Dashboard_Admin.html';
+                return;
+            }
+                if (norm === 'profesor' || norm === 'teacher') {
+                    window.location.href = '../Dashboard/Dashboard_Profesor/Dashboard_Profesor.html';
+                    return;
+                }
+            // default estudiante
+            window.location.href = '../Dashboard/Dashboard_Estudiante/Dashboard_Estudiante.html';
+        }
+
+        // Login con Email/Password
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            errorMessage.classList.add('hidden');
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const remember = rememberCheckbox.checked;
+
+            try {
+                // Configurar persistencia
+                const persistence = remember ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+
+                // Intentar iniciar sesión
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Crear/actualizar datos del usuario
+                const userData = await ensureUserData(user);
+
+                // Forzar cambio de contraseña si aplica o si expiró la validez (antes de cualquier redirección por rol/claim)
+                const validUntil = userData.passwordValidUntil;
+                let validUntilMs = null;
+                if (validUntil) {
+                    if (typeof validUntil.toMillis === 'function') {
+                        validUntilMs = validUntil.toMillis();
+                    } else {
+                        try { validUntilMs = new Date(validUntil).getTime(); } catch(_) { validUntilMs = null; }
+                    }
+                }
+
+                const isExpired = validUntilMs ? (validUntilMs <= Date.now()) : false;
+                if (userData.passwordChangeRequired === true || isExpired) {
+                    forceModal.classList.remove('hidden');
+                    forceModal.classList.add('flex');
+                    btnGoChange.onclick = () => {
+                        window.location.href = '../app/configuracion/cambiar-password.html';
+                    };
+                    return; // no redirigir aún
+                }
+
+                // Si el usuario tiene claim admin en el token, priorizar redirección a admin
+                try {
+                    const tokenRes = await user.getIdTokenResult();
+                    if (tokenRes?.claims?.admin === true) {
+                        showSuccess('Bienvenido administrador. Redirigiendo…');
+                        setTimeout(() => { window.location.href = '../Dashboard/Dashboard_Administrador/Dashboard_Admin.html'; }, 600);
+                        return;
+                    }
+                } catch (_) { /* sin impacto si falla */ }
+                showSuccess('¡Inicio de sesión exitoso! Redirigiendo...');
+                setTimeout(() => redirectUser(userData), 1000);
+
+            } catch (error) {
+                setLoading(false);
+                console.error('Error de login:', error);
+
+                // Mensajes de error personalizados (unificado para credenciales)
+                const code = error?.code;
+                if (code === 'auth/invalid-email') {
+                    showError('El correo electrónico no es válido');
+                } else if (code === 'auth/user-disabled') {
+                    showError('Esta cuenta ha sido deshabilitada');
+                } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+                    showError('Correo o contraseña incorrectos');
+                } else if (code === 'auth/too-many-requests') {
+                    showError('Demasiados intentos fallidos. Intenta más tarde');
+                } else {
+                    showError('Error al iniciar sesión. Intenta de nuevo');
+                }
+            }
+        });
+
+                // Mostrar error si viene err=inexistente
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('err') === 'inexistente') {
+                        showError('Cuenta inexistente. Contacta a un administrador.');
+                    }
+                } catch(_) {}
+
+        // Flujo de recuperación con modal accesible
+        const forgotModal = document.getElementById('forgotModal');
+        const forgotForm = document.getElementById('forgotForm');
+        const forgotEmail = document.getElementById('forgotEmail');
+        const forgotClose = document.getElementById('forgotClose');
+        const forgotSubmit = document.getElementById('forgotSubmit');
+        const forgotBtnText = document.getElementById('forgotBtnText');
+        const forgotSpinner = document.getElementById('forgotSpinner');
+        const forgotAlert = document.getElementById('forgotAlert');
+        const forgotError = document.getElementById('forgotError');
+        const forgotOK = document.getElementById('forgotOK');
+        const forgotOkText = document.getElementById('forgotOkText');
+
+        function openForgot() {
+            forgotAlert.classList.add('hidden');
+            forgotOK.classList.add('hidden');
+            forgotEmail.value = emailInput.value || '';
+            forgotModal.classList.remove('hidden');
+            forgotModal.classList.add('flex');
+            forgotEmail.focus();
+        }
+        function closeForgot() {
+            forgotModal.classList.add('hidden');
+            forgotModal.classList.remove('flex');
+        }
+        function setForgotLoading(v) {
+            forgotSubmit.disabled = v;
+            forgotBtnText.textContent = v ? 'Enviando…' : 'Enviar solicitud';
+            forgotSpinner.classList.toggle('hidden', !v);
+        }
+
+        forgotBtn.addEventListener('click', openForgot);
+        forgotClose.addEventListener('click', closeForgot);
+        forgotModal.addEventListener('click', (e) => { if (e.target === forgotModal) closeForgot(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeForgot(); });
+
+        forgotForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setForgotLoading(true);
+            forgotAlert.classList.add('hidden');
+            forgotOK.classList.add('hidden');
+            const email = forgotEmail.value.trim();
+            try {
+                // Iniciar sesión anónima temporalmente para poder escribir en Firestore
+                await signInAnonymously(auth);
+                
+                // Buscar si el usuario existe en Firestore
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('email', '==', email));
+                const snapshot = await getDocs(q);
+                
+                let userId = null;
+                let userName = 'Usuario';
+                
+                if (!snapshot.empty) {
+                    const userDoc = snapshot.docs[0];
+                    userId = userDoc.id;
+                    const userData = userDoc.data();
+                    userName = userData.displayName || 
+                              (userData.nombre ? `${userData.nombre} ${userData.apellidoPaterno || ''}`.trim() : null) ||
+                              'Usuario';
+                }
+                
+                // Crear solicitud en Firestore
+                await addDoc(collection(db, 'passwordResetRequests'), {
+                    email: email,
+                    userId: userId,
+                    userName: userName,
+                    requestedAt: serverTimestamp(),
+                    status: 'pending',
+                    resolvedAt: null,
+                    resolvedBy: null,
+                    tempPassword: null
+                });
+                
+                // Cerrar sesión anónima
+                await auth.signOut();
+                
+                forgotOkText.textContent = 'Solicitud enviada. Un administrador te contactará.';
+                forgotOK.classList.remove('hidden');
+                
+                // Limpiar formulario después de 2 segundos
+                setTimeout(() => {
+                    forgotEmail.value = '';
+                    closeForgot();
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Error completo:', err);
+                console.error('Código de error:', err.code);
+                console.error('Mensaje:', err.message);
+                forgotError.textContent = 'No se pudo enviar la solicitud. Intenta más tarde.';
+                forgotAlert.classList.remove('hidden');
+            } finally {
+                setForgotLoading(false);
+            }
+        });
+
+        // Custom checkbox visual toggle
+        const rememberNative = document.getElementById('remember');
+        const ckVisual = document.getElementById('ckVisual');
+        if (rememberNative && ckVisual) {
+            // initialize
+            rememberNative.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                ckVisual.classList.toggle('checked', checked);
+                rememberNative.setAttribute('aria-checked', String(checked));
+            });
+            // click on visual toggles native input
+            ckVisual.addEventListener('click', () => { rememberNative.checked = !rememberNative.checked; rememberNative.dispatchEvent(new Event('change')); });
+        }
+
+        // Modal de privacidad
+        privacidadBtn.addEventListener('click', () => {
+            document.getElementById('modalPrivacidad').classList.remove('hidden');
+        });
+
+        // Si ya está autenticado, redirigir
+        window.addEventListener('userLoggedIn', async (e) => {
+            const user = e.detail;
+            try {
+                const tokenRes = await user.getIdTokenResult();
+                if (tokenRes?.claims?.admin === true) {
+                    window.location.href = '../Dashboard/Dashboard_Administrador/Dashboard_Admin.html';
+                    return;
+                }
+            } catch(_) {}
+            const userData = await window.getUserData(user.uid);
+            if (userData) redirectUser(userData);
+        });
+    </script>
+    <script>
+        // Dynamic rockets generator for login background
+        (function(){
+            const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const container = document.getElementById('rocketSection');
+            if (!container || prefersReduced) return;
+
+            const rocketSVG = (color1='#7C3AED', color2='#06B6D4') => `
+                <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="g" x1="0" x2="1">
+                            <stop offset="0" stop-color="${color1}" />
+                            <stop offset="1" stop-color="${color2}" />
+                        </linearGradient>
+                    </defs>
+                    <g fill="url(#g)">
+                        <path d="M32 2c-4 0-8 6-8 10v6c0 4 4 10 8 10s8-6 8-10v-6c0-4-4-10-8-10z"/>
+                        <path d="M12 46c0 0 6-6 20-6s20 6 20 6-6 8-20 8S12 46 12 46z" fill="#fff" opacity="0.12"/>
+                    </g>
+                </svg>`;
+
+            const count = 8;
+            for (let i=0;i<count;i++){
+                const el = document.createElement('div');
+                el.className = 'rocket';
+                // random start position
+                const left = Math.round(Math.random()*100);
+                const top = Math.round(20 + Math.random()*60);
+                el.style.left = left + 'vw';
+                el.style.top = top + 'vh';
+                const dur = 8 + Math.random()*8;
+                const delay = Math.random()*6;
+                // choose direction randomly
+                const dir = Math.random() > 0.5 ? 'up' : 'down';
+                el.innerHTML = rocketSVG(i%2? '#8B5CF6' : '#06B6D4', i%2? '#06B6D4' : '#7C3AED');
+                el.style.animation = `rocket-move-${dir} ${dur}s linear ${delay}s infinite`;
+                // small wobble
+                const wob = document.createElement('div'); wob.style.animation = `rocket-wobble ${2+Math.random()*3}s ease-in-out ${delay}s infinite`; el.appendChild(wob);
+                container.appendChild(el);
+            }
+        })();
+    </script>
+</body>
+</html>

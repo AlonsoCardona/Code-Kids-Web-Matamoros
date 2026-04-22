@@ -1,0 +1,2432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Kids - ¡La Aventura de Crear con Código!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <!-- Google Blockly (motor de bloques estilo Scratch) -->
+    <script src="https://unpkg.com/blockly@11.2.1/blockly.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Fredoka', 'Poppins', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Animaciones */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes blink {
+            0%, 90%, 100% { opacity: 1; }
+            95% { opacity: 0.3; }
+        }
+
+        @keyframes mirror {
+            0%, 48% { transform: scaleX(1); opacity: 1; }
+            49% { transform: scaleX(1); opacity: 0.3; }
+            50% { transform: scaleX(-1); opacity: 0.3; }
+            51%, 98% { transform: scaleX(-1); opacity: 1; }
+            99% { transform: scaleX(-1); opacity: 0.3; }
+            100% { transform: scaleX(1); opacity: 0.3; }
+        }
+
+        /* Fondos Animados */
+        .hero-background {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-background::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .floating-shapes {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .shape {
+            position: absolute;
+            opacity: 0.15;
+        }
+
+        .shape:nth-child(1) { top: 10%; left: 10%; animation: float 6s ease-in-out infinite; }
+        .shape:nth-child(2) { top: 60%; right: 15%; animation: float 8s ease-in-out infinite 1s; }
+        .shape:nth-child(3) { bottom: 20%; left: 20%; animation: float 7s ease-in-out infinite 2s; }
+        .shape:nth-child(4) { top: 30%; right: 30%; animation: float 9s ease-in-out infinite 1.5s; }
+
+        /* Fondo dinámico: Cohetes detrás del contenido */
+        .rocket-section { position: relative; overflow: hidden; }
+        .rocket-section .rocket-bg { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+        /* Overlay sits above rockets to preserve legibility (temporarily transparent for debugging) */
+        .rocket-section .rocket-overlay { position: absolute; inset: 0; background: transparent; z-index: 2; pointer-events: none; }
+        .rocket-section .container { position: relative; z-index: 3; }
+
+        .rocket { position: absolute; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; will-change: transform, opacity; opacity: 0.98; transform-origin: center; filter: drop-shadow(0 8px 18px rgba(0,0,0,0.14)); }
+        .rocket svg { width: 100%; height: 100%; display: block; }
+
+        /* Positioning helpers per origin side */
+        .rocket[data-dir="bottom"] { bottom: -18vh; }
+        .rocket[data-dir="top"] { top: -18vh; }
+        .rocket[data-dir="left"] { left: -12vw; }
+        .rocket[data-dir="right"] { right: -12vw; }
+
+        /* Movement: separate keyframes per origin to allow four-directional launch */
+        @keyframes rocket-move-bottom {
+            0% { transform: translateY(0) translateX(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; }
+            8% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-140vh) translateX(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; }
+        }
+
+        @keyframes rocket-move-top {
+            0% { transform: translateY(0) translateX(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; }
+            8% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(140vh) translateX(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; }
+        }
+
+        @keyframes rocket-move-left {
+            0% { transform: translateX(0) translateY(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; }
+            8% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateX(140vw) translateY(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; }
+        }
+
+        @keyframes rocket-move-right {
+            0% { transform: translateX(0) translateY(0) rotate(var(--rot-start, 0deg)) scale(var(--scale,1)); opacity: 0; }
+            8% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateX(-140vw) translateY(var(--drift, 0px)) rotate(var(--rot-end, 12deg)) scale(var(--scale,1)); opacity: 0; }
+        }
+
+        /* Subtle rotation/wobble layered over the main move animation */
+        @keyframes rocket-wobble { 0% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } 100% { transform: rotate(-6deg); } }
+
+        /* Reduce motion: create static decorative rockets instead of animating */
+        @media (prefers-reduced-motion: reduce) {
+            .rocket { animation: none !important; opacity: 0.8; transform: translateY(-20px) !important; }
+        }
+
+        /* Mascota Robot */
+        .robot-mascot {
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .robot-mascot:hover {
+            animation: wave 0.5s ease-in-out;
+        }
+
+        /* Robot friendly SVG */
+        .robot-friendly {
+            width: 48px;
+            height: 48px;
+            vertical-align: middle;
+            display: inline-block;
+        }
+
+        .robot-mascot .robot-friendly {
+            width: 160px;
+            height: 160px;
+            animation: bounce 2s ease-in-out infinite;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.12));
+            border-radius: 12px;
+        }
+
+        /* Botones Mejorados - Rediseño Moderno con Degradados Vibrantes */
+        .btn-adventure {
+            background: linear-gradient(135deg, #FF6B35 0%, #FF4858 50%, #FF2D75 100%);
+            color: white;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 
+                0 12px 28px rgba(255, 107, 53, 0.35),
+                0 4px 12px rgba(255, 45, 117, 0.25),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.1);
+            background-size: 200% 200%;
+            animation: gradientShift 4s ease infinite;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .btn-adventure:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 
+                0 18px 38px rgba(255, 107, 53, 0.45),
+                0 8px 20px rgba(255, 45, 117, 0.35),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.15),
+                0 0 30px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-adventure:active {
+            transform: translateY(-2px) scale(1.01);
+        }
+
+        .btn-adventure::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .btn-adventure:hover::before {
+            width: 350px;
+            height: 350px;
+        }
+
+        .btn-adventure i {
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .btn-adventure:hover i {
+            transform: scale(1.15) rotate(-10deg);
+        }
+
+        .btn-teacher {
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #06B6D4 100%);
+            color: white;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 
+                0 12px 28px rgba(99, 102, 241, 0.35),
+                0 4px 12px rgba(6, 182, 212, 0.25),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.1);
+            background-size: 200% 200%;
+            animation: gradientShift 4s ease infinite;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-teacher:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 
+                0 18px 38px rgba(99, 102, 241, 0.45),
+                0 8px 20px rgba(6, 182, 212, 0.35),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.15),
+                0 0 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-teacher:active {
+            transform: translateY(-2px) scale(1.01);
+        }
+
+        .btn-teacher::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.2) 50%,
+                transparent 70%
+            );
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+        }
+
+        .btn-teacher:hover::after {
+            left: 100%;
+        }
+
+        .btn-teacher i {
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .btn-teacher:hover i {
+            transform: scale(1.15);
+        }
+
+        /* Tarjetas de Características */
+        .feature-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 30px;
+            padding: 50px 40px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Accent border (top strip) using pseudo-element - subtle by default, intensifies on hover */
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 6px;
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
+            background: transparent;
+            transition: background .25s ease, opacity .25s ease, transform .25s ease;
+            opacity: 0.95;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .feature-card.accent-1::before { background: linear-gradient(90deg, #8B39FF 0%, #6EC6FF 100%); }
+        .feature-card.accent-2::before { background: linear-gradient(90deg, #6EC6FF 0%, #8B39FF 100%); }
+        .feature-card.accent-3::before { background: linear-gradient(90deg, #7C5CFF 0%, #A63CFF 100%); }
+        .feature-card.accent-4::before { background: linear-gradient(90deg, #4FA3FF 0%, #6A0DAD 100%); }
+
+        /* Intensify accent on hover */
+        .feature-card:hover::before { transform: scaleY(1.06); filter: saturate(1.15) brightness(1.03); }
+
+        /* Ensure card content stays visible above accent pseudo-element */
+        .feature-card > * { position: relative; z-index: 2; }
+
+        /* Keep card background white on hover to avoid accidental gradient overlays */
+        .feature-card:hover { background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important; }
+
+        /* Dark mode: reduce brightness on hover */
+        .theme-dark .feature-card:hover { 
+            background: linear-gradient(135deg, #1F2937 0%, #374151 100%) !important;
+        }
+
+        /* Dark mode support for welcome dialog */
+        .theme-dark .welcome-dialog {
+            background: #1F2937 !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+        }
+        
+        .theme-dark .welcome-dialog-arrow {
+            border-right-color: #1F2937 !important;
+        }
+        
+        .theme-dark .welcome-dialog p {
+            color: #E5E7EB !important;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .theme-dark .feature-card::before {
+            background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-15px) scale(1.03);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+
+        /* Hover effects for colored cards - solo resaltar sin iluminar */
+        .feature-card-hover-1:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(124, 58, 237, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card-hover-2:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card-hover-3:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(147, 51, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card-hover-4:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(249, 115, 22, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card {
+            filter: blur(0px);
+            transition: all 0.3s ease, filter 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-12px) scale(1.05);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            filter: blur(0px) brightness(1.1);
+            z-index: 10;
+            position: relative;
+        }
+
+        /* Desenfocar las tarjetas hermanas cuando una está en hover */
+        .feature-card:hover ~ .feature-card,
+        .feature-card:has(~ .feature-card:hover) {
+            filter: blur(3px) brightness(0.7);
+            opacity: 0.6;
+        }
+
+        /* Efectos hover para libros de profesor */
+        .profesor-libro-card {
+            filter: blur(0px);
+            transition: all 0.3s ease, filter 0.3s ease;
+        }
+
+        .profesor-libro-card:hover {
+            transform: translateY(-12px) scale(1.08);
+            filter: blur(0px) brightness(1.15);
+            z-index: 10;
+            position: relative;
+        }
+
+        #profesor-cards-container:has(.profesor-libro-card:hover) .profesor-libro-card:not(:hover) {
+            filter: blur(3px) brightness(0.7);
+            opacity: 0.6;
+        }
+
+        /* Efectos hover para tarjetas del puzzle (Quiénes somos) */
+        .puzzle-card {
+            filter: blur(0px) !important;
+            transition: all 0.3s ease, filter 0.3s ease !important;
+        }
+
+        .puzzle-card:hover {
+            transform: translateY(-12px) scale(1.05) !important;
+            filter: blur(0px) brightness(1.1) !important;
+            z-index: 10 !important;
+        }
+
+        .puzzle-cards-container:has(.puzzle-card:hover) .puzzle-card:not(:hover) {
+            filter: blur(3px) brightness(0.7) !important;
+            opacity: 0.6 !important;
+        }
+
+        /* Efectos hover para post-its de características */
+        .caracteristicas-postit {
+            filter: blur(0px);
+            transition: all 0.3s ease, filter 0.3s ease;
+        }
+
+        .caracteristicas-postit:hover {
+            filter: blur(0px);
+            z-index: 10;
+            position: relative;
+        }
+
+        .caracteristicas-postit:hover .chin-normal {
+            display: none;
+        }
+
+        .caracteristicas-postit:hover .chin-hover {
+            display: block;
+            transform: translateY(-10px);
+        }
+
+        .chin-normal {
+            display: block;
+            transition: none;
+        }
+
+        .chin-hover {
+            display: none;
+            transition: none;
+        }
+
+        .caracteristicas-container:has(.caracteristicas-postit:hover) .caracteristicas-postit:not(:hover) {
+            filter: blur(3px) brightness(0.7);
+            opacity: 0.6;
+        }
+
+        /* Dark mode para post-its de características */
+        .theme-dark .caracteristicas-postit {
+            background: linear-gradient(135deg, #4A4420 0%, #5A5428 50%, #6B6430 100%) !important;
+        }
+
+        .feature-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* badge container now holds a gradient background and inner svg */
+            border-radius: 25px;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        /* Imagen CodyLeve centrada para tarjeta Gamificación */
+        .gamification-card {
+            position: relative;
+            overflow: visible;
+        }
+
+        .cody-center-image {
+            position: absolute;
+            width: 650px;
+            height: 750px;
+            top: 50%;
+            left: 65%;
+            transform: translate(-50%, -50%) scale(0.8) scaleX(1.6) scaleY(1.15);
+            opacity: 0;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+            z-index: 15;
+            object-fit: fill;
+        }
+
+        .gamification-card:hover .cody-center-image {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1) scaleX(3.5) scaleY(1.15);
+        }
+
+        /* Imagen Seguridad para tarjeta 100% Seguro */
+        .security-card {
+            position: relative;
+            overflow: visible;
+        }
+
+        .security-image {
+            position: absolute;
+            width: 650px;
+            height: 750px;
+            top: 50%;
+            left: 180%;
+            transform: translate(-50%, -50%) scale(0.56) scaleX(1.6) scaleY(1.15);
+            opacity: 0;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+            z-index: 15;
+            object-fit: fill;
+        }
+
+        .security-card:hover .security-image {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(0.7) scaleX(3.5) scaleY(1.15);
+        }
+
+        /* Imagen Cool para tarjeta Colaboración */
+        .collab-card {
+            position: relative;
+            overflow: visible;
+        }
+
+        .cool-image {
+            position: absolute;
+            width: 650px;
+            height: 750px;
+            top: 50%;
+            left: -120%;
+            transform: translate(-50%, -50%) scale(0.56) scaleX(1.6) scaleY(1.15);
+            opacity: 0;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+            z-index: 15;
+            object-fit: fill;
+        }
+
+        .collab-card:hover .cool-image {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(0.7) scaleX(3.5) scaleY(1.15);
+        }
+
+        .feature-icon-security {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .feature-icon-game {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+        }
+
+        .feature-icon-collab {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        /* New icon badge style: circular/rounded badge with gradient and a dark icon inside */
+        .icon-badge {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%; /* circular badges */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 24px rgba(12,12,20,0.08);
+            overflow: hidden;
+            transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease, filter 220ms ease;
+            will-change: transform;
+        }
+        .icon-badge svg { width:40px; height:40px; display:block; transition: transform 260ms ease; }
+        .icon-badge svg .fill-dark { fill: #0f1724; /* dark icon color */ }
+
+        /* Hover & focus micro-interactions */
+        .icon-badge:hover { transform: translateY(-6px) scale(1.06); box-shadow: 0 20px 40px rgba(12,12,20,0.12); }
+        .icon-badge:focus, .icon-badge:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(111,66,193,0.12), 0 18px 36px rgba(12,12,20,0.12); }
+        .icon-badge:hover svg { transform: translateY(-4px) rotate(-6deg); }
+        .feature-card:hover .icon-badge { transform: translateY(-8px) scale(1.08); }
+
+        /* Specific badge gradients matching CodeKids palette */
+        .badge-game { background: linear-gradient(135deg, #8B39FF 0%, #6EC6FF 100%); }
+        .badge-globe { background: linear-gradient(135deg, #6EC6FF 0%, #8EE29A 100%); }
+        .badge-collab { background: linear-gradient(135deg, #8B39FF 0%, #FF7AA2 100%); }
+        .badge-dashboard { background: linear-gradient(135deg, #7C5CFF 0%, #6A9BFF 100%); }
+        .badge-progress { background: linear-gradient(135deg, #6A9BFF 0%, #4FD1C5 100%); }
+        .badge-tools { background: linear-gradient(135deg, #9B6AFF 0%, #FF7AA2 100%); }
+        .badge-comm { background: linear-gradient(135deg, #6EE7B7 0%, #4FA3FF 100%); }
+
+        /* Small thematic icon inside cards (left of title) */
+        .feature-card .card-row { display:flex; align-items:center; gap:0.75rem; }
+        .feature-card .card-icon { width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; color: #6A0DAD; transition: transform .22s ease, color .22s ease; flex-shrink:0; }
+        .feature-card .card-title { margin:0; font-weight:700; color: #111827; }
+
+        /* Hover: more pronounced elevation + icon motion/color change */
+        .feature-card:hover { transform: translateY(-10px) scale(1.02); box-shadow: 0 18px 40px rgba(0,0,0,0.15); }
+        .feature-card:hover .card-icon { transform: translateX(6px); color: #8B39FF; }
+
+        /* ===== NUEVOS ESTILOS PARA SECCIÓN CARACTERÍSTICAS MEJORADA ===== */
+        
+        /* Animación de entrada para títulos */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .caracteristicas-title {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .caracteristicas-subtitle {
+            animation: fadeInUp 0.8s ease-out 0.2s;
+            animation-fill-mode: both;
+        }
+
+        /* Animaciones para sección Profesores */
+        .profesores-title {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .profesores-subtitle {
+            animation: fadeInUp 0.8s ease-out 0.2s;
+            animation-fill-mode: both;
+        }
+
+        .profesores-section-title {
+            animation: fadeInUp 0.8s ease-out 0.4s;
+            animation-fill-mode: both;
+        }
+
+        /* Animación para título Cualidades */
+        .caracteristicas-cualidades {
+            animation: fadeInUp 0.8s ease-out 0.4s;
+            animation-fill-mode: both;
+        }
+
+        /* Animaciones para sección Sobre Nosotros */
+        .sobre-nosotros-title {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .sobre-nosotros-subtitle {
+            animation: fadeInUp 0.8s ease-out 0.2s;
+            animation-fill-mode: both;
+        }
+
+        .sobre-nosotros-section-title {
+            animation: fadeInUp 0.8s ease-out 0.4s;
+            animation-fill-mode: both;
+        }
+
+        /* Cards modernos para Características */
+        .feature-card-modern {
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            border-radius: 32px;
+            padding: 42px 32px;
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 
+                0 12px 32px rgba(0, 0, 0, 0.08),
+                0 2px 8px rgba(124, 58, 237, 0.05);
+            position: relative;
+            overflow: visible;
+            border: 2px solid transparent;
+            animation: fadeInUp 0.8s ease-out;
+            animation-fill-mode: both;
+        }
+
+        /* Dark mode para tarjetas de características */
+        .theme-dark .feature-card-modern {
+            background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+            box-shadow: 
+                0 12px 32px rgba(0, 0, 0, 0.4),
+                0 2px 8px rgba(124, 58, 237, 0.15);
+        }
+
+        .feature-card-modern:nth-child(1) { animation-delay: 0.3s; }
+        .feature-card-modern:nth-child(2) { animation-delay: 0.45s; }
+        .feature-card-modern:nth-child(3) { animation-delay: 0.6s; }
+
+        /* Hover mejorado con elevación y borde */
+        .feature-card-modern:hover {
+            transform: translateY(-18px) scale(1.04);
+            box-shadow: 
+                0 24px 48px rgba(0, 0, 0, 0.14),
+                0 8px 20px rgba(124, 58, 237, 0.15);
+            border-color: rgba(124, 58, 237, 0.3);
+        }
+
+        .theme-dark .feature-card-modern:hover {
+            box-shadow: 
+                0 24px 48px rgba(0, 0, 0, 0.6),
+                0 8px 20px rgba(124, 58, 237, 0.3);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        /* Efecto de brillo sutil en hover */
+        .feature-card-modern::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        .theme-dark .feature-card-modern::after {
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 60%);
+        }
+
+        .feature-card-modern:hover::after {
+            opacity: 1;
+        }
+
+        /* Contenedor del ícono con degradado vibrante */
+        .feature-icon-wrapper {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 26px;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 
+                0 14px 28px rgba(0, 0, 0, 0.12),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Degradados vibrantes para cada ícono */
+        .feature-icon-game {
+            background: linear-gradient(135deg, #8B39FF 0%, #6EC6FF 100%);
+        }
+
+        .feature-icon-globe {
+            background: linear-gradient(135deg, #06B6D4 0%, #10B981 100%);
+        }
+
+        .feature-icon-collab {
+            background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+        }
+
+        /* Ícono interno con sombra */
+        .feature-icon-inner {
+            font-size: 2.75rem;
+            color: white;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.25));
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Animación de ícono en hover - pulse y rotación sutil */
+        @keyframes iconPulse {
+            0%, 100% {
+                transform: scale(1) rotate(0deg);
+            }
+            50% {
+                transform: scale(1.15) rotate(-8deg);
+            }
+        }
+
+        .feature-card-modern:hover .feature-icon-wrapper {
+            transform: translateY(-8px) scale(1.08);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.18),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card-modern:hover .feature-icon-inner {
+            animation: iconPulse 0.6s ease-in-out;
+        }
+
+        /* Z-index para que las cards estén sobre los cohetes */
+        #pantalla-caracteristicas .container {
+            position: relative;
+            z-index: 10;
+        }
+
+        .feature-card-modern {
+            position: relative;
+            z-index: 15;
+        }
+
+        /* ===== FIN ESTILOS CARACTERÍSTICAS MEJORADA ===== */
+
+        /* Sección CTA Final */
+        .cta-final {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .floating-stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        /* Mapa Estilizado */
+        .map-container {
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            border: 5px solid white;
+        }
+
+        /* Textos con Efectos */
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .code-text {
+            position: relative;
+            display: inline-block;
+        }
+
+        .code-text::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #FF6B35, #FF8C42, #FFB84D);
+            border-radius: 2px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Badge Profesor */
+        .teacher-badge {
+            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        /* Icono dentro del badge */
+        .teacher-badge .teacher-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 10px;
+            display: inline-block;
+        }
+
+        /* Tarjetas Profesor */
+        .teacher-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .teacher-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .btn-adventure, .btn-teacher {
+                font-size: 1rem;
+                padding: 14px 28px;
+            }
+
+            .feature-icon {
+                width: 80px;
+                height: 80px;
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Burbuja de Diálogo */
+        .speech-bubble {
+            position: relative;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border: 20px solid transparent;
+            border-top-color: white;
+            border-bottom: 0;
+            margin-left: -20px;
+            margin-bottom: -20px;
+        }
+    </style>
+    <script>
+        // Apply saved theme
+        try {
+            const savedTheme = localStorage.getItem('app-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            }
+        } catch (e) { /* noop */ }
+    </script>
+    <style>
+        /* ── SCRATCH ZONE nav button ─────────────────────────── */
+        @keyframes scratch-shine {
+          0%   {
+            background-position: 200% center;
+            box-shadow: 0 0 6px 1px rgba(180,140,40,0.25), 0 0 14px 2px rgba(160,120,20,0.12);
+          }
+          50%  {
+            background-position: 0% center;
+            box-shadow: 0 0 10px 3px rgba(200,160,50,0.38), 0 0 22px 5px rgba(180,140,30,0.18);
+          }
+          100% {
+            background-position: -200% center;
+            box-shadow: 0 0 6px 1px rgba(180,140,40,0.25), 0 0 14px 2px rgba(160,120,20,0.12);
+          }
+        }
+        #nav-laboratorio {
+          background: linear-gradient(100deg,
+            #7a6020 0%,
+            #b8922e 20%,
+            #d4aa44 40%,
+            #ecdfa0 55%,
+            #d4aa44 70%,
+            #b8922e 85%,
+            #7a6020 100%
+          ) !important;
+          background-size: 300% auto !important;
+          color: #fdf6e3 !important;
+          padding: 5px 16px !important;
+          border-radius: 20px !important;
+          font-weight: 900 !important;
+          font-size: 0.78rem !important;
+          letter-spacing: 1.2px !important;
+          border: 1.5px solid rgba(212,170,68,0.5) !important;
+          animation: scratch-shine 3s linear infinite;
+          text-shadow: 0 1px 3px rgba(60,40,0,0.45);
+          transition: filter 0.15s;
+          cursor: pointer;
+        }
+        #nav-laboratorio:hover { filter: brightness(1.15) saturate(1.1); }
+
+        /* Theme toggle styles */
+        .theme-toggle { background: transparent; border: none; cursor: pointer; display:flex; align-items:center; gap:8px; }
+        .theme-toggle .icon-sun, .theme-toggle .icon-moon { font-size: 18px; line-height:1; }
+        .toggle-switch { width:44px; height:24px; background:#E6E6E6; border-radius:999px; position:relative; display:inline-block; }
+        .toggle-thumb { width:20px; height:20px; background:#fff; border-radius:50%; position:absolute; top:2px; left:2px; box-shadow:0 6px 14px rgba(0,0,0,0.12); transition:transform 220ms cubic-bezier(.2,.9,.2,1); }
+        .theme-on .toggle-switch { background: linear-gradient(90deg,#8B39FF,#6EC6FF); }
+        .theme-on .toggle-thumb { transform: translateX(20px); }
+        .theme-on .icon-sun { opacity:0.2; }
+        .theme-off .icon-moon { opacity:0.2; }
+        .theme-toggle:focus-visible { outline: 3px solid rgba(111,66,193,0.12); border-radius: 8px; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50">
+    <!-- Header Simplificado -->
+    <header class="bg-white shadow-lg sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <a href="/Vistas_Publicas/Pagina_Inicio.html" class="text-3xl font-extrabold gradient-text tracking-tight no-underline hover:opacity-90">
+                    Code Kids
+                </a>
+            </div>
+            <div class="hidden md:flex items-center gap-6">
+                <button id="nav-sobre" class="text-gray-700 hover:text-purple-600 transition font-semibold">Sobre Nosotros</button>
+                <button id="nav-caracteristicas" class="text-gray-700 hover:text-purple-600 transition font-semibold">Características</button>
+                <button id="nav-profesores" class="text-gray-700 hover:text-purple-600 transition font-semibold">Para Profesores</button>
+                <button id="nav-laboratorio">
+                    SCRATCH ZONE
+                </button>
+                <button onclick="location.href='Inicio_De_Sesion.html'" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-2 rounded-full font-bold hover:shadow-lg transition">
+                    Iniciar Sesión
+                </button>
+                <button id="themeToggle" class="theme-toggle theme-off" aria-pressed="false" title="Alternar modo claro/oscuro">
+                    <span class="icon-sun" aria-hidden="true">☀️</span>
+                    <div class="toggle-switch" aria-hidden="true"><span class="toggle-thumb"></span></div>
+                    <span class="icon-moon" aria-hidden="true">🌙</span>
+                </button>
+            </div>
+            <div class="md:hidden">
+                <button id="mobile-menu-btn" class="p-2 text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main id="main-views">
+        <!-- SECCIÓN 1: HERO PRINCIPAL -->
+        <div id="pantalla-principal">
+            <section class="hero-background py-20 relative">
+                <!-- Formas Flotantes -->
+                <div class="floating-shapes">
+                    <div class="shape" style="font-size: 4rem; left: 5%; top: 15%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 3rem; left: 15%; top: 65%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 3.5rem; left: 8%; top: 85%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 2.5rem; left: 2%; top: 45%;"><i class="fas fa-code"></i></div>
+                </div>
+
+                <div class="container mx-auto px-6 relative z-10">
+                    <div class="grid md:grid-cols-2 gap-12 items-start max-w-6xl mx-auto">
+                        <!-- Columna izquierda: Texto y botones -->
+                        <div class="text-left" style="padding-top: 60px;">
+                            <h1 class="font-extrabold text-white" style="font-size: 4rem; line-height: 1.1; margin-bottom: 0.5rem;">
+                                La aventura de crear<br>con código!
+                            </h1>
+                            <div style="width: 280px; height: 6px; background: linear-gradient(90deg, #FF6B6B 0%, #FF8E53 100%); border-radius: 3px; margin-bottom: 2rem;"></div>
+                            
+                            <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem;">
+                                <img src="/static/images/CodyDialogo.png" alt="Cody Robot" style="width: 200px; height: auto; flex-shrink: 0; animation: mirror 6s ease-in-out infinite;" />
+                                <div class="welcome-dialog" style="position: relative; background: white; border-radius: 20px; padding: 1.5rem; flex-grow: 1; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                                    <div class="welcome-dialog-arrow" style="content: ''; position: absolute; left: 0; top: 30px; width: 0; height: 0; border: 15px solid transparent; border-right-color: white; border-left: 0; margin-left: -15px;"></div>
+                                    <p class="font-medium text-gray-800" style="font-size: 1rem; line-height: 1.6;">
+                                        ¡Hola! Soy tu guía en Code Kids. Aprende jugando en un entorno seguro y divertido. Retos, proyectos y aventuras que hacen del código una experiencia mágica.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p class="text-white" style="font-size: 1rem; line-height: 1.6; margin-bottom: 2.5rem;">
+                                Una plataforma diseñada para enseñar los fundamentos de la programación a niños de 6 a 12 años.
+                            </p>
+
+                            <div class="flex flex-wrap gap-4" style="margin-top: 1rem;">
+                                <button onclick="location.href='Inicio_De_Sesion.html'" class="btn-adventure flex items-center gap-2" style="padding: 0.9rem 1.8rem; font-size: 1rem; border-radius: 50px; font-weight: 600;">
+                                    <i class="fas fa-rocket" style="font-size: 1.1rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></i>
+                                    ¡Comenzar la Aventura!
+                                </button>
+                                <button onclick="location.href='Beneficios_Profesor.html'" class="btn-teacher flex items-center gap-2" style="padding: 0.9rem 1.8rem; font-size: 1rem; border-radius: 50px; font-weight: 600;">
+                                    <i class="fas fa-chalkboard-teacher" style="font-size: 1.1rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></i>
+                                    Acceder como Profesor
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Columna derecha: Robot y mapa -->
+                        <div class="relative" style="margin-top: 0;">
+                            <!-- Robot posicionado arriba -->
+                            <div class="flex justify-center relative z-20" style="margin-bottom: 1rem;">
+                                <img src="/static/images/Cabeza.png" alt="Robot Code Kids" style="width:100%;max-width:280px;height:auto;animation: blink 4s ease-in-out infinite;" />
+                            </div>
+                            
+                            <!-- Tarjeta del mapa -->
+                            <div class="speech-bubble relative z-10" style="padding: 1.5rem; margin-bottom: 1rem; animation: float 3s ease-in-out infinite;">
+                                <p class="font-bold text-purple-700 text-center" style="font-size: 1.1rem; line-height: 1.4;">
+                                    <i class="fas fa-map-marker-alt mr-2" aria-hidden="true" style="font-size: 1.25rem; filter: drop-shadow(0 2px 3px rgba(124,58,237,0.3));"></i>¡Encuentra a tus amigos programadores cerca de ti!
+                                </p>
+                                <p class="font-semibold text-gray-700 text-center" style="font-size: 1rem; margin-top: 0.5rem;">
+                                    Nuestra Comunidad en H. Matamoros
+                                </p>
+                            </div>
+                            
+                            <div class="map-container" style="border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.15);">
+                                <div id="hero-map" class="w-full h-[400px]"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 2: ¿POR QUÉ CODE KIDS? -->
+            <section class="py-20 bg-gradient-to-b from-white to-purple-50" style="padding-top: 8rem; overflow: visible;">
+                <div class="container mx-auto px-6" style="overflow: visible;">
+                    <div class="text-center mb-16">
+                        <h2 class="text-5xl md:text-6xl font-extrabold gradient-text mb-12" style="line-height: 1.3;">
+                            ¿Por qué Code Kids?
+                        </h2>
+                        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                            Nuestra comunidad de exploradores digitales aprende con diversión, seguridad y motivación constante.
+                        </p>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-10" style="overflow: visible;">
+                        <!-- Tarjeta 1: Seguridad -->
+                        <div class="feature-card security-card">
+                            <!-- Imagen centrada Seguridad -->
+                            <img src="/static/images/Seguridad.png" alt="Seguridad" class="security-image">
+                            
+                            <div class="feature-icon" style="overflow: visible;">
+                                <div class="icon-badge badge-game" role="img" aria-label="Seguridad y protección" style="overflow: visible;">
+                                    <!-- CodySeguro image -->
+                                    <img src="/static/images/CodySeguro.png" alt="Cody Seguro" style="width: 800%; height: 800%; object-fit: contain;">
+                                </div>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3" style="margin-top: 2rem;">100% Seguro</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Crea grupos con códigos únicos. Acceso limitado y filtros activos para mantener a los estudiantes seguros.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta 2: Gamificación -->
+                        <div class="feature-card gamification-card">
+                            <!-- Imagen centrada CodyLeve -->
+                            <img src="/static/images/CodyLeve.png" alt="Cody" class="cody-center-image">
+                            
+                            <div class="feature-icon" style="overflow: visible;">
+                                <div class="icon-badge badge-game" role="img" aria-label="Metodología interactiva" style="overflow: visible;">
+                                    <!-- LevenUp image -->
+                                    <img src="/static/images/LevenUp.png" alt="Level Up" style="width: 1200%; height: 1200%; object-fit: contain;">
+                                </div>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3" style="margin-top: 2rem;">Gamificación</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Niveles, insignias y retos que hacen del aprendizaje una aventura llena de motivación y diversión.
+                            </p>
+                        </div>
+
+                        <!-- Tarjeta 3: Colaboración -->
+                        <div class="feature-card collab-card">
+                            <!-- Imagen Cool -->
+                            <img src="/static/images/Cool.png" alt="Cool" class="cool-image">
+                            
+                            <div class="feature-icon" style="overflow: visible;">
+                                <div class="icon-badge badge-globe" role="img" aria-label="Colaboración global" style="overflow: visible;">
+                                    <!-- Colaboracion image -->
+                                    <img src="/static/images/Colaboracion.png" alt="Colaboración" style="width: 800%; height: 800%; object-fit: contain;">
+                                </div>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-3" style="margin-top: 2rem;">Colaboración</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Herramientas para crear, compartir proyectos y trabajar en equipo con moderación y apoyo en tiempo real.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3: PARA PROFESORES -->
+            <section class="py-20 bg-gradient-to-b from-purple-50 to-white">
+                <div class="container mx-auto px-6">
+                </div>
+            </section>
+
+            <!-- SECCIÓN CTA FINAL -->
+            <section class="cta-final py-24 relative">
+                <!-- Estrellas Flotantes -->
+                <div class="floating-stars">
+                    <div class="star" style="top: 10%; left: 15%; animation-delay: 0s;"></div>
+                    <div class="star" style="top: 20%; right: 20%; animation-delay: 0.5s;"></div>
+                    <div class="star" style="bottom: 30%; left: 25%; animation-delay: 1s;"></div>
+                    <div class="star" style="top: 40%; right: 15%; animation-delay: 1.5s;"></div>
+                    <div class="star" style="bottom: 20%; right: 30%; animation-delay: 2s;"></div>
+                    <div class="star" style="top: 60%; left: 40%; animation-delay: 0.8s;"></div>
+                </div>
+
+                <!-- Imagen de Cody pegada al borde izquierdo -->
+                <div id="cody-adventure-image" style="position: absolute; left: -100px; top: 50%; transform: translateY(-50%); width: 550px; height: 550px; z-index: 5;">
+                    <img id="cody-img-normal" src="/static/images/ListoC.png" alt="Cody Robot" style="width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; object-fit: contain;" />
+                    <img id="cody-img-hover" src="/static/images/ListoL.png" alt="Cody Robot Excited" style="width: 100%; height: 100%; display: none; position: absolute; top: 0; left: 0; object-fit: contain;" />
+                </div>
+                
+                <div class="container mx-auto px-6 relative z-10" style="max-width: 1200px;">
+                    <!-- Contenido de texto a la derecha -->
+                    <div style="margin-left: auto; max-width: 650px; text-align: left;">
+                        <h2 class="text-5xl md:text-6xl font-extrabold text-white mb-6">
+                            ¿Listo para comenzar<br>tu aventura?
+                        </h2>
+                        <p class="text-2xl text-purple-100 mb-10">
+                            Únete a miles de estudiantes que ya están aprendiendo a programar de forma segura y divertida.
+                        </p>
+                        <button id="adventure-btn" onclick="location.href='Inicio_De_Sesion.html'" class="btn-adventure text-2xl flex items-center gap-3" style="margin: 0;">
+                            <i class="fas fa-gamepad"></i>
+                            ¡Comenzar la Aventura!
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- PANTALLAS ADICIONALES (Sobre Nosotros, Características, Para Profesores) -->
+        <!-- Mantengo estructura similar pero con diseño actualizado -->
+        
+        <div id="pantalla-sobre-nosotros" class="hidden">
+            <section class="py-16 relative overflow-hidden section-background" style="background: #FFFFFF; min-height: 100vh;">
+                
+                <div class="floating-shapes">
+                    <div class="shape" style="font-size: 4rem; left: 5%; top: 15%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 3rem; left: 15%; top: 65%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 3.5rem; left: 8%; top: 85%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 2.5rem; left: 2%; top: 45%;"><i class="fas fa-code"></i></div>
+                </div>
+                <div class="container mx-auto px-6 relative z-10">
+                    <button class="mb-6 inline-flex items-center gap-2 text-purple-700 hover:text-purple-900 font-bold" data-back style="transition: all 0.3s;">
+                        ← Volver
+                    </button>
+
+                    <!-- Top centered block: main title, subtitle, robot -->
+                    <div class="max-w-4xl mx-auto mb-8 text-center">
+                        <h1 class="sobre-nosotros-title text-5xl font-extrabold mb-4" style="color: #8B3FD9;">Sobre Nosotros</h1>
+                        <p class="sobre-nosotros-subtitle text-xl mb-12" style="color: #6B7280;">Lo que nos impulsa y cómo lo hacemos.</p>
+                        
+                        <!-- Imagen de Sobre Nosotros -->
+                        <div class="mb-12 text-center">
+                            <img src="/static/images/SobreNosotros.png" alt="Robot amistoso con iconos" style="width:100%;max-width:800px;height:auto;display:block;margin:0 auto;" />
+                        </div>
+                    </div>
+
+                    <!-- Secondary title -->
+                    <h2 class="sobre-nosotros-section-title text-3xl font-bold mb-8 text-center" style="color: #8B3FD9;">Quiénes somos</h2>
+
+                    <!-- Horizontal cards container -->
+                    <div class="flex flex-wrap justify-center puzzle-cards-container" style="gap: 0; margin: 0 -10px;">
+                        <div class="puzzle-card" style="transition: all 0.3s ease, filter 0.3s ease; position: relative; width: 380px; height: 330px; margin: -15px -10px 0 -10px; filter: blur(0px);">
+                            <img src="/static/images/Pie1.png" alt="Nuestra misión" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+                            <div style="position: absolute; top: 50%; left: 40%; transform: translate(-50%, -50%); width: 200px; height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem;">
+                                <div class="feature-icon mb-3" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                    <i class="fas fa-bullseye" style="font-size: 1.8rem; color: #FFFFFF; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));"></i>
+                                </div>
+                                <h3 class="font-bold text-center" style="color: white !important; font-size: 1.1rem; margin-bottom: 0.5rem;">Nuestra misión</h3>
+                                <p class="text-center" style="color: rgba(255, 255, 255, 0.9) !important; font-size: 0.75rem; line-height: 1.3;">Aprender creando, jugando y colaborando en un entorno seguro.</p>
+                            </div>
+                        </div>
+
+                        <div class="puzzle-card" style="transition: all 0.3s ease, filter 0.3s ease; position: relative; width: 350px; height: 300px; margin: 0 -20px; filter: blur(0px);">
+                            <img src="/static/images/Pie2.png" alt="Metodología" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem;">
+                                <div class="feature-icon mb-3" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                    <i class="fas fa-puzzle-piece" style="font-size: 1.8rem; color: #FFFFFF; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));"></i>
+                                </div>
+                                <h3 class="font-bold text-center" style="color: white !important; font-size: 1.1rem; margin-bottom: 0.5rem;">Metodología</h3>
+                                <p class="text-center" style="color: rgba(255, 255, 255, 0.9) !important; font-size: 0.75rem; line-height: 1.3;">Retos cortos, proyectos reales y feedback constante.</p>
+                            </div>
+                        </div>
+
+                        <div class="puzzle-card" style="transition: all 0.3s ease, filter 0.3s ease; position: relative; width: 500px; height: 385px; margin: -35px -20px 0 -20px; filter: blur(0px);">
+                            <img src="/static/images/Pie3.png" alt="Seguridad primero" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 220px; height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem;">
+                                <div class="feature-icon mb-3" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                    <i class="fas fa-shield-alt" style="font-size: 1.8rem; color: #FFFFFF; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));"></i>
+                                </div>
+                                <h3 class="font-bold text-center" style="color: white !important; font-size: 1.1rem; margin-bottom: 0.5rem;">Seguridad primero</h3>
+                                <p class="text-center" style="color: rgba(255, 255, 255, 0.9) !important; font-size: 0.75rem; line-height: 1.3;">Entorno cerrado y cuentas gestionadas por docentes para proteger a los estudiantes.</p>
+                            </div>
+                        </div>
+
+                        <div class="puzzle-card" style="transition: all 0.3s ease, filter 0.3s ease; position: relative; width: 350px; height: 300px; margin: 0 -20px; filter: blur(0px);">
+                            <img src="/static/images/Pie4.png" alt="Comunidad" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem;">
+                                <div class="feature-icon mb-3" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                                    <i class="fas fa-users" style="font-size: 1.8rem; color: #FFFFFF; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));"></i>
+                                </div>
+                                <h3 class="font-bold text-center" style="color: white !important; font-size: 1.1rem; margin-bottom: 0.5rem;">Comunidad</h3>
+                                <p class="text-center" style="color: rgba(255, 255, 255, 0.9) !important; font-size: 0.75rem; line-height: 1.3;">Profesores y estudiantes construyendo juntos y compartiendo aprendizajes.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="pantalla-caracteristicas" class="hidden">
+            <section class="py-16 relative overflow-hidden section-background" style="background: #F5F5F5; min-height: 100vh;">
+                <div class="floating-shapes">
+                    <div class="shape" style="font-size: 4rem; left: 5%; top: 15%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 3rem; left: 15%; top: 65%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 3.5rem; left: 8%; top: 85%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 2.5rem; left: 2%; top: 45%;"><i class="fas fa-code"></i></div>
+                </div>
+                <div class="container mx-auto px-6 relative z-10">
+                    <button class="mb-8 inline-flex items-center gap-2 text-purple-600 hover:underline font-bold" data-back>
+                        ← Volver
+                    </button>
+                    
+                    <!-- Contenedor centrado de títulos -->
+                    <div class="text-center mb-16 max-w-3xl mx-auto">
+                        <h1 class="caracteristicas-title text-5xl font-extrabold mb-4" style="color: #7C3AED; letter-spacing: 0.5px;">Características</h1>
+                        <p class="caracteristicas-subtitle text-xl text-gray-700 mt-6">Pilares clave de la experiencia Code Kids.</p>
+                    </div>
+                    
+                    <!-- Imagen de características -->
+                    <div class="max-w-5xl mx-auto text-center mb-12">
+                        <img src="/static/images/Caracteristicas.png" alt="Características Code Kids" style="width:100%;max-width:800px;height:auto;display:block;margin:0 auto;" />
+                    </div>
+                    
+                    <!-- Título de sección Cualidades -->
+                    <h2 class="caracteristicas-cualidades text-3xl font-bold mb-16 text-center" style="color: #7C3AED;">Cualidades</h2>
+                    
+                    <!-- Grid de cards centrado -->
+                    <div class="flex flex-wrap justify-center gap-12 caracteristicas-container">
+                        <div class="caracteristicas-postit" style="background: linear-gradient(135deg, #FEFCE8 0%, #FEF9C3 50%, #FEF08A 100%); padding: 3rem 2rem 2.5rem; width: 300px; min-height: 300px; box-shadow: -2px 8px 15px rgba(0, 0, 0, 0.15), -5px 15px 25px rgba(0, 0, 0, 0.1); transition: all 0.3s ease; transform: rotate(5deg) perspective(600px) rotateY(-5deg); position: relative; border-radius: 2px; overflow: visible;">
+                            <div style="position: absolute; bottom: -5px; left: 10px; width: 90%; height: 30px; background: linear-gradient(90deg, #D4A574 0%, #E8C896 50%, #D4A574 100%); transform: rotateX(70deg); opacity: 0.3; filter: blur(8px);"></div>
+                            <img src="/static/images/Chin.png" alt="Chincheta" class="chin-normal" style="position: absolute; top: -25px; left: 20px; width: 50px; height: auto; z-index: 10;">
+                            <img src="/static/images/Chincheta.png" alt="Chincheta" class="chin-hover" style="position: absolute; top: -25px; left: 20px; width: 50px; height: auto; z-index: 10;">
+                            <div style="margin: 2.5rem auto 1.5rem; text-align: center;">
+                                <i class="fas fa-puzzle-piece" style="font-size: 3rem; color: #8B5CF6;"></i>
+                            </div>
+                            <h3 style="font-size: 1.3rem; font-weight: 700; color: #1F2937; text-align: center; margin-bottom: 0.8rem; font-family: 'Comic Sans MS', cursive;">Metodología Interactiva</h3>
+                            <p style="color: #374151; text-align: center; font-size: 0.95rem; line-height: 1.5;">Aprende haciendo con retos progresivos y feedback inmediato.</p>
+                        </div>
+                        <div class="caracteristicas-postit" style="background: linear-gradient(135deg, #FEFCE8 0%, #FEF9C3 50%, #FEF08A 100%); padding: 3rem 2rem 2.5rem; width: 300px; min-height: 300px; box-shadow: -2px 8px 15px rgba(0, 0, 0, 0.15), -5px 15px 25px rgba(0, 0, 0, 0.1); transition: all 0.3s ease; transform: rotate(8deg) perspective(600px) rotateY(-3deg); position: relative; border-radius: 2px; overflow: visible;">
+                            <div style="position: absolute; bottom: -5px; left: 10px; width: 90%; height: 30px; background: linear-gradient(90deg, #D4A574 0%, #E8C896 50%, #D4A574 100%); transform: rotateX(70deg); opacity: 0.3; filter: blur(8px);"></div>
+                            <img src="/static/images/Chin.png" alt="Chincheta" class="chin-normal" style="position: absolute; top: -25px; left: 20px; width: 50px; height: auto; z-index: 10;">
+                            <img src="/static/images/Chincheta.png" alt="Chincheta" class="chin-hover" style="position: absolute; top: -25px; left: 20px; width: 50px; height: auto; z-index: 10;">
+                            <div style="margin: 2.5rem auto 1.5rem; text-align: center;">
+                                <i class="fas fa-globe" style="font-size: 3rem; color: #10B981;"></i>
+                            </div>
+                            <h3 style="font-size: 1.3rem; font-weight: 700; color: #1F2937; text-align: center; margin-bottom: 0.8rem; font-family: 'Comic Sans MS', cursive;">Proyectos del Mundo Real</h3>
+                            <p style="color: #374151; text-align: center; font-size: 0.95rem; line-height: 1.5;">Crea juegos, apps y soluciones a problemas reales.</p>
+                        </div>
+                        <div class="caracteristicas-postit" style="background: linear-gradient(135deg, #FEFCE8 0%, #FEF9C3 50%, #FEF08A 100%); padding: 3rem 2rem 2.5rem; width: 300px; min-height: 300px; box-shadow: -2px 8px 15px rgba(0, 0, 0, 0.15), -5px 15px 25px rgba(0, 0, 0, 0.1); transition: all 0.3s ease; transform: rotate(-4deg) perspective(600px) rotateY(-4deg); position: relative; border-radius: 2px; overflow: visible;">
+                            <div style="position: absolute; bottom: -5px; left: 10px; width: 90%; height: 30px; background: linear-gradient(90deg, #D4A574 0%, #E8C896 50%, #D4A574 100%); transform: rotateX(70deg); opacity: 0.3; filter: blur(8px);"></div>
+                            <img src="/static/images/Chin.png" alt="Chincheta" class="chin-normal" style="position: absolute; top: -25px; left: 20px; width: 50px; height: auto; z-index: 10;">
+                            <img src="/static/images/Chincheta.png" alt="Chincheta" class="chin-hover" style="position: absolute; top: -25px; left: 20px; width: 50px; height: auto; z-index: 10;">
+                            <div style="margin: 2.5rem auto 1.5rem; text-align: center;">
+                                <i class="fas fa-user-graduate" style="font-size: 3rem; color: #EF4444;"></i>
+                            </div>
+                            <h3 style="font-size: 1.3rem; font-weight: 700; color: #1F2937; text-align: center; margin-bottom: 0.8rem; font-family: 'Comic Sans MS', cursive;">Soporte para Educadores</h3>
+                            <p style="color: #374151; text-align: center; font-size: 0.95rem; line-height: 1.5;">Herramientas completas para gestionar y motivar estudiantes.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="pantalla-profesores" class="hidden">
+            <section class="py-16 relative overflow-hidden section-background" style="background: #FFFFFF; min-height: 100vh;">
+                <div class="floating-shapes">
+                    <div class="shape" style="font-size: 4rem; left: 5%; top: 15%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 3rem; left: 15%; top: 65%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 3.5rem; left: 8%; top: 85%;"><i class="fas fa-code"></i></div>
+                    <div class="shape" style="font-size: 2.5rem; left: 2%; top: 45%;"><i class="fas fa-code"></i></div>
+                </div>
+                <div class="container mx-auto px-6 relative z-10">
+                    <button class="mb-6 inline-flex items-center gap-2 text-purple-600 hover:underline font-bold" data-back>
+                        ← Volver
+                    </button>
+
+                    <!-- Top centered block: main title, subtitle, image -->
+                    <div class="max-w-4xl mx-auto mb-8 text-center">
+                        <h1 class="profesores-title text-5xl font-extrabold mb-4" style="color: #7C3AED;">Para Profesores</h1>
+                        <p class="profesores-subtitle text-xl mb-12" style="color: #6B7280;">Herramientas diseñadas para potenciar tu aula.</p>
+                        
+                        <!-- Imagen de Para Profesores -->
+                        <div class="mb-12 text-center">
+                            <img src="/static/images/ParaProfesores.png" alt="Para Profesores Code Kids" style="width:100%;max-width:800px;height:auto;display:block;margin:0 auto;" />
+                        </div>
+                    </div>
+
+                    <!-- Secondary title -->
+                    <h2 class="profesores-section-title text-3xl font-bold mb-8 text-center" style="color: #7C3AED;">Beneficios clave</h2>
+
+                    <!-- Horizontal cards container -->
+                    <div class="flex flex-wrap justify-center gap-6" id="profesor-cards-container">
+                        <div class="profesor-libro-card" style="width: 300px; height: 400px; background-image: url('/static/images/Libro.png'); background-size: contain; background-repeat: no-repeat; background-position: center; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 3rem; transition: all 0.3s ease;">
+                            <div style="position: relative; z-index: 1; text-align: center; max-width: 220px;">
+                                <div style="background: rgba(139, 57, 255, 0.9); backdrop-filter: blur(10px); width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.8rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                                    <i class="fas fa-user-cog" style="font-size: 1.6rem; color: #FFFFFF;"></i>
+                                </div>
+                                <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Gestión simple</h3>
+                                <p style="font-size: 0.8rem; color: #FFFFFF; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Crea grupos y administra estudiantes fácilmente.</p>
+                            </div>
+                        </div>
+
+                        <div class="profesor-libro-card" style="width: 300px; height: 400px; background-image: url('/static/images/Libro.png'); background-size: contain; background-repeat: no-repeat; background-position: center; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 3rem; transition: all 0.3s ease;">
+                            <div style="position: relative; z-index: 1; text-align: center; max-width: 220px;">
+                                <div style="background: rgba(110, 198, 255, 0.9); backdrop-filter: blur(10px); width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.8rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                                    <i class="fas fa-chart-bar" style="font-size: 1.6rem; color: #FFFFFF;"></i>
+                                </div>
+                                <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Progreso claro</h3>
+                                <p style="font-size: 0.8rem; color: #FFFFFF; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Métricas de lecciones, juegos e insignias ganadas.</p>
+                            </div>
+                        </div>
+
+                        <div class="profesor-libro-card" style="width: 300px; height: 400px; background-image: url('/static/images/Libro.png'); background-size: contain; background-repeat: no-repeat; background-position: center; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 3rem; transition: all 0.3s ease;">
+                            <div style="position: relative; z-index: 1; text-align: center; max-width: 220px;">
+                                <div style="background: rgba(124, 92, 255, 0.9); backdrop-filter: blur(10px); width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.8rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                                    <i class="fas fa-sliders-h" style="font-size: 1.6rem; color: #FFFFFF;"></i>
+                                </div>
+                                <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Retos a medida</h3>
+                                <p style="font-size: 0.8rem; color: #FFFFFF; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Actividades adaptadas al nivel de tu grupo.</p>
+                            </div>
+                        </div>
+
+                        <div class="profesor-libro-card" style="width: 300px; height: 400px; background-image: url('/static/images/Libro.png'); background-size: contain; background-repeat: no-repeat; background-position: center; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 3rem; transition: all 0.3s ease;">
+                            <div style="position: relative; z-index: 1; text-align: center; max-width: 220px;">
+                                <div style="background: rgba(79, 163, 255, 0.9); backdrop-filter: blur(10px); width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.8rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                                    <i class="fas fa-shield-alt" style="font-size: 1.6rem; color: #FFFFFF;"></i>
+                                </div>
+                                <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Comunicación segura</h3>
+                                <p style="font-size: 0.8rem; color: #FFFFFF; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Chat moderado 1 a 1 con cada estudiante.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================================================================
+             PANTALLA: LABORATORIO DE CODIGO
+             ================================================================ -->
+        <div id="pantalla-laboratorio" class="hidden">
+
+        <style>
+            /* ── Reset & base ─────────────────────────────────────── */
+            #pantalla-laboratorio { background: #0b1220; }
+
+            /* ── Lab Shell ─────────────────────────────────────────── */
+            .lab-shell {
+                display: flex;
+                flex-direction: column;
+                height: calc(100vh - 70px);
+                min-height: 600px;
+                overflow: hidden;
+                background: #0b1220;
+                font-family: 'Fredoka', 'Segoe UI', system-ui, sans-serif;
+            }
+
+            /* ── Toolbar ───────────────────────────────────────────── */
+            .lab-toolbar {
+                display: flex;
+                align-items: center;
+                padding: 0 16px;
+                height: 54px;
+                background: #111827;
+                border-bottom: 2px solid #1e3a5f;
+                gap: 10px;
+                flex-shrink: 0;
+            }
+            .lab-toolbar-title {
+                flex: 1;
+                text-align: center;
+                color: #cbd5e1;
+                font-size: 1rem;
+                font-weight: 700;
+                letter-spacing: 0.4px;
+            }
+            .lab-toolbar-title span {
+                color: #60a5fa;
+            }
+            .lab-btn-back {
+                background: transparent;
+                border: 1.5px solid #334155;
+                color: #94a3b8;
+                padding: 5px 14px;
+                border-radius: 6px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 0.82rem;
+                font-family: inherit;
+                transition: all 0.15s;
+                white-space: nowrap;
+            }
+            .lab-btn-back:hover { border-color: #60a5fa; color: #e2e8f0; }
+
+            /* Control buttons */
+            .lab-controls { display: flex; gap: 6px; align-items: center; }
+            .lab-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                padding: 6px 16px;
+                border-radius: 6px;
+                font-weight: 700;
+                border: none;
+                cursor: pointer;
+                font-size: 0.85rem;
+                font-family: inherit;
+                transition: filter 0.15s, transform 0.1s;
+                white-space: nowrap;
+            }
+            .lab-btn:active { transform: scale(0.95); }
+            .lab-btn:hover  { filter: brightness(1.1); }
+            #lab-btn-run   { background: #16a34a; color: #f0fdf4; }
+            #lab-btn-stop  { background: #dc2626; color: #fff; }
+            #lab-btn-reset { background: #d97706; color: #1c1917; }
+            #lab-btn-clear { background: #374151; color: #f1f5f9; }
+            #lab-btn-run.lab-active  { background: #15803d; box-shadow: 0 0 12px rgba(22,163,74,0.5); }
+
+            /* ── Main layout ───────────────────────────────────────── */
+            .lab-main {
+                display: flex;
+                flex: 1;
+                overflow: hidden;
+            }
+
+            /* Blockly */
+            #lab-blockly-div {
+                flex: 0 0 58%;
+                height: 100%;
+                min-width: 0;
+                position: relative;
+            }
+
+            /* Right column */
+            .lab-right {
+                flex: 0 0 42%;
+                display: flex;
+                flex-direction: column;
+                background: #111827;
+                border-left: 1px solid #1e293b;
+                overflow: hidden;
+            }
+
+            /* Stage */
+            .lab-stage-wrap {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 10px 10px 6px;
+                background: #0b1220;
+                flex-shrink: 0;
+                gap: 6px;
+            }
+            .lab-stage-header {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 2px;
+            }
+            .lab-stage-label {
+                color: #475569;
+                font-size: 0.7rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            .lab-stage-status {
+                font-size: 0.7rem;
+                color: #475569;
+                font-weight: 600;
+            }
+            .lab-stage-status.running { color: #4ade80; }
+            .lab-stage-frame {
+                position: relative;
+                border: 2px solid #1e3a5f;
+                border-radius: 6px;
+                overflow: hidden;
+                width: 100%;
+                max-width: 480px;
+                background: #0b1220;
+            }
+            .lab-stage-frame:has(canvas) { box-shadow: 0 0 24px rgba(59,130,246,0.15); }
+            #lab-canvas {
+                display: block;
+                width: 100%;
+                height: auto;
+                aspect-ratio: 4/3;
+            }
+
+            /* Sprites panel */
+            .lab-sprites-panel {
+                padding: 8px 12px 6px;
+                border-top: 1px solid #1e293b;
+                flex-shrink: 0;
+            }
+            .lab-panel-label {
+                color: #475569;
+                font-size: 0.65rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-bottom: 6px;
+                display: block;
+            }
+            .lab-sprite-grid { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
+            .lab-sprite-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 3px;
+                padding: 7px 12px 6px;
+                border: 2px solid #1e3a5f;
+                border-radius: 8px;
+                cursor: pointer;
+                background: #0f172a;
+                color: #94a3b8;
+                font-size: 0.7rem;
+                font-family: inherit;
+                font-weight: 600;
+                transition: all 0.18s;
+                user-select: none;
+                position: relative;
+            }
+            .lab-sprite-item.active { border-color: #3b82f6; color: #bfdbfe; background: #1e3a5f; }
+            .lab-sprite-item:hover  { border-color: #3b82f6; }
+            .lab-sprite-canvas { width: 44px; height: 44px; border-radius: 4px; background: #1e2d45; }
+
+            /* Remove button on active sprite cards */
+            .lab-sprite-remove {
+                position: absolute;
+                top: 3px; right: 3px;
+                width: 16px; height: 16px;
+                background: #1e293b;
+                border: none;
+                border-radius: 3px;
+                color: #475569;
+                font-size: 0.8rem;
+                line-height: 1;
+                cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                font-family: inherit;
+                padding: 0;
+                transition: all 0.15s;
+                z-index: 1;
+            }
+            .lab-sprite-remove:hover { background: #7f1d1d; color: #fca5a5; }
+
+            /* Character library */
+            .lab-char-library {
+                flex: 1;
+                padding: 8px 12px 10px;
+                border-top: 1px solid #1e293b;
+                overflow-y: auto;
+                background: #080f1c;
+            }
+            .lab-char-library-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+            .lab-char-card {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 3px;
+                padding: 6px 8px 5px;
+                border: 2px solid #1e3a5f;
+                border-radius: 7px;
+                cursor: grab;
+                background: #0f172a;
+                color: #64748b;
+                font-size: 0.65rem;
+                font-weight: 700;
+                font-family: inherit;
+                transition: all 0.18s;
+                user-select: none;
+            }
+            .lab-char-card:hover:not(.on-canvas) { border-color: #3b82f6; color: #93c5fd; background: #0f2040; }
+            .lab-char-card:active:not(.on-canvas) { cursor: grabbing; }
+            .lab-char-card.on-canvas { opacity: 0.4; cursor: default; border-color: #1d4ed8; }
+
+            /* Canvas drop-target highlight */
+            .lab-stage-frame.drop-target { box-shadow: 0 0 0 3px #3b82f6, 0 0 28px rgba(59,130,246,0.45) !important; }
+
+            /* Hint bar */
+            .lab-hint {
+                border-top: 1px solid #1e293b;
+                padding: 7px 12px;
+                background: #0d1a2e;
+                font-size: 0.68rem;
+                color: #475569;
+                line-height: 1.65;
+                flex-shrink: 0;
+            }
+            .lab-hint b { color: #60a5fa; }
+
+            /* ── Tutorial overlay ──────────────────────────────────── */
+            #lab-tutorial-overlay {
+                display: none;
+                position: absolute;
+                inset: 0;
+                background: rgba(7, 12, 22, 0.82);
+                z-index: 200;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(3px);
+            }
+            .lab-tut-card {
+                background: #111827;
+                border: 1.5px solid #1e3a5f;
+                border-radius: 16px;
+                width: 520px;
+                max-width: calc(100vw - 32px);
+                box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.12);
+                overflow: hidden;
+                animation: tut-appear 0.28s cubic-bezier(0.34,1.56,0.64,1);
+            }
+            @keyframes tut-appear {
+                from { opacity: 0; transform: scale(0.88) translateY(20px); }
+                to   { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            .lab-tut-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 20px 0;
+            }
+            .lab-tut-step-badge {
+                background: #1e3a5f;
+                color: #60a5fa;
+                font-size: 0.72rem;
+                font-weight: 700;
+                padding: 3px 10px;
+                border-radius: 20px;
+                letter-spacing: 0.5px;
+            }
+            .lab-tut-skip {
+                background: #1e293b;
+                border: 1.5px solid #475569;
+                color: #cbd5e1;
+                font-size: 0.8rem;
+                font-weight: 700;
+                cursor: pointer;
+                font-family: inherit;
+                padding: 5px 14px;
+                border-radius: 6px;
+                transition: all 0.15s;
+                letter-spacing: 0.3px;
+            }
+            .lab-tut-skip:hover { background: #334155; border-color: #64748b; color: #f1f5f9; }
+            .lab-tut-illus {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 18px 24px 6px;
+            }
+            .lab-tut-illus svg { border-radius: 8px; }
+            .lab-tut-body { padding: 12px 24px 20px; }
+            .lab-tut-title {
+                color: #e2e8f0;
+                font-size: 1.2rem;
+                font-weight: 700;
+                margin-bottom: 8px;
+            }
+            .lab-tut-desc {
+                color: #94a3b8;
+                font-size: 0.9rem;
+                line-height: 1.65;
+                margin: 0;
+            }
+            .lab-tut-desc b { color: #60a5fa; }
+            .lab-tut-foot {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 24px 18px;
+                border-top: 1px solid #1e293b;
+            }
+            .lab-tut-dots { display: flex; gap: 6px; align-items: center; }
+            .lab-tut-dot {
+                width: 7px; height: 7px;
+                border-radius: 50%;
+                background: #1e3a5f;
+                transition: background 0.2s, transform 0.2s;
+            }
+            .lab-tut-dot.on { background: #3b82f6; transform: scale(1.3); }
+            .lab-tut-nav { display: flex; gap: 8px; }
+            .lab-tut-btn {
+                padding: 7px 20px;
+                border-radius: 7px;
+                font-size: 0.85rem;
+                font-weight: 700;
+                font-family: inherit;
+                cursor: pointer;
+                border: none;
+                transition: filter 0.15s, transform 0.1s;
+            }
+            .lab-tut-btn:active { transform: scale(0.96); }
+            .lab-tut-btn.sec  { background: #1e293b; color: #94a3b8; }
+            .lab-tut-btn.sec:hover  { background: #263347; }
+            .lab-tut-btn.prim { background: #2563eb; color: #fff; }
+            .lab-tut-btn.prim:hover { filter: brightness(1.12); }
+        </style>
+
+        <div class="lab-shell">
+
+            <!-- Toolbar -->
+            <div class="lab-toolbar">
+                <button class="lab-btn-back" data-back>&#8592; Volver</button>
+                <span class="lab-toolbar-title">SCRATCH ZONE &mdash; <span id="lab-active-sprite-name">Cody</span></span>
+                <div class="lab-controls">
+                    <button class="lab-btn" id="lab-btn-run">&#9654; Ejecutar</button>
+                    <button class="lab-btn" id="lab-btn-stop">&#9632; Detener</button>
+                    <button class="lab-btn" id="lab-btn-reset">&#8635; Reiniciar</button>
+                    <button class="lab-btn" id="lab-btn-clear">Limpiar</button>
+                </div>
+            </div>
+
+            <!-- Main area -->
+            <div class="lab-main">
+
+                <!-- Blockly workspace -->
+                <div id="lab-blockly-div"></div>
+
+                <!-- Right: Stage + Sprites + Hint -->
+                <div class="lab-right">
+
+                    <div class="lab-stage-wrap">
+                        <div class="lab-stage-header">
+                            <span class="lab-stage-label">Escenario</span>
+                            <span class="lab-stage-status" id="lab-status-text">Listo</span>
+                        </div>
+                        <div class="lab-stage-frame">
+                            <canvas id="lab-canvas" width="480" height="360"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="lab-sprites-panel">
+                        <span class="lab-panel-label">En escena &mdash; clic para programar</span>
+                        <div class="lab-sprite-grid" id="lab-sprite-grid"></div>
+                    </div>
+
+                    <div class="lab-char-library">
+                        <span class="lab-panel-label">Biblioteca &mdash; arrastra al escenario</span>
+                        <div class="lab-char-library-row" id="lab-char-library-row"></div>
+                    </div>
+
+                    <div class="lab-hint">
+                        <b>Como empezar:</b> Arrastra un personaje al escenario, haz clic en
+                        el para seleccionarlo, agrega bloques y pulsa <b>Ejecutar</b>.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tutorial overlay (positioned inside lab-shell) -->
+            <div id="lab-tutorial-overlay">
+                <div class="lab-tut-card" id="lab-tut-card">
+                    <div class="lab-tut-head">
+                        <span class="lab-tut-step-badge" id="lab-tut-badge">Paso 1 de 5</span>
+                        <button class="lab-tut-skip" id="lab-tut-skip">Saltar tutorial</button>
+                    </div>
+                    <div class="lab-tut-illus" id="lab-tut-illus"></div>
+                    <div class="lab-tut-body">
+                        <div class="lab-tut-title" id="lab-tut-title"></div>
+                        <p class="lab-tut-desc" id="lab-tut-desc"></p>
+                    </div>
+                    <div class="lab-tut-foot">
+                        <div class="lab-tut-dots" id="lab-tut-dots"></div>
+                        <div class="lab-tut-nav">
+                            <button class="lab-tut-btn sec" id="lab-tut-prev">Anterior</button>
+                            <button class="lab-tut-btn prim" id="lab-tut-next">Siguiente</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+
+        </div>
+        </div>
+        <!-- fin pantalla-laboratorio -->
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-16">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-10 mb-10">
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Compañía</h4>
+                    <ul class="space-y-2">
+                        <li><button class="hover:text-purple-400 transition" id="ft-sobre">Sobre Nosotros</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-caract">Características</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Soporte</h4>
+                    <ul class="space-y-2">
+                        <li><button class="hover:text-purple-400 transition" id="ft-faq">Preguntas Frecuentes</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-ayuda">Centro de Ayuda</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-contacto">Contáctanos</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Legal</h4>
+                    <ul class="space-y-2">
+                        <li><button class="hover:text-purple-400 transition" id="ft-terminos">Términos de Servicio</button></li>
+                        <li><button class="hover:text-purple-400 transition" id="ft-priv">Política de Privacidad</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Síguenos</h4>
+                    <p class="text-gray-400 mb-4">Tutoriales, noticias y actualizaciones.</p>
+                    <div class="flex gap-4">
+                        <a href="#" class="hover:text-purple-400 transition" aria-label="GitHub">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.09 3.29 9.4 7.86 10.93.57.1.78-.25.78-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.33.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.71 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.14 1.18a10.9 10.9 0 012.86-.38c.97.01 1.95.13 2.86.38 2.18-1.5 3.14-1.18 3.14-1.18.62 1.59.23 2.76.11 3.05.73.81 1.18 1.83 1.18 3.09 0 4.44-2.7 5.41-5.27 5.7.41.35.77 1.03.77 2.08 0 1.5-.01 2.71-.01 3.08 0 .31.2.67.79.56A10.51 10.51 0 0023.5 12C23.5 5.65 18.35.5 12 .5z"/>
+                            </svg>
+                        </a>
+                        <a href="https://youtube.com/@codekidsweb?si=CGXwaaGxTYOTe14E" target="_blank" rel="noopener noreferrer" class="hover:text-purple-400 transition" aria-label="YouTube">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="hover:text-purple-400 transition" aria-label="Twitter">
+                            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19.8 3H16l-4 6.1L7.9 3H2l7.3 10.4L2.3 21H6l4.5-6.8L15.9 21H22l-7.6-10.6L19.8 3z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
+                <p>© 2025 Code Kids. Todos los derechos reservados. Hecho con amor para los futuros programadores.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modales (mantengo los existentes pero sin mostrar aquí por brevedad) -->
+    <div id="overlay" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+
+    <!-- Modal FAQ -->
+    <div id="modal-faq" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100 z-10" data-close="modal-faq">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Preguntas Frecuentes (FAQ)</h3>
+                <div class="space-y-5 text-gray-700">
+                    <div>
+                        <p class="font-semibold text-lg">¿Mi hijo o hija necesita experiencia previa en programación?</p>
+                        <p class="mt-2">No. <span class="font-semibold text-purple-600">Code Kids</span> está diseñado para principiantes absolutos. Guiamos paso a paso desde los conceptos más básicos hasta retos avanzados, adaptándonos al ritmo de cada estudiante.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg">¿Cómo garantizan la seguridad de los estudiantes?</p>
+                        <p class="mt-2">La seguridad es nuestra prioridad. No hay registro público, solo profesores y administradores pueden crear cuentas. Todo el contenido y la comunicación están moderados y supervisados.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg">¿Qué beneficios aporta aprender programación a temprana edad?</p>
+                        <p class="mt-2">Desarrolla habilidades clave como pensamiento lógico, creatividad, resolución de problemas y trabajo en equipo. Además, fomenta la confianza y la autonomía digital.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg">¿Puedo monitorear el avance de mi hijo?</p>
+                        <p class="mt-2">Sí. Los profesores pueden compartir reportes de progreso y logros. Si tienes dudas, puedes contactar al docente responsable del grupo.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg">¿Qué hago si tengo un problema técnico?</p>
+                        <p class="mt-2">Puedes consultar el <span class="font-semibold text-purple-600">Centro de Ayuda</span> o escribirnos a través de la sección de contacto. ¡Estamos para apoyarte!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ayuda -->
+    <div id="modal-ayuda" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-ayuda">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Centro de Ayuda</h3>
+                <p class="text-gray-700">¿Necesitas ayuda? Consulta nuestras guías rápidas y recursos.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Contacto -->
+    <div id="modal-contacto" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-contacto">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Contáctanos</h3>
+                <form class="space-y-3">
+                    <input type="text" placeholder="Tu Nombre" class="w-full border rounded p-2" />
+                    <input type="email" placeholder="Tu Email" class="w-full border rounded p-2" />
+                    <textarea rows="4" placeholder="Mensaje" class="w-full border rounded p-2"></textarea>
+                    <button type="button" class="w-full bg-gray-300 text-gray-600 cursor-not-allowed px-4 py-2 rounded">Enviar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+            <!-- Modal Política de Privacidad -->
+            <div id="modal-priv" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.5);">
+                <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl relative p-8 text-center">
+                    <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl" data-close="modal-priv">&times;</button>
+                    
+                    <!-- Icono del escudo -->
+                    <div class="mb-6 flex justify-center">
+                        <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#06B6D4;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M50 10 L20 25 L20 50 C20 70 35 85 50 90 C65 85 80 70 80 50 L80 25 Z" fill="url(#shieldGradient)" opacity="0.9"/>
+                            <text x="50" y="60" font-size="40" font-weight="bold" fill="white" text-anchor="middle">i</text>
+                        </svg>
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold text-gray-800 mb-3">Aviso de Privacidad</h3>
+                    <p class="text-gray-600 text-sm mb-6">Información legal importante por su privacidad. Lea nuestros términos y condiciones uctuldados.</p>
+                    
+                    <div class="flex gap-3 justify-center">
+                        <button class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold px-8 py-3 rounded-full transition-all transform hover:scale-105 shadow-lg" data-close="modal-priv">
+                            Aceptar
+                        </button>
+                        <button class="text-purple-600 hover:text-purple-800 font-semibold px-6 py-3 rounded-full transition-all" onclick="document.getElementById('modal-terminos').classList.remove('hidden')">
+                            Leer más
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Política de Privacidad Completa -->
+            <div id="modal-priv-full" class="fixed inset-0 z-50 hidden place-items-center p-4" style="background: rgba(0, 0, 0, 0.5);">
+                <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl relative">
+                    <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" onclick="document.getElementById('modal-priv-full').classList.add('hidden')">✕</button>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold mb-4">Política de Privacidad</h3>
+                        <div class="text-gray-700 max-h-[60vh] overflow-auto space-y-4">
+                            <p><strong>Preámbulo y Compromiso</strong><br>
+                            La presente Política de Privacidad describe cómo CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación Comunitaria (en adelante, "Code Kids", "Nosotros" o el "Proveedor") recopila, utiliza, divulga y protege la información personal de sus Usuarios (Estudiantes, Padres/Tutores y Profesores) a través de la plataforma Code Kids.
+                            Nuestro Compromiso Principal: La seguridad y privacidad de los niños son nuestra máxima prioridad. Solo recopilamos la información estrictamente necesaria para fines educativos y operativos, siempre bajo supervisión adulta.</p>
+
+                            <h4 class="font-semibold">1. Aplicabilidad y Consentimiento</h4>
+                            <p>Esta política se aplica a todos los datos recopilados a través de la plataforma. Al utilizar Code Kids, el Usuario (Padre/Tutor o Profesor) otorga su consentimiento verificado para la recopilación y el uso de la información según se describe en esta política.</p>
+
+                            <h4 class="font-semibold">2. Recopilación de Información Personal</h4>
+                            <p>Recopilamos dos tipos principales de información:</p>
+                            <p><strong>2.1 Información Recopilada de Padres/Tutores y Profesores (Usuarios Adultos)</strong><br>
+                            Información de Registro: Nombre completo, dirección de correo electrónico, contraseña (hash), información de pago (si aplica). Información de Contacto: Datos utilizados para la comunicación y la administración de la cuenta.</p>
+                            <p><strong>2.2 Información Recopilada de Estudiantes (Usuarios Menores)</strong><br>
+                            Identificadores de la Cuenta: Nombre de usuario y nickname (se recomienda no usar el nombre real o apellido), ID interno de la plataforma. Información de Progreso Educativo: Puntajes de tareas, progreso en lecciones, nivel de experiencia (XP), medallas/insignias obtenidas, tiempo de uso, actividad en juegos del Laboratorio. Comunicaciones (Chat): Los mensajes en el módulo de chat son recopilados, almacenados y monitoreados para asegurar un entorno seguro y moderado. Contenido Generado por el Usuario: Código y proyectos creados en la plataforma.
+                            <strong>NOTA CLAVE SOBRE MENORES:</strong> No recopilamos intencionadamente información de contacto real (dirección de correo electrónico, teléfono) de niños menores sin el consentimiento verificable de sus padres/tutores.</p>
+
+                            <h4 class="font-semibold">3. Uso de la Información Recopilada</h4>
+                            <p>Utilizamos la información para fines esenciales como autenticación, fines educativos (monitoreo del progreso, personalización), seguridad y moderación del chat, comunicaciones con Usuarios adultos y mejora de la plataforma mediante análisis agregados.</p>
+
+                            <h4 class="font-semibold">4. Divulgación y Compartición de Información</h4>
+                            <p>Code Kids NO vende ni alquila información personal a terceros con fines de marketing. Compartimos información únicamente con proveedores de servicios que actúan en nuestro nombre, con Padres/Tutores y Profesores relevantes, o si es requerido por ley.</p>
+
+                            <h4 class="font-semibold">5. Cookies y Tecnologías de Seguimiento</h4>
+                            <p>Utilizamos cookies de sesión y persistentes únicamente para fines operativos esenciales y analítica agregada. No utilizamos cookies de terceros para publicidad dirigida a niños.</p>
+
+                            <h4 class="font-semibold">6. Derechos del Usuario (Padres/Tutores)</h4>
+                            <p>Los Padres/Tutores Legales pueden acceder, rectificar, solicitar eliminación o revocar el consentimiento para los datos de sus hijos contactando a [CORREO ELECTRÓNICO LEGAL].</p>
+
+                            <h4 class="font-semibold">7. Seguridad de los Datos</h4>
+                            <p>Empleamos medidas de seguridad técnicas, administrativas y físicas estándar de la industria (ej. cifrado, firewalls, hashing de contraseñas) para proteger la información personal.</p>
+
+                            <h4 class="font-semibold">8. Contacto</h4>
+                            <p>Si tiene preguntas sobre esta Política de Privacidad o las prácticas de datos de Code Kids, por favor contáctenos en:
+                            CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación ComunitARIA<br>[DIRECCIÓN LEGAL]<br>[CORREO ELECTRÓNICO LEGAL]</p>
+
+                            <h4 class="font-semibold">9. Modificaciones a la Política de Privacidad</h4>
+                            <p>Nos reservamos el derecho de modificar esta Política de Privacidad en cualquier momento. Notificaremos a los Usuarios adultos sobre cambios significativos mediante aviso en la plataforma o por correo electrónico.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    <!-- Modal Términos -->
+    <div id="modal-terminos" class="fixed inset-0 z-50 hidden place-items-center p-4">
+        <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl relative">
+            <button class="absolute top-3 right-3 p-2 rounded hover:bg-gray-100" data-close="modal-terminos">✕</button>
+            <div class="p-6">
+                <h3 class="text-2xl font-bold mb-4">Términos y Condiciones</h3>
+                <div class="text-gray-700 max-h-[60vh] overflow-auto space-y-4">
+                    <p><strong>Preámbulo y Aceptación</strong><br>
+                    El presente documento establece los Términos y Condiciones (TyC) que rigen el acceso y uso de la plataforma digital Code Kids, sus aplicaciones, contenido y servicios asociados. El uso de la plataforma por parte del Usuario (estudiante, padre/tutor o profesor) implica la aceptación plena y sin reservas de todas las disposiciones incluidas en estos TyC, así como de la Política de Privacidad anexa.</p>
+
+                    <h4 class="font-semibold">1. Partes del Acuerdo</h4>
+                    <p>Este acuerdo se celebra entre:</p>
+                    <p><strong>Proveedor del Servicio:</strong> CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación Comunitaria, propietaria y operadora de la plataforma Code Kids, con domicilio legal en [DIRECCIÓN LEGAL] y contacto en [CORREO ELECTRÓNICO LEGAL].</p>
+                    <p><strong>Usuario:</strong> La persona que accede, utiliza o se registra en la plataforma.</p>
+
+                    <h4 class="font-semibold">2. Objeto y Alcance del Servicio</h4>
+                    <p>El objeto de Code Kids es proporcionar una plataforma educativa en línea, segura y gamificada, destinada a la enseñanza de los fundamentos de la programación a niños y jóvenes.</p>
+                    <p>El servicio incluye acceso a lecciones, juegos interactivos, tareas asignables, dashboards de progreso y comunicación supervisada (chats).</p>
+                    <p>CODEKIDS Manager se reserva el derecho de modificar, suspender o discontinuar cualquier aspecto del servicio en cualquier momento, con previo aviso a los usuarios registrados.</p>
+
+                    <h4 class="font-semibold">3. Uso de la Plataforma y Cuentas de Usuario</h4>
+                    <p><strong>Cuentas de Menores:</strong> Las cuentas de los estudiantes menores de edad deben ser creadas y supervisadas por un Padre/Tutor Legal o un Profesor. El Proveedor del Servicio no recopila intencionadamente información personal de niños menores de 13 años (o la edad legal aplicable) sin el consentimiento verificable de los padres.</p>
+                    <p><strong>Responsabilidad de la Cuenta:</strong> El Usuario (Padre/Tutor o Profesor) es responsable de mantener la confidencialidad de sus credenciales de acceso y de toda la actividad que ocurra bajo su cuenta.</p>
+                    <p><strong>Restricciones de Contenido:</strong> Está estrictamente prohibido cargar, compartir o transmitir contenido que sea ilegal, difamatorio, obsceno, abusivo o que infrinja los derechos de propiedad intelectual de terceros.</p>
+
+                    <h4 class="font-semibold">4. Propiedad Intelectual y Licencia de Uso</h4>
+                    <p><strong>Propiedad de Code Kids:</strong> Todo el contenido de la plataforma, incluyendo el software, el código fuente, el diseño, los gráficos, la mascota robot, las ilustraciones y las lecciones (material educativo), es propiedad exclusiva de CODEKIDS Manager: Plataforma Integral de Gestión Educativa y Vinculación Comunitaria y está protegido por las leyes de propiedad intelectual.</p>
+                    <p><strong>Licencia Limitada:</strong> Se otorga al Usuario una licencia no exclusiva, intransferible y revocable para acceder y usar la plataforma únicamente con fines educativos personales, según lo establecido en estos TyC.</p>
+                    <p><strong>Contenido Generado por el Usuario:</strong> Al utilizar las herramientas de programación o chat, el Usuario otorga a Code Kids una licencia mundial, libre de regalías, para usar, reproducir y distribuir el contenido generado por el Usuario (ej. código creado o mensajes de chat) con el único fin de operar y mejorar la plataforma.</p>
+
+                    <h4 class="font-semibold">5. Entorno Seguro y Comunicación (Chat)</h4>
+                    <p><strong>Seguridad y Supervisión:</strong> Code Kids se compromete a mantener un entorno seguro (100% Seguro). Todas las comunicaciones (Chat) son moderadas y supervisadas.</p>
+                    <p><strong>Restricción de Comunicación:</strong> Las herramientas de comunicación están diseñadas para la interacción entre Estudiante-Profesor y Estudiante-Tutor Legal. La comunicación directa entre estudiantes puede estar restringida o monitorizada según las políticas de seguridad internas.</p>
+
+                    <h4 class="font-semibold">6. Limitación de Responsabilidad</h4>
+                    <p><strong>Exención de Garantías:</strong> Code Kids se proporciona "tal cual" y "según disponibilidad". El Proveedor del Servicio no garantiza que la plataforma estará libre de errores o que el acceso será ininterrumpido.</p>
+                    <p><strong>Límite de Daños:</strong> El Proveedor del Servicio no será responsable por daños indirectos, incidentales, especiales o consecuentes derivados del uso o la incapacidad de usar la plataforma. En ningún caso la responsabilidad total excederá el monto pagado por el Usuario por el acceso al servicio.</p>
+
+                    <h4 class="font-semibold">7. Vigencia y Terminación</h4>
+                    <p><strong>Vigencia:</strong> Estos TyC entran en vigor desde el momento de la aceptación por parte del Usuario.</p>
+                    <p><strong>Terminación:</strong> CODEKIDS Manager se reserva el derecho de suspender o terminar el acceso de cualquier Usuario a la plataforma de forma inmediata y sin previo aviso en caso de incumplimiento grave de estos TyC (ej. infracción de propiedad intelectual o conducta abusiva).</p>
+
+                    <h4 class="font-semibold">8. Ley Aplicable y Jurisdicción</h4>
+                    <p>Estos Términos y Condiciones se regirán e interpretarán de acuerdo con las leyes de [PAÍS / JURISDICCIÓN LEGAL]. Cualquier controversia se someterá a la jurisdicción de los tribunales competentes de [CIUDAD / JURISDICCIÓN].</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Navegación y modales - El mapa se inicializa en main.js
+        document.addEventListener('DOMContentLoaded', function() {
+            // Navegación entre pantallas
+            const screens = {
+                'nav-sobre': 'pantalla-sobre-nosotros',
+                'nav-caracteristicas': 'pantalla-caracteristicas',
+                'nav-profesores': 'pantalla-profesores',
+                'nav-laboratorio': 'pantalla-laboratorio',
+                'ft-sobre': 'pantalla-sobre-nosotros',
+                'ft-caract': 'pantalla-caracteristicas'
+            };
+
+            Object.keys(screens).forEach(btnId => {
+                document.getElementById(btnId)?.addEventListener('click', () => {
+                    document.getElementById('pantalla-principal').classList.add('hidden');
+                    document.querySelectorAll('[id^="pantalla-"]').forEach(el => el.classList.add('hidden'));
+                    document.getElementById(screens[btnId]).classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                    // Init Blockly lab on first open
+                    if (screens[btnId] === 'pantalla-laboratorio') {
+                        setTimeout(() => {
+                            if (window.Blockly && window.LabModule) {
+                                window.LabModule.init();
+                                window.dispatchEvent(new Event('resize'));
+                            }
+                        }, 80);
+                    }
+                });
+            });
+
+            // Botones de volver
+            document.querySelectorAll('[data-back]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('[id^="pantalla-"]').forEach(el => el.classList.add('hidden'));
+                    document.getElementById('pantalla-principal').classList.remove('hidden');
+                    window.scrollTo(0, 0);
+                });
+            });
+
+            // Modales
+            const modals = ['modal-faq', 'modal-ayuda', 'modal-contacto', 'modal-terminos'];
+            const triggers = {
+                'ft-faq': 'modal-faq',
+                'ft-ayuda': 'modal-ayuda',
+                'ft-contacto': 'modal-contacto',
+                'ft-terminos': 'modal-terminos',
+                'ft-priv': 'modal-terminos'
+            };
+
+            Object.keys(triggers).forEach(btnId => {
+                document.getElementById(btnId)?.addEventListener('click', () => {
+                    document.getElementById('overlay').classList.remove('hidden');
+                    document.getElementById(triggers[btnId]).classList.remove('hidden');
+                    document.getElementById(triggers[btnId]).style.display = 'grid';
+                });
+            });
+
+            document.querySelectorAll('[data-close]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const modalId = btn.getAttribute('data-close');
+                    document.getElementById('overlay').classList.add('hidden');
+                    document.getElementById(modalId).classList.add('hidden');
+                    document.getElementById(modalId).style.display = 'none';
+                });
+            });
+
+            document.getElementById('overlay')?.addEventListener('click', () => {
+                document.getElementById('overlay').classList.add('hidden');
+                modals.forEach(modalId => {
+                    document.getElementById(modalId).classList.add('hidden');
+                    document.getElementById(modalId).style.display = 'none';
+                });
+            });
+        });
+    </script>
+    
+    <script type="module" src="../js/main.js"></script>
+    <script src="../js/laboratorio.js"></script>
+        <script>
+                (function(){
+                    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                                        function rocketSVG(variant = 0, c1 = '#7C5CFF', c2 = '#FF8C42'){
+                                                // Three friendlier, more expressive rocket icons (SVG) with clear windows and flame
+                                                if(variant === 1) return `
+                                                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                            <defs>
+                                                                <linearGradient id="rg1" x1="0" x2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+                                                                <radialGradient id="fg1" cx="50%" cy="80%" r="60%"><stop offset="0%" stop-color="#FFD27A"/><stop offset="70%" stop-color="#FF8C42"/></radialGradient>
+                                                            </defs>
+                                                            <g>
+                                                                <!-- body -->
+                                                                <path d="M32 6c6 0 12 6 12 12s-2 10-6 14c-4 4-6 6-6 6s-2-2-6-6c-4-4-6-8-6-14S26 6 32 6z" fill="url(#rg1)" stroke="#3b2b7a" stroke-width="0.8"/>
+                                                                <!-- window -->
+                                                                <ellipse cx="32" cy="18" rx="5.5" ry="6" fill="#0b1330" opacity="0.95" />
+                                                                <circle cx="31" cy="17" r="2.2" fill="#BEEBFF" opacity="0.95"/>
+                                                                <!-- fins -->
+                                                                <path d="M22 30c-4 2-6 6-6 8s6 6 10 6l2-10z" fill="#9AF0FF" opacity="0.95" />
+                                                                <path d="M42 30c4 2 6 6 6 8s-6 6-10 6l-2-10z" fill="#9AF0FF" opacity="0.95" />
+                                                                <!-- flame -->
+                                                                <g transform="translate(32,44)">
+                                                                    <path d="M0 0 C -4 6 -2 12 0 14 C2 12 4 6 0 0 Z" fill="url(#fg1)" opacity="0.95" />
+                                                                </g>
+                                                            </g>
+                                                        </svg>`;
+
+                                                if(variant === 2) return `
+                                                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                            <defs>
+                                                                <linearGradient id="rg2" x1="0" x2="1"><stop offset="0" stop-color="#6EC6FF"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+                                                                <radialGradient id="fg2" cx="50%" cy="78%" r="60%"><stop offset="0%" stop-color="#FFF07A"/><stop offset="70%" stop-color="#FF9B5A"/></radialGradient>
+                                                            </defs>
+                                                            <g>
+                                                                <rect x="26" y="8" width="12" height="28" rx="6" fill="url(#rg2)" stroke="#2b2f5a" stroke-width="0.8"/>
+                                                                <circle cx="32" cy="18" r="5" fill="#071832" />
+                                                                <path d="M20 30c-6 3-6 9-4 12 3 4 8 5 12 5l2-11z" fill="#7CD7FF"/>
+                                                                <path d="M44 30c6 3 6 9 4 12-3 4-8 5-12 5l-2-11z" fill="#7CD7FF"/>
+                                                                <path d="M32 44c-3 6-2 10 0 12 2-2 4-6 0-12z" fill="url(#fg2)"/>
+                                                            </g>
+                                                        </svg>`;
+
+                                                // default variant 0 (stylized rocket with clear outline and cute proportions)
+                                                return `
+                                                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                            <defs>
+                                                                <linearGradient id="rg0" x1="0" x2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
+                                                                <radialGradient id="fg0" cx="50%" cy="82%" r="60%"><stop offset="0%" stop-color="#FFE18A"/><stop offset="80%" stop-color="#FF7A3D"/></radialGradient>
+                                                            </defs>
+                                                            <g>
+                                                                <path d="M32 8c5 0 10 5 10 11s-1 8-5 12-8 6-8 6-4-2-8-6-5-7-5-12 5-11 10-11z" fill="url(#rg0)" stroke="#352a63" stroke-width="0.9"/>
+                                                                <ellipse cx="32" cy="20" rx="4.8" ry="5.2" fill="#05122a" />
+                                                                <circle cx="31" cy="19" r="2" fill="#CFF7FF" />
+                                                                <path d="M22 32c-4 2-6 6-5 9 1 3 6 6 10 6l2-11z" fill="#A9E1FF"/>
+                                                                <path d="M42 32c4 2 6 6 5 9-1 3-6 6-10 6l-2-11z" fill="#A9E1FF"/>
+                                                                <path d="M32 46c-2 5-1 9 0 11 3-2 6-6 0-11z" fill="url(#fg0)"/>
+                                                            </g>
+                                                        </svg>`;
+                                        }
+
+                        function createRocketsForSection(section, baseCount){
+                                const bg = section.querySelector('.rocket-bg'); if(!bg) return;
+                                const count = Math.max(3, Math.round(baseCount * (window.innerWidth < 768 ? 0.6 : 1)));
+                                const palettes = [ ['#7C5CFF','#9AF0FF'], ['#6EC6FF','#A9E1FF'], ['#FFB07C','#FF8C42'] ];
+                                const dirs = ['bottom','top','left','right'];
+
+                            for(let i=0;i<count;i++){
+                                        const el = document.createElement('div'); el.className = 'rocket';
+                                        const p = palettes[Math.floor(Math.random()*palettes.length)];
+                                        const variant = Math.floor(Math.random()*3);
+                                        el.innerHTML = rocketSVG(variant, p[0], p[1]);
+
+                                        // choose random origin side
+                                        const dir = dirs[Math.floor(Math.random()*dirs.length)];
+                                        el.dataset.dir = dir;
+
+                                        // position depending on origin
+                                        if(dir === 'bottom' || dir === 'top'){
+                                            el.style.left = (5 + Math.random()*90) + '%';
+                                            el.style.removeProperty('top'); el.style.removeProperty('right'); el.style.removeProperty('left');
+                                            // ensure left is set explicitly (left overrides when inserted)
+                                            el.style.left = (5 + Math.random()*90) + '%';
+                                        } else {
+                                            // left or right origin -> random vertical position
+                                            el.style.top = (5 + Math.random()*90) + '%';
+                                        }
+
+                                        // drift is perpendicular movement: for vertical launches -> drift X; for horizontal launches -> drift Y
+                                        const drift = (Math.random()*160 - 80).toFixed(0) + 'px';
+                                        el.style.setProperty('--drift', drift);
+
+                                        const duration = (12 + Math.random()*28).toFixed(2) + 's';
+                                        const delay = (i < 2) ? '0s' : (Math.random()*10).toFixed(2) + 's';
+                                        const scale = (0.6 + Math.random()*1.0).toFixed(2);
+                                        const rotStart = (Math.random()*60 - 30).toFixed(1) + 'deg';
+                                        const rotEnd = (Math.random()*60 - 30).toFixed(1) + 'deg';
+                                        el.style.setProperty('--scale', scale);
+                                        el.style.setProperty('--rot-start', rotStart);
+                                        el.style.setProperty('--rot-end', rotEnd);
+
+                                        // pick animation name based on direction
+                                        el.style.animation = `rocket-move-${dir} ${duration} linear ${delay} infinite`;
+                                        const svg = el.querySelector('svg'); if(svg) svg.style.animation = `rocket-wobble ${3 + Math.random()*2}s ease-in-out ${Math.random()*2}s infinite`;
+                                        bg.appendChild(el);
+                                }
+                        }
+
+                        // For users who prefer reduced motion, create static decorative rockets (no animation)
+                        function createStaticRocketsForSection(section, baseCount){
+                            const bg = section.querySelector('.rocket-bg'); if(!bg) return;
+                            const count = Math.max(2, Math.round(baseCount * (window.innerWidth < 768 ? 0.5 : 0.7)));
+                            const palettes = [ ['#7C5CFF','#9AF0FF'], ['#6EC6FF','#A9E1FF'], ['#FFB07C','#FF8C42'] ];
+                            const dirs = ['bottom','top','left','right'];
+                            for(let i=0;i<count;i++){
+                                const el = document.createElement('div'); el.className = 'rocket';
+                                const p = palettes[Math.floor(Math.random()*palettes.length)];
+                                const variant = Math.floor(Math.random()*3);
+                                el.innerHTML = rocketSVG(variant, p[0], p[1]);
+                                const dir = dirs[Math.floor(Math.random()*dirs.length)];
+                                el.dataset.dir = dir;
+                                if(dir === 'bottom' || dir === 'top'){
+                                    el.style.left = (10 + Math.random()*80) + '%';
+                                } else {
+                                    el.style.top = (10 + Math.random()*80) + '%';
+                                }
+                                el.style.opacity = '0.75';
+                                el.style.transform = `scale(${0.9 + Math.random()*0.4})`;
+                                bg.appendChild(el);
+                            }
+                        }
+
+                        document.addEventListener('DOMContentLoaded', ()=>{
+                            document.querySelectorAll('.rocket-section').forEach(sec=> {
+                                if(prefersReduced){
+                                    createStaticRocketsForSection(sec, 6);
+                                } else {
+                                    createRocketsForSection(sec, 8);
+                                }
+                            });
+                            // debug: log counts after a short timeout so dynamic rockets are appended
+                            setTimeout(()=>{
+                                console.log('rocket count (DOM):', document.querySelectorAll('.rocket').length);
+                            }, 500);
+                        });
+                })();
+        </script>
+        
+        <!-- Script para cambiar imagen de Cody en hover del botón -->
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const btn = document.getElementById('adventure-btn');
+                const imgNormal = document.getElementById('cody-img-normal');
+                const imgHover = document.getElementById('cody-img-hover');
+                
+                if (btn && imgNormal && imgHover) {
+                    btn.addEventListener('mouseenter', () => {
+                        imgNormal.style.display = 'none';
+                        imgHover.style.display = 'block';
+                    });
+                    
+                    btn.addEventListener('mouseleave', () => {
+                        imgNormal.style.display = 'block';
+                        imgHover.style.display = 'none';
+                    });
+                }
+            });
+        </script>
+        
+        <script src="../js/theme-toggle.js"></script>
+</body>
+</html>

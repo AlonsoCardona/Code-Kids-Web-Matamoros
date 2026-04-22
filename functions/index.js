@@ -32,6 +32,107 @@ try { admin.initializeApp(); } catch (e) { /* already initialized */ }
 // ==============================
 // Helpers
 // ==============================
+const fetch = require('node-fetch');
+const { https } = require('firebase-functions');
+
+// ===== Cody IA - Proxy a Ollama (IA local gratuita) =====
+// Conecta con Ollama corriendo localmente en http://localhost:11434
+
+exports.codyChat = https.onRequest(async (req, res) => {
+	// CORS simple
+	res.set('Access-Control-Allow-Origin', '*');
+	res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+	if (req.method === 'OPTIONS') return res.status(204).send('');
+
+	try {
+		const { messages, max_tokens = 800, temperature = 0.7 } = req.body || {};
+		if (!Array.isArray(messages) || messages.length === 0) {
+			return res.status(400).json({ error: 'messages inválidos' });
+		}
+
+		// Sistema prompt para Cody IA (asistente de programación educativo para niños)
+		const systemPrompt = `Eres Cody, un asistente virtual súper amigable que ADORA ayudar a niños a aprender programación. 🚀
+
+🎯 TU PERSONALIDAD:
+- Siempre alegre, paciente y motivador
+- Nunca te enojas ni rechazas ayudar
+- Hablas como un hermano mayor que quiere enseñar
+- Celebras cada pregunta: "¡Qué buena pregunta!"
+
+✅ CÓMO AYUDAS CON TAREAS:
+Cuando piden ayuda con una tarea, SIEMPRE respondes así:
+
+"¡Claro que te ayudo! 😊 No puedo darte el código completo (¡sería trampa!), pero te explico cómo hacerlo paso a paso:
+
+1. [Explica el primer paso]
+2. [Explica el segundo paso]
+3. [Explica el tercer paso]
+
+💡 Pista: [Da una pista útil de sintaxis]
+
+¡Tú puedes! Si te atoras, pregúntame sobre algún paso específico."
+
+📝 TU ESTILO:
+- Usa emojis para ser cercano 😊🎯💡
+- Divide problemas en pasos simples
+- Usa analogías divertidas (videojuegos, cocina, deportes)
+- Muestra pequeños ejemplos de sintaxis (1-2 líneas) como pistas
+- Pero NUNCA resuelvas el ejercicio completo
+- Si preguntan "¿por qué no puedes?", explica: "Porque aprenderás mucho más si lo intentas tú mismo con mis pistas. ¡Yo te guío!"
+
+❌ NUNCA:
+- Digas "no puedo" sin explicar CÓMO pueden hacerlo
+- Rechaces ayudar o suenes molesto
+- Des código completo que resuelva toda la tarea
+- Menciones "normas" o "directrices" - mejor di "aprenderás más si lo intentas"
+
+RECUERDA: Siempre sé SÚPER amigable, positivo y útil. Tu trabajo es ENSEÑAR guiando, no hacer la tarea por ellos, pero SIEMPRE con mucho ánimo y buena onda. 🌟`;
+
+		// Construir prompt completo para Ollama
+		let fullPrompt = systemPrompt + '\n\n';
+		messages.forEach(msg => {
+			if (msg.role === 'user') {
+				fullPrompt += `Usuario: ${msg.content}\n`;
+			} else if (msg.role === 'assistant') {
+				fullPrompt += `Cody: ${msg.content}\n`;
+			}
+		});
+		fullPrompt += 'Cody: ';
+
+		// Llamada a Ollama API local
+		// Usar 127.0.0.1 en vez de localhost para evitar problemas de DNS
+		const ollamaUrl = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
+		const resp = await fetch(`${ollamaUrl}/api/generate`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				model: 'llama3.2:3b',
+				prompt: fullPrompt,
+				stream: false,
+				keep_alive: '15m', // Mantener modelo en memoria 15 minutos para respuestas rápidas
+				options: {
+					temperature: temperature,
+					num_predict: max_tokens
+				}
+			})
+		});
+
+		if (!resp.ok) {
+			const text = await resp.text();
+			console.error('Error Ollama:', resp.status, text);
+			return res.status(500).json({ error: 'Error conectando con Ollama', detail: text });
+		}
+
+		const data = await resp.json();
+		const content = data?.response || '';
+		
+		return res.json({ content });
+
+	} catch (err) {
+		console.error('Error codyChat:', err);
+		return res.status(500).json({ error: 'Fallo interno. ¿Ollama está corriendo?', detail: String(err) });
+	}
+});
 function getClientIp(req) {
 	// Behind Firebase Hosting proxy, prefer x-forwarded-for
 	const xf = (req.headers['x-forwarded-for'] || '').toString();

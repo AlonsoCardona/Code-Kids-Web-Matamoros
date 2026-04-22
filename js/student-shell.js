@@ -57,7 +57,7 @@ export function initStudentShell(active = 'dashboard') {
   aside.innerHTML = `
     <div class="p-4">
       <nav class="space-y-1">
-        ${navLink('dashboard.html','Inicio','dashboard',active)}
+        ${navLink('../Dashboard_Estudiante.html','Inicio','dashboard',active)}
         ${navLink('lecciones.html','Lecciones','lecciones',active)}
         ${navLink('tareas.html','Tareas','tareas',active)}
         ${navLink('laboratorio.html','Laboratorio','laboratorio',active)}
@@ -93,7 +93,7 @@ export function initStudentShell(active = 'dashboard') {
       }
       // Fallback direct signOut
       if (window.auth?.signOut) await window.auth.signOut();
-      window.location.href = '../index.html';
+      window.location.href = '../../../Vistas_Publicas/Inicio_De_Sesion.html';
     } catch(e) {
       console.warn('Logout error (shell):', e);
     }

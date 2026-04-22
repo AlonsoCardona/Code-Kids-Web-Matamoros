@@ -41,7 +41,7 @@
     "hub": { "port": 4401 },
     "ui": { "enabled": true, "port": 4001 },
     "functions": { "host": "127.0.0.1", "port": 5001 },
-    "firestore": { "host": "127.0.0.1", "port": 8081 },
+    "firestore": { "host": "127.0.0.1", "port": 8082 },
     "hosting": { "port": 5002 },
     "logging": { "port": 4501 }
   }

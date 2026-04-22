@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: code-kids-web
+    env: static
+    buildCommand: ""
+    staticPublishPath: .

@@ -38,7 +38,7 @@ export async function addXP(amount, source = 'generic') {
       localStorage.setItem('codekids_level', result.newLevel.toString());
     }
     
-    // CRÍTICO: TAMBIÉN GUARDAR EN FIRESTORE
+    // CRÍTICO: GUARDAR EN FIRESTORE INMEDIATAMENTE
     try {
       const auth = window.auth;
       const db = window.db;
@@ -49,7 +49,9 @@ export async function addXP(amount, source = 'generic') {
         hasDb: !!db, 
         hasUser: !!user,
         xp: result.newXP,
-        nivel: result.newLevel
+        nivel: result.newLevel,
+        amount: amount,
+        source: source
       });
       
       if (user && db) {
@@ -60,17 +62,19 @@ export async function addXP(amount, source = 'generic') {
         const payload = {
           xp: result.newXP,
           nivel: result.newLevel,
-          unlockedFrames: Array.from(unlocked)
+          unlockedFrames: Array.from(unlocked),
+          lastXPUpdate: new Date().toISOString()
         };
         
-        console.log('📦 Payload a guardar:', payload);
+        console.log('📦 Payload a guardar en Firestore:', payload);
         await updateDoc(ref, payload);
-        console.log('✅ XP guardado en Firestore:', result.newXP, 'Nivel:', result.newLevel);
+        console.log('✅ XP guardado exitosamente en Firestore:', result.newXP, 'Nivel:', result.newLevel);
       } else {
         console.warn('⚠️ No se puede guardar en Firestore:', { hasAuth: !!auth, hasDb: !!db, hasUser: !!user });
       }
     } catch (err) {
       console.error('❌ Error guardando XP en Firestore:', err);
+      console.error('Detalles del error:', err.message, err.code);
     }
     
     updateGamificationHeader(window.userState.state.xp);

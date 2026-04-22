@@ -13,6 +13,7 @@ import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getStorage } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js';
+import { getFunctions } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 
 // Configuración de Firebase - codekids-dev (proyecto backend)
 const firebaseConfig = {
@@ -31,12 +32,14 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const analytics = getAnalytics(app);
+const functions = getFunctions(app);
 
 // Exportar para uso global
 window.firebaseApp = app;
 window.auth = auth;
 window.db = db;
 window.storage = storage;
+window.functions = functions;
 window.analytics = analytics;
 
 // Estado de autenticación global
@@ -48,7 +51,6 @@ onAuthStateChanged(auth, (user) => {
     
     if (user) {
         console.log('✅ Usuario autenticado:', user.email);
-        // Disparar evento personalizado
         window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
     } else {
         console.log('❌ Usuario no autenticado');
@@ -74,4 +76,4 @@ window.getUserData = async function(uid) {
 
 console.log('🔥 Firebase inicializado correctamente');
 
-export { app, auth, db, storage, analytics };
+export { app, auth, db, storage, analytics, functions };

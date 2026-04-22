@@ -16,7 +16,6 @@ functions/.env*
 
 # Secrets
 config/service-account.json
-service-account-dev.json
 *.secret.json
 
 # IDE
@@ -34,3 +33,4 @@ Thumbs.db
 dist/
 build/
 .cache/
+service-account-dev.json

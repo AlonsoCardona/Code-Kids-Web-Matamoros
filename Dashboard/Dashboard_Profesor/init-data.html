@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicializar Datos - CodeKids</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">🚀 Inicializar Datos de Prueba</h1>
+        
+        <div id="status" class="mb-6"></div>
+        
+        <div class="space-y-4">
+            <button id="btnLecciones" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition">
+                📚 Crear Lecciones de Prueba
+            </button>
+            
+            <button id="btnAnuncios" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition">
+                📢 Crear Anuncios de Prueba
+            </button>
+            
+            <button id="btnInsignias" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition">
+                🏆 Crear Insignias de Prueba
+            </button>
+            
+            <button id="btnTodo" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition">
+                ⚡ Crear Todo
+            </button>
+        </div>
+        
+        <div class="mt-8 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+            <p class="text-sm text-gray-700">
+                <strong>ℹ️ Nota:</strong> Este script creará datos de ejemplo para probar el dashboard. 
+                Puedes eliminarlos después desde la consola de Firebase.
+            </p>
+        </div>
+        
+        <div class="mt-6">
+            <a href="./Dashboard_Profesor.html" class="text-blue-600 hover:text-blue-800 font-semibold">
+                ← Volver al Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkOCtAdstBEoR_8ljgydwahFDadLJxFEg",
+            authDomain: "codekids-dev.firebaseapp.com",
+            projectId: "codekids-dev",
+            storageBucket: "codekids-dev.firebasestorage.app",
+            messagingSenderId: "1069273608068",
+            appId: "1:1069273608068:web:07743eaecf8b1a5a8237d1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const colors = {
+                info: 'bg-blue-100 border-blue-500 text-blue-700',
+                success: 'bg-green-100 border-green-500 text-green-700',
+                error: 'bg-red-100 border-red-500 text-red-700'
+            };
+            
+            statusDiv.innerHTML = `
+                <div class="p-4 border-l-4 ${colors[type]} rounded">
+                    ${message}
+                </div>
+            `;
+        }
+
+        async function crearLecciones() {
+            showStatus('📚 Creando lecciones...', 'info');
+            
+            const lecciones = [
+                {
+                    titulo: 'Introducción a la Programación',
+                    descripcion: 'Aprende los conceptos básicos de programación',
+                    orden: 1,
+                    duracion: 30,
+                    nivel: 'Principiante',
+                    imagen: 'https://via.placeholder.com/300x200?text=Lección+1',
+                    createdAt: serverTimestamp()
+                },
+                {
+                    titulo: 'Variables y Tipos de Datos',
+                    descripcion: 'Entiende cómo funcionan las variables',
+                    orden: 2,
+                    duracion: 45,
+                    nivel: 'Principiante',
+                    imagen: 'https://via.placeholder.com/300x200?text=Lección+2',
+                    createdAt: serverTimestamp()
+                },
+                {
+                    titulo: 'Condicionales y Bucles',
+                    descripcion: 'Controla el flujo de tu programa',
+                    orden: 3,
+                    duracion: 60,
+                    nivel: 'Intermedio',
+                    imagen: 'https://via.placeholder.com/300x200?text=Lección+3',
+                    createdAt: serverTimestamp()
+                }
+            ];
+
+            try {
+                for (const leccion of lecciones) {
+                    await addDoc(collection(db, 'lecciones'), leccion);
+                }
+                showStatus('✅ Lecciones creadas correctamente', 'success');
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function crearAnuncios() {
+            showStatus('📢 Creando anuncios...', 'info');
+            
+            const user = auth.currentUser;
+            if (!user) {
+                showStatus('❌ Debes iniciar sesión primero', 'error');
+                return;
+            }
+
+            const anuncios = [
+                {
+                    title: 'Bienvenido al Dashboard de Profesor',
+                    content: 'Aquí podrás gestionar tus grupos, tareas y calificaciones de forma sencilla.',
+                    authorName: user.displayName || 'Profesor',
+                    authorRole: 'Profesor',
+                    authorId: user.uid,
+                    createdAt: serverTimestamp(),
+                    priority: 'high'
+                },
+                {
+                    title: 'Nueva función: Chat con estudiantes',
+                    content: 'Ahora puedes comunicarte directamente con tus estudiantes a través del chat integrado.',
+                    authorName: user.displayName || 'Profesor',
+                    authorRole: 'Profesor',
+                    authorId: user.uid,
+                    createdAt: serverTimestamp(),
+                    priority: 'medium'
+                }
+            ];
+
+            try {
+                for (const anuncio of anuncios) {
+                    await addDoc(collection(db, 'announcements'), anuncio);
+                }
+                showStatus('✅ Anuncios creados correctamente', 'success');
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function crearInsignias() {
+            showStatus('🏆 Creando insignias...', 'info');
+            
+            const badges = [
+                {
+                    name: 'Primer Paso',
+                    description: 'Completaste tu primera lección',
+                    icon: '🎯',
+                    requirement: 'Completar 1 lección',
+                    xpReward: 50,
+                    createdAt: serverTimestamp()
+                },
+                {
+                    name: 'Estudiante Dedicado',
+                    description: 'Mantén una racha de 7 días',
+                    icon: '🔥',
+                    requirement: 'Racha de 7 días',
+                    xpReward: 100,
+                    createdAt: serverTimestamp()
+                },
+                {
+                    name: 'Maestro del Código',
+                    description: 'Completa 10 lecciones',
+                    icon: '👨‍💻',
+                    requirement: 'Completar 10 lecciones',
+                    xpReward: 200,
+                    createdAt: serverTimestamp()
+                }
+            ];
+
+            try {
+                for (const badge of badges) {
+                    await addDoc(collection(db, 'badges'), badge);
+                }
+                showStatus('✅ Insignias creadas correctamente', 'success');
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function crearTodo() {
+            showStatus('⚡ Creando todos los datos...', 'info');
+            
+            try {
+                await crearLecciones();
+                await new Promise(r => setTimeout(r, 500));
+                await crearAnuncios();
+                await new Promise(r => setTimeout(r, 500));
+                await crearInsignias();
+                
+                showStatus('✅ Todos los datos fueron creados correctamente. Recarga el dashboard.', 'success');
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('btnLecciones').addEventListener('click', crearLecciones);
+        document.getElementById('btnAnuncios').addEventListener('click', crearAnuncios);
+        document.getElementById('btnInsignias').addEventListener('click', crearInsignias);
+        document.getElementById('btnTodo').addEventListener('click', crearTodo);
+    </script>
+</body>
+</html>

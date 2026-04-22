@@ -214,6 +214,35 @@ export async function login(email, password) {
 // Logout
 export async function logout() {
   try { window.__CK_LOGOUT_INTENT = true; } catch(_) {}
+  
+  // GUARDAR ESTADO ANTES DE CERRAR SESIÓN
+  try {
+    if (window.userState) {
+      window.userState.saveState();
+      console.log('💾 Estado guardado en localStorage antes de logout');
+    }
+    
+    // GUARDAR XP Y NIVEL EN FIRESTORE ANTES DE LOGOUT
+    const user = auth.currentUser;
+    if (user && window.db) {
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+      const userRef = doc(window.db, 'users', user.uid);
+      
+      const xp = window.userState?.state?.xp || parseInt(localStorage.getItem('codekids_xp')) || 0;
+      const nivel = window.userState?.state?.nivel || parseInt(localStorage.getItem('codekids_level')) || 1;
+      
+      await updateDoc(userRef, {
+        xp: xp,
+        nivel: nivel,
+        lastLogout: new Date().toISOString()
+      });
+      
+      console.log('💾 XP y Nivel guardados en Firestore antes de logout:', { xp, nivel });
+    }
+  } catch (error) {
+    console.error('⚠️ Error guardando estado antes de logout:', error);
+  }
+  
   await signOut(auth);
   // Detectar si estamos en /app/ o en raíz
   const isInAppFolder = window.location.pathname.includes('/app/');

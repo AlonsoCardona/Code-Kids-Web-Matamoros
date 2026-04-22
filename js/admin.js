@@ -122,6 +122,17 @@ function setupAdminUI() {
     });
   });
   
+  // Botón de notificaciones - redirigir a solicitudes
+  const notificationBtn = document.getElementById('notificationBtn');
+  if (notificationBtn) {
+    notificationBtn.addEventListener('click', () => {
+      const requestsTab = document.querySelector('[data-tab="requests"]');
+      if (requestsTab) {
+        requestsTab.click();
+      }
+    });
+  }
+  
   // Logout - Mostrar modal de confirmación
   const logoutBtn = document.getElementById('adminLogout');
   const logoutModal = document.getElementById('logoutConfirmModal');
@@ -140,6 +151,8 @@ function setupAdminUI() {
   confirmLogoutBtn.addEventListener('click', async () => {
     logoutModal.classList.add('hidden');
     await logout();
+    // Redirigir a la pantalla de inicio
+    window.location.href = '../../Vistas_Publicas/Pagina_Inicio.html';
   });
   
   // Cerrar modal con ESC
@@ -402,46 +415,43 @@ function loadGroupsCreatedToday() {
 
 // 5. Alertas de Seguridad (intentos fallidos, cambios de contraseña)
 function loadSecurityAlerts() {
-  // Escuchar cambios de contraseña recientes (últimas 24h)
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  
-  const q = query(
-    collection(db, 'users'),
-    where('lastPasswordResetByUserAt', '>=', oneDayAgo),
-    orderBy('lastPasswordResetByUserAt', 'desc'),
-    limit(5)
+  // Cargar última solicitud de recuperación
+  const requestsQ = query(
+    collection(db, 'passwordResetRequests'),
+    where('status', '==', 'pending'),
+    orderBy('requestedAt', 'desc'),
+    limit(1)
   );
   
-  securityUnsubscribe = onSnapshot(q, (snapshot) => {
-    const securityAlerts = document.getElementById('securityAlerts');
+  onSnapshot(requestsQ, async (snapshot) => {
+    const lastRequest = document.getElementById('lastRequest');
     
     if (!snapshot || snapshot.empty) {
-      securityAlerts.innerHTML = '<p class="text-sm text-gray-500">✅ Sin alertas</p>';
+      lastRequest.innerHTML = '<p class="text-sm text-gray-500">No hay solicitudes recientes</p>';
       return;
     }
     
-    const alerts = [];
-    snapshot.forEach(doc => {
-      const user = doc.data();
-      const resetAt = user.lastPasswordResetByUserAt?.toDate?.() || new Date();
-      alerts.push({ ...user, id: doc.id, resetAt });
-    });
+    const doc = snapshot.docs[0];
+    const request = doc.data();
+    const requestedAt = request.requestedAt?.toDate?.() || new Date();
+    const timeAgo = getTimeAgo(requestedAt);
     
-    securityAlerts.innerHTML = alerts.map(u => {
-      const timeAgo = getTimeAgo(u.resetAt);
-      
-      return `
-        <div class="p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
-          <div class="flex items-center gap-2">
-            <span class="text-yellow-600">🔐</span>
-            <div class="flex-1">
-              <p class="text-sm font-semibold text-gray-800">${u.displayName || u.email}</p>
-              <p class="text-xs text-gray-600">Cambió su contraseña hace ${timeAgo}</p>
-            </div>
+    lastRequest.innerHTML = `
+      <div class="p-3 bg-indigo-50 border-l-4 border-indigo-500 rounded">
+        <div class="flex items-center gap-2">
+          <span class="text-indigo-600">🔑</span>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-gray-800">${request.userName || 'Usuario'}</p>
+            <p class="text-xs text-gray-600">${request.email || 'Sin correo'}</p>
+            <p class="text-xs text-gray-500 mt-1">${timeAgo}</p>
           </div>
+          <button onclick="document.querySelector('[data-tab=\\"requests\\"]').click()" 
+                  class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded transition">
+            Ver
+          </button>
         </div>
-      `;
-    }).join('');
+      </div>
+    `;
   });
 }
 
@@ -1189,19 +1199,43 @@ async function loadRequests() {
       where('status', '==', 'pending')
     );
     
-    requestsUnsubscribe = onSnapshot(q, (snapshot) => {
+    requestsUnsubscribe = onSnapshot(q, async (snapshot) => {
       const rows = [];
-      snapshot.forEach(d => {
+      
+      // Cargar datos de usuarios para obtener información completa
+      for (const d of snapshot.docs) {
         const n = d.data();
         const requestedAt = n.requestedAt?.toDate?.() || new Date();
-        rows.push({ id: d.id, ...n, requestedAt });
-      });
+        
+        // Obtener datos completos del usuario si existe userId
+        let userSchool = 'N/A';
+        if (n.userId) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', n.userId));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              userSchool = userData.escuela || userData.school || 'N/A';
+            }
+          } catch (e) {
+            console.error('Error obteniendo datos del usuario:', e);
+          }
+        }
+        
+        rows.push({ id: d.id, ...n, requestedAt, userSchool });
+      }
       
       // Ordenar en cliente (más recientes primero)
       rows.sort((a, b) => b.requestedAt - a.requestedAt);
       
+      // Actualizar badge de notificaciones
+      const notificationBadge = document.getElementById('notificationBadge');
+      if (notificationBadge) {
+        notificationBadge.textContent = rows.length;
+        notificationBadge.style.display = rows.length > 0 ? 'flex' : 'none';
+      }
+      
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No hay solicitudes pendientes</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay solicitudes pendientes</td></tr>';
         return;
       }
       
@@ -1209,23 +1243,52 @@ async function loadRequests() {
         <tr class="border-b border-gray-200 hover:bg-gray-50">
           <td class="px-4 py-3 text-sm text-gray-700">${r.userName || 'Usuario'}</td>
           <td class="px-4 py-3 text-sm text-gray-600">${r.email || ''}</td>
-          <td class="px-4 py-3 text-xs text-gray-500">${r.userId ? (r.userId.slice(0,8) + '…') : 'N/A'}</td>
+          <td class="px-4 py-3 text-sm text-gray-600">${r.userSchool}</td>
           <td class="px-4 py-3 text-sm text-gray-600">${r.requestedAt.toLocaleString()}</td>
           <td class="px-4 py-3">
-            <button class="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition" 
-                    data-action="approve" 
-                    data-id="${r.id}" 
-                    data-email="${r.email || ''}"
-                    data-userid="${r.userId || ''}"
-                    data-username="${r.userName || 'Usuario'}">
-              Aprobar
+            ${r.userId ? `<button class="px-3 py-1 rounded bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition" 
+                    data-action="editUser" 
+                    data-userid="${r.userId}">
+              Cambio de Contraseña
+            </button>` : '<span class="text-xs text-gray-400">Sin usuario</span>'}
+          </td>
+          <td class="px-4 py-3 flex gap-2">
+            <button class="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition" 
+                    data-action="done" 
+                    data-id="${r.id}">
+              Listo
             </button>
           </td>
         </tr>
       `).join('');
 
-      tbody.querySelectorAll('[data-action="approve"]').forEach(btn => {
-        btn.addEventListener('click', () => approvePasswordReset(btn.dataset.id, btn.dataset.email, btn.dataset.userid, btn.dataset.username));
+      // Event listeners para botones de editar usuario
+      tbody.querySelectorAll('[data-action="editUser"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const userId = btn.dataset.userid;
+          // Cambiar a pestaña de usuarios
+          const usersTab = document.querySelector('[data-tab="users"]');
+          if (usersTab) {
+            usersTab.click();
+            // Esperar a que se cargue la tabla y hacer scroll al usuario
+            setTimeout(() => {
+              const userRow = document.querySelector(`[data-userid="${userId}"]`);
+              if (userRow) {
+                userRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Hacer click en el botón editar
+                const editBtn = userRow.querySelector('[data-action="edit"]');
+                if (editBtn) {
+                  editBtn.click();
+                }
+              }
+            }, 500);
+          }
+        });
+      });
+      
+      // Event listeners para botón "Listo"
+      tbody.querySelectorAll('[data-action="done"]').forEach(btn => {
+        btn.addEventListener('click', () => deleteRequest(btn.dataset.id));
       });
       
       // Mostrar notificación visual cuando llegue nueva solicitud
@@ -1237,13 +1300,73 @@ async function loadRequests() {
       window.loadRequestsFirstRun = true;
     }, (error) => {
       console.error('Error en listener de solicitudes:', error);
-      tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Error al cargar solicitudes en tiempo real</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error al cargar solicitudes en tiempo real</td></tr>';
     });
     
   } catch (e) {
     console.error('Error cargando solicitudes', e);
-    tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Error al cargar solicitudes</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error al cargar solicitudes</td></tr>';
   }
+}
+
+// Eliminar solicitud con confirmación
+async function deleteRequest(requestId) {
+  // Crear modal de confirmación con el mismo diseño que eliminar escuela
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm';
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md mx-4 transform transition-all">
+      <div class="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-500 to-orange-600 rounded-full mx-auto mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+      </div>
+      <h3 class="text-2xl font-bold text-gray-800 text-center mb-3">⚠️ Confirmar Acción</h3>
+      <p class="text-gray-600 text-center mb-6">¿Estás seguro de que deseas marcar esta solicitud como completada? Esta acción no se puede deshacer.</p>
+      <div class="flex gap-3">
+        <button id="cancelDeleteRequest" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-all">
+          Cancelar
+        </button>
+        <button id="confirmDeleteRequest" class="flex-1 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Event listeners
+  modal.querySelector('#cancelDeleteRequest').addEventListener('click', () => {
+    modal.remove();
+  });
+  
+  modal.querySelector('#confirmDeleteRequest').addEventListener('click', async () => {
+    try {
+      const requestRef = doc(db, 'passwordResetRequests', requestId);
+      await updateDoc(requestRef, {
+        status: 'completed',
+        resolvedAt: serverTimestamp(),
+        resolvedBy: auth.currentUser?.uid || 'admin'
+      });
+      
+      modal.remove();
+      showNotification('✅ Solicitud marcada como completada', 'success');
+    } catch (error) {
+      console.error('Error eliminando solicitud:', error);
+      modal.remove();
+      showNotification('❌ Error al completar la solicitud', 'error');
+    }
+  });
+  
+  // Cerrar con ESC
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
 }
 
 function passwordMeetsPolicy(pw, email) {

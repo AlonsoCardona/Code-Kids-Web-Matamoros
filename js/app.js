@@ -547,7 +547,7 @@ window.loadLessonContent = async function(lessonId) {
  * - Verifica si se deben otorgar insignias
  */
 window.completeLesson = async function(lessonId, points) {
-  if (!confirm(`¿Estás seguro de que completaste esta lección?\n\nGanarás ${points} puntos y se desbloqueará la siguiente lección.`)) {
+  if (!confirm(`¿Estás seguro de que completaste esta lección?\n\nGanarás ${points} XP y se desbloqueará la siguiente lección.`)) {
     return;
   }
   
@@ -565,7 +565,13 @@ window.completeLesson = async function(lessonId, points) {
     currentUserData.studentProfile.completedLessons = [...(currentUserData.studentProfile.completedLessons || []), lessonId];
     currentUserData.studentProfile.totalPoints = (currentUserData.studentProfile.totalPoints || 0) + points;
     
-    showNotification(`🎉 ¡Felicidades! Ganaste ${points} puntos`, 'success');
+    // SUMAR XP USANDO EL SISTEMA DE GAMIFICACIÓN
+    if (window.addXP) {
+      await window.addXP(points, 'lesson_complete');
+      console.log(`✅ Sumados ${points} XP por completar lección ${lessonId}`);
+    }
+    
+    showNotification(`🎉 ¡Felicidades! Ganaste ${points} XP`, 'success');
     
     // Verificar insignias automáticas
     await checkAndAwardBadges();
@@ -1421,11 +1427,11 @@ async function loadGroupPosts() {
   
   tabContent.innerHTML = `
     ${canPost ? `
-      <div class="mb-6 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+      <div class="mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
         <textarea 
           id="newPostContent" 
           placeholder="Escribe una publicación..." 
-          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
           rows="3"
         ></textarea>
         <div class="flex justify-end mt-3">
@@ -1437,7 +1443,7 @@ async function loadGroupPosts() {
     ` : ''}
     
     <div id="postsList">
-      <div class="text-center text-gray-500">
+      <div class="text-center text-gray-500 dark:text-gray-400">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-3"></div>
         <p>Cargando publicaciones...</p>
       </div>
@@ -1461,11 +1467,11 @@ async function loadGroupPosts() {
     if (snapshot.empty) {
       postsList.innerHTML = `
         <div class="text-center py-12">
-          <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
           </svg>
-          <p class="text-gray-500 font-semibold">No hay publicaciones aún</p>
-          <p class="text-sm text-gray-400">¡Sé el primero en publicar!</p>
+          <p class="text-gray-500 dark:text-gray-300 font-semibold">No hay publicaciones aún</p>
+          <p class="text-sm text-gray-400 dark:text-gray-500">¡Sé el primero en publicar!</p>
         </div>
       `;
       return;
@@ -1478,36 +1484,36 @@ async function loadGroupPosts() {
       const author = authorDoc.exists() ? authorDoc.data() : { displayName: 'Usuario desconocido' };
       
       postsHTML.push(`
-        <div class="bg-white border border-gray-200 rounded-xl p-6 mb-4 shadow-sm hover:shadow-md transition">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-4 shadow-sm hover:shadow-md transition">
           <!-- Autor y fecha -->
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-3">
               <img src="${author.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.displayName)}&background=4f46e5&color=fff`}" 
-                   class="w-10 h-10 rounded-full border-2 border-indigo-200">
+                   class="w-10 h-10 rounded-full border-2 border-indigo-200 dark:border-indigo-700">
               <div>
-                <p class="font-semibold text-gray-800">${author.displayName}</p>
-                <p class="text-xs text-gray-500">${post.createdAt ? new Date(post.createdAt.toDate()).toLocaleString('es-MX') : 'Ahora'}</p>
+                <p class="font-semibold text-gray-800 dark:text-gray-100">${author.displayName}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">${post.createdAt ? new Date(post.createdAt.toDate()).toLocaleString('es-MX') : 'Ahora'}</p>
               </div>
             </div>
-            ${post.isPinned ? '<span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-semibold">📌 Fijado</span>' : ''}
+            ${post.isPinned ? '<span class="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 px-2 py-1 rounded-full font-semibold">📌 Fijado</span>' : ''}
           </div>
           
           <!-- Contenido -->
-          ${post.title ? `<h3 class="text-lg font-bold text-gray-800 mb-2">${post.title}</h3>` : ''}
-          <p class="text-gray-700 whitespace-pre-wrap">${post.content}</p>
+          ${post.title ? `<h3 class="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2">${post.title}</h3>` : ''}
+          <p class="ck-post-content text-gray-900 dark:text-white whitespace-pre-wrap">${post.content}</p>
           
           <!-- Reacciones y respuestas -->
-          <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+          <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <div class="flex items-center space-x-4">
               <div class="flex items-center space-x-2" id="reactions-${docSnap.id}">
                 ${renderReactions(post.reactions || {}, docSnap.id)}
               </div>
-              <button onclick="loadPostReplies('${docSnap.id}')" class="text-sm text-gray-600 hover:text-indigo-600 font-semibold transition">
+              <button onclick="loadPostReplies('${docSnap.id}')" class="text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold transition">
                 💬 ${post.replyCount || 0} respuestas
               </button>
             </div>
             ${post.authorId === currentUserData.id || currentUserData.role === 'Profesor' ? `
-              <button onclick="deletePost('${docSnap.id}')" class="text-sm text-red-600 hover:text-red-700 font-semibold">
+              <button onclick="deletePost('${docSnap.id}')" class="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500 font-semibold">
                 🗑️ Eliminar
               </button>
             ` : ''}
@@ -1532,7 +1538,7 @@ function renderReactions(reactions, postId) {
     html += `
       <button 
         onclick="toggleReaction('${postId}', '${emoji}')" 
-        class="px-2 py-1 rounded-full text-sm font-semibold transition ${hasReacted ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+        class="px-2 py-1 rounded-full text-sm font-semibold transition ${hasReacted ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}"
       >
         ${emoji} ${count}
       </button>
@@ -1543,12 +1549,12 @@ function renderReactions(reactions, postId) {
   if (currentGroupData.settings?.allowStudentReactions !== false) {
     html += `
       <div class="relative inline-block">
-        <button onclick="showReactionPicker('${postId}')" class="px-2 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 text-sm font-semibold transition">
+        <button onclick="showReactionPicker('${postId}')" class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm font-semibold transition">
           ➕
         </button>
-        <div id="picker-${postId}" class="hidden absolute bottom-full mb-2 bg-white border border-gray-200 rounded-lg shadow-xl p-2 flex space-x-1 z-10">
+        <div id="picker-${postId}" class="hidden absolute bottom-full mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-2 flex space-x-1 z-10">
           ${allowedReactions.map(emoji => `
-            <button onclick="toggleReaction('${postId}', '${emoji}')" class="hover:bg-gray-100 rounded p-1 text-xl transition">
+            <button onclick="toggleReaction('${postId}', '${emoji}')" class="hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1 text-xl transition">
               ${emoji}
             </button>
           `).join('')}
@@ -1658,37 +1664,37 @@ window.loadPostReplies = async function(postId) {
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
   modal.innerHTML = `
-    <div class="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div class="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
       <!-- Header -->
-      <div class="p-6 border-b border-gray-200">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-start justify-between mb-4">
           <div class="flex items-center space-x-3">
             <img src="${author.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(author.displayName)}&background=4f46e5&color=fff`}" 
-                 class="w-12 h-12 rounded-full border-2 border-indigo-200">
+                 class="w-12 h-12 rounded-full border-2 border-indigo-200 dark:border-indigo-700">
             <div>
-              <p class="font-semibold text-gray-800">${author.displayName}</p>
-              <p class="text-xs text-gray-500">${post.createdAt ? new Date(post.createdAt.toDate()).toLocaleString('es-MX') : 'Ahora'}</p>
+              <p class="font-semibold text-gray-800 dark:text-gray-100">${author.displayName}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">${post.createdAt ? new Date(post.createdAt.toDate()).toLocaleString('es-MX') : 'Ahora'}</p>
             </div>
           </div>
-          <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
+          <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl font-bold">×</button>
         </div>
-        ${post.title ? `<h3 class="text-xl font-bold text-gray-800 mb-2">${post.title}</h3>` : ''}
-        <p class="text-gray-700 whitespace-pre-wrap">${post.content}</p>
+        ${post.title ? `<h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">${post.title}</h3>` : ''}
+        <p class="ck-post-content text-gray-900 dark:text-white whitespace-pre-wrap">${post.content}</p>
       </div>
       
       <!-- Respuestas -->
-      <div class="flex-1 overflow-y-auto p-6" id="repliesList">
-        <div class="text-center py-8 text-gray-500">
+      <div class="flex-1 overflow-y-auto p-6 bg-white dark:bg-gray-900" id="repliesList">
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
           <div class="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto"></div>
           <p class="mt-2">Cargando respuestas...</p>
         </div>
       </div>
       
       <!-- Input para nueva respuesta -->
-      <div class="p-4 border-t border-gray-200 bg-gray-50">
+      <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div class="flex space-x-2">
           <textarea id="newReplyContent" rows="2" 
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none"
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
             placeholder="Escribe una respuesta..."></textarea>
           <button onclick="submitReply('${postId}')" 
             class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 font-semibold transition whitespace-nowrap">
@@ -1712,12 +1718,12 @@ window.loadPostReplies = async function(postId) {
     
     if (snapshot.empty) {
       repliesList.innerHTML = `
-        <div class="text-center py-8 text-gray-400">
-          <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="text-center py-8 text-gray-400 dark:text-gray-500">
+          <svg class="w-12 h-12 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
           </svg>
-          <p>No hay respuestas aún</p>
-          <p class="text-sm">¡Sé el primero en responder!</p>
+          <p class="dark:text-gray-400">No hay respuestas aún</p>
+          <p class="text-sm dark:text-gray-500">¡Sé el primero en responder!</p>
         </div>
       `;
       return;
@@ -1730,23 +1736,23 @@ window.loadPostReplies = async function(postId) {
       const replyAuthor = replyAuthorDoc.exists() ? replyAuthorDoc.data() : { displayName: 'Usuario desconocido' };
       
       repliesHTML.push(`
-        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-3">
+        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-3">
           <div class="flex items-start justify-between mb-2">
             <div class="flex items-center space-x-2">
               <img src="${replyAuthor.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(replyAuthor.displayName)}&background=10b981&color=fff`}" 
-                   class="w-8 h-8 rounded-full border-2 border-green-200">
+                   class="w-8 h-8 rounded-full border-2 border-green-200 dark:border-green-700">
               <div>
-                <p class="font-semibold text-sm text-gray-800">${replyAuthor.displayName}</p>
-                <p class="text-xs text-gray-500">${reply.createdAt ? new Date(reply.createdAt.toDate()).toLocaleString('es-MX') : 'Ahora'}</p>
+                <p class="font-semibold text-sm text-gray-800 dark:text-gray-100">${replyAuthor.displayName}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">${reply.createdAt ? new Date(reply.createdAt.toDate()).toLocaleString('es-MX') : 'Ahora'}</p>
               </div>
             </div>
             ${reply.authorId === currentUserData.id || currentUserData.role === 'Profesor' ? `
-              <button onclick="deleteReply('${postId}', '${replyDoc.id}')" class="text-xs text-red-500 hover:text-red-600 font-semibold">
-                �️
+              <button onclick="deleteReply('${postId}', '${replyDoc.id}')" class="text-xs text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-500 font-semibold">
+                🗑️
               </button>
             ` : ''}
           </div>
-          <p class="text-gray-700 text-sm whitespace-pre-wrap ml-10">${reply.content}</p>
+          <p class="ck-reply-content text-gray-900 dark:text-white text-sm whitespace-pre-wrap ml-10">${reply.content}</p>
         </div>
       `);
     }

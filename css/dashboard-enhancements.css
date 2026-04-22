@@ -3,6 +3,32 @@
    Mejoras visuales para un dashboard infantil
    ======================================== */
 
+/* ============ SIDEBAR SCROLLBAR ============ */
+
+.sidebar {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #a855f7 #f3f4f6;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #a855f7 0%, #7c3aed 100%);
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+}
+
 /* ============ HEADER TOGGLE ============ */
 
 #toggleHeaderBtn {
@@ -16,6 +42,43 @@
 
 #mainHeader {
     transition: transform 0.3s ease;
+}
+
+/* ============ RACHA BADGE HEADER ============ */
+
+.streak-badge-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+    transition: all 0.3s ease;
+}
+
+.streak-badge-header:hover {
+    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
+    transform: translateY(-2px);
+}
+
+.streak-flame-mini {
+    font-size: 1.1rem;
+    animation: flame-flicker 1.5s ease-in-out infinite;
+}
+
+@keyframes flame-flicker {
+    0%, 100% { 
+        transform: scale(1) rotate(0deg);
+        filter: brightness(1);
+    }
+    50% { 
+        transform: scale(1.1) rotate(-5deg);
+        filter: brightness(1.2);
+    }
 }
 
 /* ============ ANIMACIONES KEYFRAMES ============ */
@@ -268,7 +331,7 @@
 
 /* Iconos animados para cada tipo */
 .stat-icon-lecciones {
-    animation: page-flip 3s ease-in-out infinite;
+    animation: game-pulse 2s ease-in-out infinite;
 }
 
 .stat-icon-juegos {
@@ -276,11 +339,11 @@
 }
 
 .stat-icon-marcos {
-    animation: treasure-shake 2s ease-in-out infinite;
+    animation: game-pulse 2s ease-in-out infinite;
 }
 
 .stat-icon-tiempo {
-    animation: clock-tick 1s ease-in-out infinite;
+    animation: game-pulse 2s ease-in-out infinite;
 }
 
 /* Position the new SVG icons in the corner of each stat card */
@@ -344,20 +407,20 @@
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-    transition: all 0.3s ease;
+    transition: none;
     display: inline-flex;
     align-items: center;
     gap: 10px;
 }
 
 .continue-learning-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6);
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: none;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
 .continue-learning-btn:active {
-    transform: translateY(-1px);
+    transform: none;
 }
 
 /* ============ TARJETAS DE TAREAS ============ */
@@ -453,51 +516,62 @@
 
 /* ============ RACHA MEJORADA ============ */
 
-.streak-widget-enhanced {
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-    border-radius: 20px;
-    padding: 24px;
-    color: white;
-    box-shadow: 0 8px 25px rgba(249, 115, 22, 0.4);
-    position: relative;
-    overflow: hidden;
+/* ============ WIDGET DE MINICODER EQUIPADO ============ */
+
+.equipped-minicoder-widget {
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    border: none;
 }
 
-.streak-widget-enhanced::before {
-    content: '🚀';
-    position: absolute;
-    font-size: 6rem;
-    right: -20px;
-    bottom: -30px;
-    opacity: 0.2;
+.minicoder-widget-card {
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    padding: 0;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
 }
 
-.streak-number {
-    font-size: 3rem;
-    font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+.minicoder-widget-avatar {
+    width: 100%;
+    aspect-ratio: 3/4;
+    max-width: 180px;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    border: none;
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
 }
 
-.streak-flame {
-    display: inline-block;
-    font-size: 2rem;
-    animation: bounce-soft 1s ease-in-out infinite;
-}
-
-.streak-progress-bar {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 12px;
-}
-
-.streak-progress-fill {
+.minicoder-widget-avatar img {
+    width: 100%;
     height: 100%;
-    background: white;
-    border-radius: 10px;
-    transition: width 1s ease;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    object-fit: contain;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.minicoder-widget-avatar:hover img {
+    transform: translateY(-8px) scale(1.05);
+}
+
+.minicoder-widget-name {
+    display: none;
+}
+
+.minicoder-widget-rarity {
+    display: none;
 }
 
 /* ============ EFECTOS DE CONFETI ============ */
@@ -721,6 +795,58 @@ body.bg-gray-50.dark:not([class*="theme-"]) {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
 
+/* ===== MINICODERS EN MODO OSCURO ===== */
+body.dark .robot-card {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark .robot-card:hover {
+    background: linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%);
+    border-color: #8b5cf6;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+body.dark .robot-card.locked {
+    background: #1f1f1f;
+    border-color: #333333;
+}
+
+body.dark .robot-avatar {
+    background: #1a1a1a;
+    border-color: #404040;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark .robot-card:hover .robot-avatar {
+    box-shadow: 0 12px 24px rgba(139, 92, 246, 0.4);
+    border-color: #8b5cf6;
+}
+
+body.dark .robot-card.locked .robot-avatar {
+    background: #1a1a1a;
+}
+
+body.dark .robot-card h3 {
+    color: #e5e5e5;
+}
+
+body.dark .robot-card:hover h3 {
+    color: #a78bfa;
+}
+
+body.dark .robot-card p {
+    color: #a0a0a0;
+}
+
+body.dark .robot-equip-btn {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+body.dark .robot-equip-btn:hover {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
 /* ============ COLECCIÓN DE ROBOTS ============ */
 
 /* Filtros de colección */
@@ -745,7 +871,7 @@ body.bg-gray-50.dark:not([class*="theme-"]) {
     border-radius: 1rem;
     border: 3px solid #e5e7eb;
     padding: 1.5rem;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     cursor: pointer;
     overflow: visible;
     display: flex;
@@ -755,9 +881,11 @@ body.bg-gray-50.dark:not([class*="theme-"]) {
 }
 
 .robot-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    transform: scale(1.15) translateY(-20px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     border-color: #8b5cf6;
+    z-index: 1000;
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
 }
 
 .robot-card.locked {
@@ -768,8 +896,9 @@ body.bg-gray-50.dark:not([class*="theme-"]) {
 }
 
 .robot-card.locked:hover {
-    transform: translateY(-4px);
+    transform: scale(1.05) translateY(-8px);
     border-color: #d1d5db;
+    z-index: 100;
 }
 
 /* Badge EQUIPADO */
@@ -850,28 +979,74 @@ body.bg-gray-50.dark:not([class*="theme-"]) {
     }
 }
 
-/* Robot avatar - Emoji grande */
+/* Robot avatar - Imagen de personaje */
 .robot-avatar {
     width: 100%;
-    aspect-ratio: 1;
-    max-width: 140px;
+    aspect-ratio: 3/4;
+    max-width: 180px;
     border-radius: 1rem;
-    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+    background: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 5rem;
     margin: 1rem 0;
-    transition: transform 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+}
+
+.robot-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 0.5rem;
+    transition: all 0.4s ease;
 }
 
 .robot-card:hover .robot-avatar {
-    transform: scale(1.08) rotate(3deg);
+    transform: scale(1.15);
+    box-shadow: 0 12px 24px rgba(139, 92, 246, 0.5);
+    border-color: #8b5cf6;
+}
+
+/* Efecto de imagen completa en hover */
+.robot-card:hover .robot-avatar img {
+    transform: scale(1.05);
+}
+
+/* Mejorar visibilidad del texto en hover */
+.robot-card:hover h3 {
+    font-size: 1.25rem;
+    color: #6366f1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.robot-card:hover .robot-rarity-badge {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.robot-card:hover p {
+    font-size: 0.95rem;
+    line-height: 1.6;
 }
 
 .robot-card.locked .robot-avatar {
-    filter: grayscale(100%);
-    opacity: 0.4;
+    filter: grayscale(100%) brightness(0.8);
+    opacity: 0.5;
+    background: #f9fafb;
+}
+
+.robot-card.locked:hover .robot-avatar {
+    transform: scale(1.05);
+}
+
+.robot-card.locked:hover .robot-avatar img {
+    transform: scale(1);
 }
 
 /* Botón Equipar */
@@ -894,6 +1069,12 @@ body.bg-gray-50.dark:not([class*="theme-"]) {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
     background: linear-gradient(135deg, #4f46e5, #4338ca);
+}
+
+.robot-card:hover .robot-equip-btn {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
+    font-size: 1.1rem;
 }
 
 .robot-equip-btn:active {
@@ -956,3 +1137,178 @@ body.bg-gray-50.dark:not([class*="theme-"]) {
     }
 }
 
+/* ============ CHAT CONTACTOS SCROLLBAR ============ */
+
+#chatContactsPanel {
+    position: sticky;
+    top: 100px;
+}
+
+#chatConversations {
+    overflow-y: scroll !important;
+    scrollbar-width: thin;
+    scrollbar-color: #a855f7 #f3f4f6;
+    height: 100%;
+}
+
+#chatConversations::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chatConversations::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 10px;
+}
+
+#chatConversations::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #a855f7 0%, #7c3aed 100%);
+    border-radius: 10px;
+}
+
+#chatConversations::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+/* Modo oscuro */
+body.dark #chatConversations::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+body.dark #chatConversations {
+    scrollbar-color: #7c3aed #2d2d2d;
+}
+
+/* ============ CHAT MENSAJES SCROLLBAR ============ */
+
+#chatMessagesArea {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #a855f7 #f3f4f6;
+}
+
+#chatMessagesArea::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chatMessagesArea::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 10px;
+}
+
+#chatMessagesArea::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #a855f7 0%, #7c3aed 100%);
+    border-radius: 10px;
+}
+
+#chatMessagesArea::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+/* Modo oscuro */
+body.dark #chatMessagesArea::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+body.dark #chatMessagesArea {
+    scrollbar-color: #7c3aed #2d2d2d;
+}
+
+/* ============ BADGES DE NOTIFICACIONES Y CHAT ============ */
+
+#chatBadge {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 0.15rem 0.4rem;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.6);
+    }
+}
+
+/* Badge de notificaciones en el header */
+#notificationBadge {
+    animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* ============ GRUPOS - TARJETAS Y FEED ============ */
+
+.student-group-card {
+    transition: all 0.3s ease;
+}
+
+.student-group-card:hover {
+    transform: translateY(-4px);
+}
+
+body.dark .student-group-card {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark .student-group-card h3 {
+    color: #e5e7eb;
+}
+
+body.dark .student-group-card p,
+body.dark .student-group-card span {
+    color: #9ca3af;
+}
+
+body.dark .student-group-card svg {
+    color: #9ca3af;
+}
+
+/* Vista detallada del grupo */
+body.dark #grupoDetailView .bg-white {
+    background: #2d2d2d !important;
+    border-color: #404040;
+}
+
+body.dark .post-card {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark .post-card h4,
+body.dark .post-card p {
+    color: #e5e7eb;
+}
+
+body.dark .post-card .text-gray-500 {
+    color: #9ca3af !important;
+}
+
+body.dark .reaction-btn:hover {
+    background: #404040;
+}
+
+body.dark #postTextarea {
+    background: #1a1a1a;
+    border-color: #404040;
+    color: #e5e7eb;
+}
+
+body.dark #postTextarea:focus {
+    border-color: #667eea;
+}
+
+body.dark #postTextarea::placeholder {
+    color: #6b7280;
+}

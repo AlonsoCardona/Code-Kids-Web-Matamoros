@@ -1,3 +1,4 @@
+// Theme toggle script (copiado del homepage)
 (function(){
     const KEY = 'app-theme';
     function applyTheme(theme){
@@ -27,7 +28,7 @@
     }
     function toggle(){ const cur = readTheme(); const next = cur === 'dark' ? 'light' : 'dark'; applyTheme(next); writeTheme(next); updateUI(next); }
     // init early: apply theme as soon as possible to avoid flash
-    try{ const saved = localStorage.getItem(KEY); if (saved === 'dark'){ document.documentElement.classList.add('theme-dark','dark'); document.body.classList.add('theme-on'); } }catch(_){}
+    try{ const saved = localStorage.getItem(KEY); if (saved === 'dark'){ document.documentElement.classList.add('theme-dark','dark'); document.body.classList.add('theme-on'); } }catch(_){ }
     document.addEventListener('DOMContentLoaded', ()=>{
         const current = readTheme(); applyTheme(current); updateUI(current);
         const btn = document.getElementById('themeToggle'); if (btn) btn.addEventListener('click', toggle);

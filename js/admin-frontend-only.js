@@ -132,7 +132,7 @@ function setupAdminUI() {
   
   // Menú perfil
   document.getElementById('adminGotoProfile')?.addEventListener('click', () => {
-    window.location.href = 'app/dashboard.html';
+    window.location.href = 'Dashboard/Dashboard_Administrador/Dashboard_Admin.html';
   });
   
   // Abrir Configuración desde menú de perfil

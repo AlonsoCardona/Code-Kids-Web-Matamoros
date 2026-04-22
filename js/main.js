@@ -122,12 +122,7 @@ function showView(id) {
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-document.getElementById('nav-sobre')?.addEventListener('click', () => showView('pantalla-sobre-nosotros'));
-document.getElementById('nav-caracteristicas')?.addEventListener('click', () => showView('pantalla-caracteristicas'));
-document.getElementById('nav-profesores')?.addEventListener('click', () => showView('pantalla-profesores'));
-document.getElementById('ft-sobre')?.addEventListener('click', () => showView('pantalla-sobre-nosotros'));
-document.getElementById('ft-caract')?.addEventListener('click', () => showView('pantalla-caracteristicas'));
-document.getElementById('ft-prof')?.addEventListener('click', () => showView('pantalla-profesores'));
+    // Navegación ya se maneja dentro de Pagina_Inicio.html; evitamos duplicar listeners para no interferir.
 
 // Back buttons
 document.querySelectorAll('[data-back]')?.forEach(btn => btn.addEventListener('click', () => showView('pantalla-principal')));
