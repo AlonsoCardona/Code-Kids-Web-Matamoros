@@ -37,6 +37,7 @@ const { https } = require('firebase-functions');
 
 // CORS: allowed origins
 const ALLOWED_ORIGINS = [
+	'https://code-kids-web.onrender.com',
 	'https://code-kidsweb.onrender.com',
 	'http://127.0.0.1:5002',
 	'http://localhost:5002',

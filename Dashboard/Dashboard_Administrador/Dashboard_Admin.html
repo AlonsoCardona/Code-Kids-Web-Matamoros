@@ -322,7 +322,7 @@
                         <div>
                             <h2 class="text-4xl font-bold dark:text-white mb-2" style="color: #1f2937;">¡Bienvenido al Panel de Control! </h2>
                             <p class="dark:text-gray-300 text-lg" style="color: #1f2937;">Aquí está el resumen de tu plataforma CodeKids</p>
-                            <p class="dark:text-gray-400 text-sm mt-2" style="color: #1f2937;">📅 Última actualización: <span id="lastUpdate"> 15/12/2025 </span></p>
+                            <p class="dark:text-gray-400 text-sm mt-2" style="color: #1f2937;">Última actualización: <span id="lastUpdate"> 15/12/2025 </span></p>
                         </div>
                         <div class="hidden md:block text-center">
                             <p class="dark:text-gray-300 text-sm font-semibold mb-2" style="color: #1f2937;">Estado del Sistema</p>
@@ -1412,11 +1412,38 @@
             }
 
             // Botón de upload de imagen
+            // Toast helper para notificaciones del admin
+            function showAdminToast(message, type = 'success') {
+                const existing = document.getElementById('adminToastNotif');
+                if (existing) existing.remove();
+                const colors = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };
+                const icons = {
+                    success: 'M5 13l4 4L19 7',
+                    error: 'M6 18L18 6M6 6l12 12',
+                    info: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                };
+                const toast = document.createElement('div');
+                toast.id = 'adminToastNotif';
+                toast.className = `fixed top-6 right-6 z-[9999] flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl text-white font-semibold text-sm ${colors[type] || colors.success}`;
+                toast.style.cssText = 'transform:translateX(120%);transition:transform 0.3s ease;';
+                toast.innerHTML = `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${icons[type] || icons.success}"></path></svg><span>${message}</span>`;
+                document.body.appendChild(toast);
+                requestAnimationFrame(() => { toast.style.transform = 'translateX(0)'; });
+                setTimeout(() => { toast.style.transform = 'translateX(120%)'; setTimeout(() => toast.remove(), 300); }, 3500);
+            }
+
             const uploadImageBtn = document.getElementById('uploadImageBtn');
             const courseImageInput = document.getElementById('courseImage');
+            let selectedCourseImageFile = null;
             if (uploadImageBtn && courseImageInput) {
                 uploadImageBtn.addEventListener('click', function() {
                     courseImageInput.click();
+                });
+                courseImageInput.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        selectedCourseImageFile = this.files[0];
+                        showAdminToast('Imagen cargada con éxito');
+                    }
                 });
             }
 
@@ -1458,8 +1485,23 @@
             // Inicializar event listeners para el primer paso
             attachStepEventListeners();
 
-            // Array para almacenar cursos (en producción vendría de Firebase)
+            // Cursos: caché local sincronizada con Firestore
             let courses = [];
+
+            // Cargar cursos desde Firestore
+            async function loadCoursesFromFirestore() {
+                try {
+                    const { collection, getDocs, query, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const q = query(collection(window.db, 'courses'), orderBy('createdAt', 'desc'));
+                    const snapshot = await getDocs(q);
+                    courses = [];
+                    snapshot.forEach(docSnap => { courses.push({ id: docSnap.id, ...docSnap.data() }); });
+                } catch (err) {
+                    console.error('Error cargando cursos:', err);
+                    courses = [];
+                }
+                displayCourses();
+            }
 
             // Función para renderizar la tarjeta de un curso
             function renderCourse(courseData) {
@@ -1477,11 +1519,10 @@
 
                 return `
                     <div class="bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all duration-300 hover:shadow-2xl transform hover:scale-105">
-                        <div class="bg-gradient-to-br from-purple-500 to-purple-700 h-48 flex items-center justify-center">
-                            <svg class="w-20 h-20 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                            </svg>
-                        </div>
+                        ${courseData.imageUrl
+                            ? `<div class="h-48 overflow-hidden"><img src="${courseData.imageUrl}" alt="${courseData.name}" class="w-full h-full object-cover"></div>`
+                            : `<div class="bg-gradient-to-br from-purple-500 to-purple-700 h-48 flex items-center justify-center"><svg class="w-20 h-20 text-white opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg></div>`
+                        }
                         <div class="p-6">
                             <div class="flex items-start justify-between mb-3">
                                 <h3 class="text-xl font-bold text-gray-900">${courseData.name}</h3>
@@ -1503,10 +1544,10 @@
                                 </div>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="editCourse(${courseData.id})" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition">
+                                <button onclick="editCourse('${courseData.id}')" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition">
                                     Editar
                                 </button>
-                                <button onclick="deleteCourse(${courseData.id})" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition">
+                                <button onclick="deleteCourse('${courseData.id}')" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition">
                                     Eliminar
                                 </button>
                             </div>
@@ -1534,11 +1575,18 @@
             }
 
             // Función para eliminar un curso
-            window.deleteCourse = function(courseId) {
+            window.deleteCourse = async function(courseId) {
                 if (confirm('¿Estás seguro de que deseas eliminar este curso?')) {
-                    courses = courses.filter(course => course.id !== courseId);
-                    displayCourses();
-                    alert('✅ Curso eliminado exitosamente');
+                    try {
+                        const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                        await deleteDoc(doc(window.db, 'courses', courseId));
+                        courses = courses.filter(course => course.id !== courseId);
+                        displayCourses();
+                        showAdminToast('Curso eliminado', 'info');
+                    } catch (err) {
+                        console.error('Error eliminando curso:', err);
+                        showAdminToast('Error al eliminar el curso', 'error');
+                    }
                 }
             };
 
@@ -1600,7 +1648,7 @@
             // Manejar envío del formulario
             const createCourseForm = document.getElementById('createCourseForm');
             if (createCourseForm) {
-                createCourseForm.addEventListener('submit', function(e) {
+                createCourseForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
                     
                     const editingId = createCourseForm.dataset.editingId;
@@ -1629,18 +1677,42 @@
                         }
                     });
 
-                    if (editingId) {
-                        // Actualizar curso existente
-                        const index = courses.findIndex(c => c.id === parseInt(editingId));
-                        if (index !== -1) {
-                            courses[index] = courseData;
+                    try {
+                        const { collection: fsCol, doc: fsDoc, addDoc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+
+                        // Subir imagen si hay una seleccionada
+                        let imageUrl = editingId ? (courses.find(c => c.id === editingId)?.imageUrl || null) : null;
+                        if (selectedCourseImageFile) {
+                            const { ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js');
+                            const storageRef = ref(window.storage, `courses/${Date.now()}_${selectedCourseImageFile.name}`);
+                            await uploadBytes(storageRef, selectedCourseImageFile);
+                            imageUrl = await getDownloadURL(storageRef);
+                            selectedCourseImageFile = null;
                         }
-                        alert('✅ Curso actualizado exitosamente');
-                        delete createCourseForm.dataset.editingId;
-                    } else {
-                        // Agregar nuevo curso
-                        courses.push(courseData);
-                        alert('✅ Curso creado exitosamente');
+                        courseData.imageUrl = imageUrl;
+
+                        if (editingId) {
+                            // Actualizar curso en Firestore
+                            const dataToUpdate = { ...courseData };
+                            delete dataToUpdate.id;
+                            dataToUpdate.updatedAt = serverTimestamp();
+                            await updateDoc(fsDoc(window.db, 'courses', editingId), dataToUpdate);
+                            const index = courses.findIndex(c => c.id === editingId);
+                            if (index !== -1) { courses[index] = { id: editingId, ...dataToUpdate }; }
+                            showAdminToast('Curso actualizado con éxito');
+                            delete createCourseForm.dataset.editingId;
+                        } else {
+                            // Guardar nuevo curso en Firestore
+                            const dataToSave = { ...courseData };
+                            delete dataToSave.id;
+                            dataToSave.createdAt = serverTimestamp();
+                            const docRef = await addDoc(fsCol(window.db, 'courses'), dataToSave);
+                            courses.unshift({ id: docRef.id, ...dataToSave });
+                            showAdminToast('Curso creado con éxito');
+                        }
+                    } catch (err) {
+                        console.error('Error guardando curso:', err);
+                        showAdminToast('Error al guardar el curso', 'error');
                     }
                     
                     // Mostrar cursos actualizados
@@ -1679,8 +1751,8 @@
                 });
             }
 
-            // Cargar cursos al inicio
-            displayCourses();
+            // Cargar cursos al inicio desde Firestore
+            loadCoursesFromFirestore();
 
             // =====================================================
             // SISTEMA DE MAESTROS DE SERVICIO SOCIAL
@@ -2175,9 +2247,10 @@
                 `;
 
                 try {
-                    // Obtener profesores de Firestore
-                    const usersRef = window.db.collection('users');
-                    const snapshot = await usersRef.where('role', '==', 'profesor').get();
+                    // Obtener profesores de Firestore (Firebase v10 modular SDK)
+                    const { collection, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const usersRef = collection(window.db, 'users');
+                    const snapshot = await getDocs(query(usersRef, where('role', '==', 'profesor')));
                     
                     allTeachersFromDB = [];
                     snapshot.forEach(doc => {

@@ -538,10 +538,9 @@
             signInWithEmailAndPassword,
             setPersistence,
             browserLocalPersistence,
-            browserSessionPersistence,
-            signInAnonymously
+            browserSessionPersistence
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { doc, getDoc, setDoc, serverTimestamp, collection, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
         // Importar configuración de Firebase
         import { auth, db } from '../js/firebase-config.js';
@@ -780,40 +779,17 @@
             forgotOK.classList.add('hidden');
             const email = forgotEmail.value.trim();
             try {
-                // Iniciar sesión anónima temporalmente para poder escribir en Firestore
-                await signInAnonymously(auth);
-                
-                // Buscar si el usuario existe en Firestore
-                const usersRef = collection(db, 'users');
-                const q = query(usersRef, where('email', '==', email));
-                const snapshot = await getDocs(q);
-                
-                let userId = null;
-                let userName = 'Usuario';
-                
-                if (!snapshot.empty) {
-                    const userDoc = snapshot.docs[0];
-                    userId = userDoc.id;
-                    const userData = userDoc.data();
-                    userName = userData.displayName || 
-                              (userData.nombre ? `${userData.nombre} ${userData.apellidoPaterno || ''}`.trim() : null) ||
-                              'Usuario';
-                }
-                
-                // Crear solicitud en Firestore
+                // Crear solicitud en Firestore (sin autenticación requerida)
                 await addDoc(collection(db, 'passwordResetRequests'), {
                     email: email,
-                    userId: userId,
-                    userName: userName,
+                    userId: null,
+                    userName: null,
                     requestedAt: serverTimestamp(),
                     status: 'pending',
                     resolvedAt: null,
                     resolvedBy: null,
                     tempPassword: null
                 });
-                
-                // Cerrar sesión anónima
-                await auth.signOut();
                 
                 forgotOkText.textContent = 'Solicitud enviada. Un administrador te contactará.';
                 forgotOK.classList.remove('hidden');

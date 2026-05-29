@@ -74,6 +74,15 @@ initAuth((user, userData) => {
   setupAdminUI();
   document.body.setAttribute('data-admin-ready', 'true'); // Marker for Cypress tests
   loadDashboard();
+
+  // Heartbeat: mantener lastActive actualizado mientras el admin está en el panel
+  async function _updateAdminLastActive() {
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { lastActive: serverTimestamp() });
+    } catch (_) {}
+  }
+  _updateAdminLastActive();
+  setInterval(_updateAdminLastActive, 60000);
 });
 
 // Configurar UI del admin
@@ -277,12 +286,12 @@ function startActivityListeners() {
 
 // 1. Usuarios Activos Ahora (última actividad < 5 minutos)
 function loadActiveUsers() {
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
   
   const q = query(
     collection(db, 'users'),
-    where('lastLogin', '>=', fiveMinutesAgo),
-    orderBy('lastLogin', 'desc')
+    where('lastActive', '>=', twoMinutesAgo),
+    orderBy('lastActive', 'desc')
   );
   
   activeUsersUnsubscribe = onSnapshot(q, (snapshot) => {
@@ -300,12 +309,12 @@ function loadActiveUsers() {
     const users = [];
     snapshot.forEach(doc => {
       const user = doc.data();
-      const lastLogin = user.lastLogin?.toDate?.() || new Date();
-      users.push({ ...user, id: doc.id, lastLogin });
+      const lastActive = user.lastActive?.toDate?.() || new Date();
+      users.push({ ...user, id: doc.id, lastActive });
     });
     
     activeUsersList.innerHTML = users.map(u => {
-      const timeAgo = getTimeAgo(u.lastLogin);
+      const timeAgo = getTimeAgo(u.lastActive);
       const roleColor = u.role === 'Admin' ? 'text-red-600' : u.role === 'Profesor' ? 'text-purple-600' : 'text-blue-600';
       const roleIcon = u.role === 'Admin' ? '👑' : u.role === 'Profesor' ? '👨‍🏫' : '👨‍🎓';
       

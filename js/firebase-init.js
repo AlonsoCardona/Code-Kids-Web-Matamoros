@@ -45,6 +45,15 @@ window.analytics = analytics;
 // Estado de autenticación global
 window.currentUser = null;
 
+let _heartbeatInterval = null;
+
+async function _updateLastActive(uid) {
+    try {
+        const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        await updateDoc(doc(db, 'users', uid), { lastActive: serverTimestamp() });
+    } catch (_) {}
+}
+
 // Listener de autenticación
 onAuthStateChanged(auth, (user) => {
     window.currentUser = user;
@@ -52,8 +61,13 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         console.log('✅ Usuario autenticado:', user.email);
         window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: user }));
+        // Heartbeat: actualizar lastActive cada 60 segundos
+        _updateLastActive(user.uid);
+        if (_heartbeatInterval) clearInterval(_heartbeatInterval);
+        _heartbeatInterval = setInterval(() => _updateLastActive(user.uid), 60000);
     } else {
         console.log('❌ Usuario no autenticado');
+        if (_heartbeatInterval) { clearInterval(_heartbeatInterval); _heartbeatInterval = null; }
         window.dispatchEvent(new CustomEvent('userLoggedOut'));
     }
 });

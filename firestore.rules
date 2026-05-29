@@ -179,7 +179,7 @@ service cloud.firestore {
     }
     
     match /passwordResetRequests/{requestId} {
-      allow create: if isAuthenticated();
+      allow create: if true;
       allow read, update: if isAdmin();
       allow delete: if false;
     }
