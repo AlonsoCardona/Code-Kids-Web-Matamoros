@@ -11,17 +11,15 @@ function extractYouTubeId(url) {
 let COURSES_DASH = [
   {
     id: 'python_basico',
-    title: 'Python Básico',
-    description: 'Aprende los fundamentos de Python desde cero. Este curso te enseñará variables, tipos de datos, condicionales, bucles y funciones. Perfecto para principiantes que quieren dar sus primeros pasos en programación.',
-    thumbnail: 'https://img.youtube.com/vi/kqtD5dpn9C8/maxresdefault.jpg',
+    title: '¡Misión Python: Tu Primera Aventura Programando!',
+    description: '¿Te gustaría saber cómo hablan las computadoras? ¡En este video súper divertido aprenderás a crear tus primeros hechizos tecnológicos usando Python! No necesitas saber nada de antes, solo muchas ganas de divertirte, explorar y escribir tu primer "¡Hola Mundo!".',
+    thumbnail: 'https://img.youtube.com/vi/g8q4teQ2BN4/maxresdefault.jpg',
     level: 'Principiante',
-    duration: '45 min',
+    duration: '~30 min',
     videos: [
-      { id:'v1', title:'Paso 1: Introducción a Python', ytId:'kqtD5dpn9C8', duration: 300 },
-      { id:'v2', title:'Paso 2: Variables y Tipos', ytId:'x7X9w_GIm1s', duration: 420 },
-      { id:'v3', title:'Paso 3: Condicionales', ytId:'5u0jaA3qAGk', duration: 380 },
-      { id:'v4', title:'Paso 4: Bucles', ytId:'9OK32jb_TdI', duration: 450 },
-      { id:'v5', title:'Paso 5: Funciones', ytId:'NSbOtYzIQI0', duration: 520 }
+      { id:'v1', title:'¡Introduccion a Programacion! | Python | Parte 1', ytId:'g8q4teQ2BN4', duration: 300 },
+      { id:'v2', title:'¡Introduccion a Programacion! | Python | Parte 2', ytId:'StBHsV-GGA8', duration: 300 },
+      { id:'v3', title:'¡Introduccion a Programacion! | Python | Parte 3', ytId:'67db0eerTKE', duration: 300 }
     ]
   },
   {

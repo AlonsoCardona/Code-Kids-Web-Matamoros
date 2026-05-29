@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -651,7 +651,7 @@
                                             <button class="view-attendance-btn bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg font-semibold transition text-sm">
                                                 Ver Asistencias
                                             </button>
-                                            <button class="remove-teacher-btn bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg font-semibold transition text-sm" onclick="if(confirm('\u00bfEliminar a este profesor de la lista de servicio social?')) this.closest('tr').remove()">
+                                            <button class="remove-teacher-btn bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg font-semibold transition text-sm" onclick="showCustomConfirm('\u00bfDeseas eliminar a este profesor de la lista de servicio social?','Eliminar profesor','S\u00ed, eliminar','Cancelar').then(ok=>{if(ok)this.closest('tr').remove()})">
                                                 Eliminar
                                             </button>
                                         </div>
@@ -711,7 +711,7 @@
                                             <button class="view-attendance-btn bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg font-semibold transition text-sm">
                                                 Ver Asistencias
                                             </button>
-                                            <button class="remove-teacher-btn bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg font-semibold transition text-sm" onclick="if(confirm('\u00bfEliminar a este profesor de la lista de servicio social?')) this.closest('tr').remove()">
+                                            <button class="remove-teacher-btn bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg font-semibold transition text-sm" onclick="showCustomConfirm('\u00bfDeseas eliminar a este profesor de la lista de servicio social?','Eliminar profesor','S\u00ed, eliminar','Cancelar').then(ok=>{if(ok)this.closest('tr').remove()})">
                                                 Eliminar
                                             </button>
                                         </div>
@@ -1501,7 +1501,7 @@
             // Cargar cursos desde Firestore
             async function loadCoursesFromFirestore() {
                 try {
-                    const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const { collection, getDocs, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
                     const snapshot = await getDocs(collection(window.db, 'courses'));
                     courses = [];
                     snapshot.forEach(docSnap => { courses.push({ id: docSnap.id, ...docSnap.data() }); });
@@ -1511,6 +1511,30 @@
                         const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
                         return tb - ta;
                     });
+
+                    // ── Sembrar curso demo si Firestore está vacío ──────────────────
+                    if (courses.length === 0) {
+                        const demoCourse = {
+                            name: '¡Misión Python: Tu Primera Aventura Programando!',
+                            description: '¿Te gustaría saber cómo hablan las computadoras? ¡En este video súper divertido aprenderás a crear tus primeros hechizos tecnológicos usando Python! No necesitas saber nada de antes, solo muchas ganas de divertirte, explorar y escribir tu primer "¡Hola Mundo!".',
+                            level: 'principiante',
+                            duration: '~30 min',
+                            imageUrl: 'https://img.youtube.com/vi/g8q4teQ2BN4/maxresdefault.jpg',
+                            steps: [
+                                { number: 1, title: '¡Introduccion a Programacion! | Python | Parte 1', videoUrl: 'https://youtu.be/g8q4teQ2BN4?si=QqAZwrEu2kywx0u8' },
+                                { number: 2, title: '¡Introduccion a Programacion! | Python | Parte 2', videoUrl: 'https://youtu.be/StBHsV-GGA8?si=SYuzw3qlAKduMBUW' },
+                                { number: 3, title: '¡Introduccion a Programacion! | Python | Parte 3', videoUrl: 'https://youtu.be/67db0eerTKE?si=m38pBxZJGE4_XyFA' }
+                            ],
+                            createdAt: serverTimestamp()
+                        };
+                        try {
+                            const docRef = await addDoc(collection(window.db, 'courses'), demoCourse);
+                            courses.unshift({ id: docRef.id, ...demoCourse });
+                        } catch (seedErr) {
+                            console.warn('[Cursos] No se pudo sembrar el curso demo:', seedErr);
+                        }
+                    }
+                    // ───────────────────────────────────────────────────────────────
                 } catch (err) {
                     console.error('Error cargando cursos:', err);
                     courses = [];
@@ -1591,7 +1615,8 @@
 
             // Función para eliminar un curso
             window.deleteCourse = async function(courseId) {
-                if (confirm('¿Estás seguro de que deseas eliminar este curso?')) {
+                showCustomConfirm('¿Estás seguro de que deseas eliminar este curso? Esta acción no se puede deshacer.', 'Eliminar curso', 'Sí, eliminar', 'Cancelar').then(async confirmed => {
+                    if (!confirmed) return;
                     try {
                         const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
                         await deleteDoc(doc(window.db, 'courses', courseId));
@@ -1602,7 +1627,7 @@
                         console.error('Error eliminando curso:', err);
                         showAdminToast('Error al eliminar el curso', 'error');
                     }
-                }
+                });
             };
 
             // Función para editar un curso
@@ -1723,7 +1748,8 @@
                             dataToSave.createdAt = serverTimestamp();
                             const docRef = await addDoc(fsCol(window.db, 'courses'), dataToSave);
                             courses.unshift({ id: docRef.id, ...dataToSave });
-                            showAdminToast('Curso creado con éxito');
+                            // Mostrar pantalla de "video procesando" para nuevos cursos
+                            showCourseProcessingModal();
                         }
                     } catch (err) {
                         console.error('Error guardando curso:', err);
@@ -2188,7 +2214,7 @@
                 `;
 
                 // Mostrar mensaje de éxito
-                alert('✅ Asistencia registrada exitosamente');
+                showCustomAlert('La asistencia ha sido registrada correctamente.', 'success', 'Asistencia registrada');
             });
 
             // Event listeners para botones de ver asistencias
@@ -2350,7 +2376,7 @@
                 for (let row of existingRows) {
                     const nameElement = row.querySelector('.font-semibold');
                     if (nameElement && nameElement.textContent === teacherName) {
-                        alert('⚠️ Este profesor ya está en la lista de servicio social');
+                        showCustomAlert('Este profesor ya forma parte de la lista de servicio social.', 'warning', 'Profesor duplicado'); return;
                         return;
                     }
                 }
@@ -2422,16 +2448,16 @@
 
                 // Agregar event listener para el botón de eliminar
                 newRow.querySelector('.remove-teacher-btn').addEventListener('click', function() {
-                    if (confirm('¿Estás seguro de que deseas eliminar a este maestro de la lista de servicio social?')) {
-                        newRow.remove();
-                    }
+                    showCustomConfirm('¿Deseas eliminar a este maestro de la lista de servicio social?', 'Eliminar maestro', 'Sí, eliminar', 'Cancelar').then(confirmed => {
+                        if (confirmed) newRow.remove();
+                    });
                 });
 
                 // Cerrar modal
                 closeSelectTeacherModal();
 
                 // Mostrar mensaje de éxito
-                alert(`✅ ${teacherName} agregado a la lista de servicio social`);
+                showCustomAlert(`${teacherName} ha sido agregado a la lista de servicio social exitosamente.`, 'success', 'Maestro agregado');
             }
 
             // Función para cerrar el modal de selección
@@ -2712,5 +2738,137 @@
     </script>
     
     <script type="module" src="../../js/admin.js"></script>
+
+    <!-- ============================================================
+         SISTEMA DE DIÁLOGOS PERSONALIZADOS
+    ============================================================ -->
+
+    <!-- Modal: Alerta/Info -->
+    <div id="customAlertModal" class="fixed inset-0 z-[99999] flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="customAlertBg"></div>
+        <div id="customAlertBox" class="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full mx-4 p-8 transform scale-90 opacity-0 transition-all duration-300 text-center">
+            <div id="customAlertIconWrap" class="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center">
+                <svg id="customAlertIcon" class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"></svg>
+            </div>
+            <h3 id="customAlertTitle" class="text-lg font-bold text-gray-900 mb-2"></h3>
+            <p id="customAlertMessage" class="text-gray-600 text-sm leading-relaxed mb-6"></p>
+            <button id="customAlertOk" class="w-full py-3 rounded-xl font-bold text-white text-base transition active:scale-95">Entendido</button>
+        </div>
+    </div>
+
+    <!-- Modal: Confirmación -->
+    <div id="customConfirmModal" class="fixed inset-0 z-[99999] flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="customConfirmBg"></div>
+        <div id="customConfirmBox" class="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full mx-4 p-8 transform scale-90 opacity-0 transition-all duration-300 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-amber-100 mx-auto mb-5 flex items-center justify-center">
+                <svg class="w-9 h-9 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h3 id="customConfirmTitle" class="text-lg font-bold text-gray-900 mb-2">¿Estás seguro?</h3>
+            <p id="customConfirmMessage" class="text-gray-600 text-sm leading-relaxed mb-6"></p>
+            <div class="flex gap-3">
+                <button id="customConfirmCancel" class="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 text-base transition active:scale-95">Cancelar</button>
+                <button id="customConfirmOk" class="flex-1 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 text-base transition active:scale-95">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Curso procesando -->
+    <div id="courseProcessingModal" class="fixed inset-0 z-[99998] flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+        <div id="courseProcessingBox" class="relative bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 p-10 transform scale-90 opacity-0 transition-all duration-300 text-center">
+            <!-- Animación de carga -->
+            <div class="relative w-24 h-24 mx-auto mb-6">
+                <div class="absolute inset-0 rounded-full border-4 border-purple-100"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-500 animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.867v6.266a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Curso guardado exitosamente
+            </div>
+            <h3 class="text-2xl font-black text-gray-900 mb-3">Procesando tu video</h3>
+            <p class="text-gray-500 text-base leading-relaxed mb-2">
+                Tu video podría tardar hasta
+                <span class="font-bold text-purple-600">4 horas</span>
+                en cargar y estar disponible para los estudiantes.
+            </p>
+            <p class="text-gray-400 text-sm mb-8">Puedes cerrar esta ventana. Te notificaremos cuando esté listo.</p>
+            <button id="courseProcessingClose" class="w-full py-3 rounded-xl font-bold text-white text-base bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 transition active:scale-95 shadow-lg shadow-purple-200">
+                ¡Entendido!
+            </button>
+        </div>
+    </div>
+
+    <script>
+    // ─── Sistema de diálogos personalizados ───────────────────────────────────
+
+    function _openCustomModal(modalId, boxId) {
+        const modal = document.getElementById(modalId);
+        const box   = document.getElementById(boxId);
+        modal.classList.remove('hidden');
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            box.style.transform = 'scale(1)';
+            box.style.opacity   = '1';
+        }));
+    }
+    function _closeCustomModal(modalId, boxId, cb) {
+        const modal = document.getElementById(modalId);
+        const box   = document.getElementById(boxId);
+        box.style.transform = 'scale(0.9)';
+        box.style.opacity   = '0';
+        setTimeout(() => { modal.classList.add('hidden'); if (cb) cb(); }, 300);
+    }
+
+    /** Muestra una alerta con icono y botón "Entendido" */
+    window.showCustomAlert = function(message, type = 'success', title = '') {
+        const cfgs = {
+            success: { bg: 'bg-green-500', path: 'M5 13l4 4L19 7', label: '¡Hecho!' },
+            error:   { bg: 'bg-red-500',   path: 'M6 18L18 6M6 6l12 12', label: '¡Error!' },
+            info:    { bg: 'bg-blue-500',   path: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Información' },
+            warning: { bg: 'bg-amber-500',  path: 'M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z', label: '¡Atención!' }
+        };
+        const cfg = cfgs[type] || cfgs.info;
+        document.getElementById('customAlertIconWrap').className = `w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center ${cfg.bg}`;
+        document.getElementById('customAlertIcon').innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${cfg.path}"></path>`;
+        document.getElementById('customAlertTitle').textContent = title || cfg.label;
+        document.getElementById('customAlertMessage').textContent = message;
+        const okBtn = document.getElementById('customAlertOk');
+        const bgColors = { success:'bg-green-500 hover:bg-green-600', error:'bg-red-500 hover:bg-red-600', info:'bg-blue-500 hover:bg-blue-600', warning:'bg-amber-500 hover:bg-amber-600' };
+        okBtn.className = `w-full py-3 rounded-xl font-bold text-white text-base transition active:scale-95 ${bgColors[type] || bgColors.info}`;
+        _openCustomModal('customAlertModal', 'customAlertBox');
+        return new Promise(resolve => {
+            const close = () => _closeCustomModal('customAlertModal', 'customAlertBox', resolve);
+            okBtn.onclick = close;
+            document.getElementById('customAlertBg').onclick = close;
+        });
+    };
+
+    /** Muestra una confirmación con botones Cancelar / Confirmar */
+    window.showCustomConfirm = function(message, title = '¿Estás seguro?', confirmLabel = 'Confirmar', cancelLabel = 'Cancelar') {
+        document.getElementById('customConfirmTitle').textContent = title;
+        document.getElementById('customConfirmMessage').textContent = message;
+        document.getElementById('customConfirmOk').textContent = confirmLabel;
+        document.getElementById('customConfirmCancel').textContent = cancelLabel;
+        _openCustomModal('customConfirmModal', 'customConfirmBox');
+        return new Promise(resolve => {
+            document.getElementById('customConfirmOk').onclick     = () => _closeCustomModal('customConfirmModal', 'customConfirmBox', () => resolve(true));
+            document.getElementById('customConfirmCancel').onclick = () => _closeCustomModal('customConfirmModal', 'customConfirmBox', () => resolve(false));
+            document.getElementById('customConfirmBg').onclick     = () => _closeCustomModal('customConfirmModal', 'customConfirmBox', () => resolve(false));
+        });
+    };
+
+    /** Muestra el modal de "video en procesamiento" tras crear un curso */
+    window.showCourseProcessingModal = function() {
+        _openCustomModal('courseProcessingModal', 'courseProcessingBox');
+        document.getElementById('courseProcessingClose').onclick = () =>
+            _closeCustomModal('courseProcessingModal', 'courseProcessingBox');
+    };
+    </script>
 </body>
 </html>

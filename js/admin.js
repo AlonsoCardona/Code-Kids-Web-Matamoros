@@ -1390,7 +1390,7 @@ function passwordMeetsPolicy(pw, email) {
 // Aprobar solicitud de restablecimiento de contraseña
 async function approvePasswordReset(requestId, email, userId, userName) {
   if (!userId) {
-    alert('No se puede aprobar: usuario no encontrado en el sistema.');
+    showToast('No se puede aprobar: usuario no encontrado.', 'error');
     return;
   }
   
@@ -1441,7 +1441,7 @@ async function approvePasswordReset(requestId, email, userId, userName) {
     
   } catch (error) {
     console.error('Error aprobando solicitud:', error);
-    alert('Error al procesar la solicitud: ' + (error.message || 'Error desconocido'));
+    showToast('Error al procesar la solicitud: ' + (error.message || 'Error desconocido'), 'error');
   }
 }
 
@@ -2062,7 +2062,7 @@ async function openEditSchoolModal(id) {
     const snap = await getDocs(query(collection(db, 'schools'), where('__name__','==', id), limit(1)));
     const d = snap.docs[0];
     const data = d?.data();
-    if (!data) return alert('No se encontró la escuela');
+    if (!data) { showToast('No se encontró la escuela', 'error'); return; }
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center p-4';
     modal.style.zIndex = '20000';
@@ -2106,7 +2106,7 @@ async function openEditSchoolModal(id) {
         try { await loadSchoolsIntoSelect(); } catch(_) {}
       } catch (err) {
         console.error('Editar escuela falló', err);
-        alert('No se pudo guardar cambios');
+        showToast('No se pudo guardar cambios', 'error');
       }
     });
   } catch (e) {
@@ -2126,7 +2126,7 @@ async function showEditUserModal(uid) {
       const qSnap = await getDocs(query(collection(db, 'users'), where('__name__','==', uid), limit(1)));
       snap = qSnap.docs[0];
     }
-    if (!snap || !snap.exists()) return alert('Usuario no encontrado');
+    if (!snap || !snap.exists()) { showToast('Usuario no encontrado', 'error'); return; }
     const user = snap.data();
 
     // Cargar escuelas para select
@@ -2293,7 +2293,7 @@ async function showEditUserModal(uid) {
     });
   } catch (e) {
     console.error('showEditUserModal error', e);
-    alert('No se pudo abrir el editor de usuario');
+    showToast('No se pudo abrir el editor de usuario', 'error');
   }
 }
 
@@ -2373,7 +2373,7 @@ async function quickPasswordModal(uid) {
       const qSnap = await getDocs(query(collection(db, 'users'), where('__name__','==', uid), limit(1)));
       snap = qSnap.docs[0];
     }
-    if (!snap || !snap.exists()) return alert('Usuario no encontrado');
+    if (!snap || !snap.exists()) { showToast('Usuario no encontrado', 'error'); return; }
     const user = snap.data();
 
     const modal = document.createElement('div');
@@ -2485,7 +2485,7 @@ async function quickPasswordModal(uid) {
     });
   } catch (e) {
     console.error('quickPasswordModal error', e);
-    alert('No se pudo abrir el administrador de contraseña');
+    showToast('No se pudo abrir el administrador de contraseña', 'error');
   }
 }
 
@@ -3010,7 +3010,7 @@ window.editModalGrade = async function(gradeId) {
   
   const score = parseInt(newScore);
   if (isNaN(score) || score < 0 || score > 100) {
-    alert('Calificación inválida. Debe estar entre 0 y 100');
+    showToast('Calificación inválida. Debe estar entre 0 y 100', 'error');
     return;
   }
   
@@ -3029,13 +3029,16 @@ window.editModalGrade = async function(gradeId) {
     
   } catch (error) {
     console.error('Error actualizando calificación:', error);
-    alert('Error al actualizar la calificación');
+    showToast('Error al actualizar la calificación', 'error');
   }
 };
 
 // Eliminar calificación del modal
 window.deleteModalGrade = async function(gradeId) {
-  if (!confirm('¿Eliminar esta calificación?')) return;
+  const confirmed = await (window.showCustomConfirm
+    ? window.showCustomConfirm('Esta acción no se puede deshacer.', 'Eliminar calificación', 'Sí, eliminar', 'Cancelar')
+    : Promise.resolve(confirm('¿Eliminar esta calificación?')));
+  if (!confirmed) return;
   
   try {
     await deleteDoc(doc(db, 'grades', gradeId));
@@ -3046,6 +3049,6 @@ window.deleteModalGrade = async function(gradeId) {
     
   } catch (error) {
     console.error('Error eliminando calificación:', error);
-    alert('Error al eliminar la calificación');
+    showToast('Error al eliminar la calificación', 'error');
   }
 };
