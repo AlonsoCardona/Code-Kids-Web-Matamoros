@@ -2572,8 +2572,16 @@ async function showExportUsersModal() {
       const lastN = parseInt(form.querySelector('#expLast').value || '0', 10) || 0;
       const dayStr = form.querySelector('#expDay').value || '';
 
-      // Cargar usuarios
-      const uSnap = await getDocs(collection(db, 'users'));
+      // Cargar usuarios, escuelas y contraseñas en paralelo
+      const [uSnap, schoolsSnap, pwSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'schools')),
+        getDocs(collection(db, 'userPasswords'))
+      ]);
+      const schoolsMap = {};
+      schoolsSnap.forEach(d => { schoolsMap[d.id] = d.data().name || d.id; });
+      const passwordsMap = {};
+      pwSnap.forEach(d => { passwordsMap[d.id] = d.data().currentPassword; });
       let users = uSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       // Filtros
       if (roles.length && roles.length < 3) {
@@ -2767,7 +2775,7 @@ async function showExportUsersModal() {
           fitText(u.email || '-', actualWidths[2]),
           u.role || u.rol || '-',
           fitText(schoolsMap[u.schoolId] || u.schoolId || '-', actualWidths[4]),
-          fitText(u.tempPassword || '(no registrada)', actualWidths[5]),
+          fitText(passwordsMap[u.id] || u.currentPassword || u.tempPassword || '(no registrada)', actualWidths[5]),
           createdStr
         ];
         

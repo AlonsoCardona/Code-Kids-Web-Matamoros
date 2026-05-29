@@ -1132,7 +1132,7 @@
                                                 <input type="text" placeholder="Paso 1: Título"
                                                     class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent step-title">
                                                 
-                                                <input type="url" placeholder="URL de YouTube"
+                                                <input type="text" placeholder="URL de YouTube (ej: https://youtu.be/...)"
                                                     class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent step-url">
                                                 
                                                 <!-- Preview del video -->
@@ -1345,7 +1345,7 @@
                     <input type="text" placeholder="Paso ${stepCounter}: Título"
                         class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent step-title">
                     
-                    <input type="url" placeholder="URL de YouTube"
+                    <input type="text" placeholder="URL de YouTube (ej: https://youtu.be/...)"
                         class="w-full px-4 py-3 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent step-url">
                     
                     <div class="video-preview bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
@@ -1631,7 +1631,7 @@
                             <div class="space-y-3">
                                 <input type="text" placeholder="Título del paso" value="${step.title}"
                                     class="step-title w-full px-4 py-2 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                                <input type="url" placeholder="URL del video de YouTube" value="${step.videoUrl}"
+                                <input type="text" placeholder="URL del video de YouTube" value="${step.videoUrl}"
                                     class="step-url w-full px-4 py-2 bg-white text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                                 <div class="video-preview bg-gray-200 rounded-lg h-40 flex flex-col items-center justify-center">
                                     ${step.videoUrl ? `<iframe class="w-full h-full rounded-lg" src="https://www.youtube.com/embed/${getYouTubeVideoId(step.videoUrl)}" frameborder="0" allowfullscreen></iframe>` : `
