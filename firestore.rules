@@ -13,14 +13,9 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
     
-    // isAdmin: verifica custom claim (usuarios nuevos) con fallback a Firestore (usuarios sin claim)
-    // Seguro: los usuarios no pueden cambiar su propio role/rol gracias a roleFieldsUnchanged()
+    // isAdmin usa SOLO el custom claim (asignado por el backend — no manipulable por el cliente)
     function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.admin == true ||
-        getCurrentUser().role == 'Admin' ||
-        getCurrentUser().rol == 'admin'
-      );
+      return isAuthenticated() && request.auth.token.admin == true;
     }
     
     // isTeacher: primero verifica claim (usuarios nuevos), luego fallback a Firestore (usuarios existentes)
@@ -67,7 +62,7 @@ service cloud.firestore {
     }
     
     match /schools/{schoolId} {
-      allow read: if true;   // Escuelas visibles públicamente (mapa en la landing page)
+      allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
     
@@ -172,6 +167,16 @@ service cloud.firestore {
       allow create: if isTeacher() || isAdmin();
       allow update, delete: if isAuthenticated() && (resource.data.teacherId == request.auth.uid || isAdmin());
     }
+
+    match /gradesParciales/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isTeacher() || isAdmin();
+    }
+
+    match /attendance/{docId} {
+      allow read: if isTeacher() || isAdmin();
+      allow write: if isTeacher() || isAdmin();
+    }
     
     match /reports/{reportId} {
       allow create: if isAuthenticated();
@@ -179,20 +184,14 @@ service cloud.firestore {
     }
     
     match /passwordResetRequests/{requestId} {
-      allow create: if true;
+      allow create: if isAuthenticated();
       allow read, update: if isAdmin();
       allow delete: if false;
     }
     
     match /userPasswords/{userId} {
-      // El admin puede crear/actualizar contraseñas de otros usuarios
-      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
-      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
-    }
-
-    match /passwordRecords/{userId} {
-      allow read, write: if isAdmin();
       allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAdmin();
     }
   }
 }

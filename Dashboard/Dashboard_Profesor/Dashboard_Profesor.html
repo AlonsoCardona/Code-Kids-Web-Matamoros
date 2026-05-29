@@ -245,9 +245,9 @@
 
                     <a href="#estadisticas" class="sidebar-item" data-route="estadisticas">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                         </svg>
-                        <span>Estadísticas</span>
+                        <span>Cursos</span>
                     </a>
 
                     <a href="#grupos" class="sidebar-item" data-route="grupos">
@@ -616,13 +616,19 @@
             <section id="section-estadisticas" class="hidden" data-section>
                 <div class="mb-6">
                     <h1 class="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                         </svg>
-                        Estadísticas de Estudiantes
+                        Cursos
                     </h1>
-                    <p class="text-gray-600">Analiza el rendimiento y progreso de tus estudiantes</p>
+                    <p class="text-gray-600">Cursos cargados en la plataforma y estadísticas de tus estudiantes</p>
                 </div>
+
+                <!-- Cursos desde Firestore -->
+                <div id="coursesFromFirestore" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                    <p class="text-gray-400 text-sm col-span-full text-center py-4">Cargando cursos...</p>
+                </div>
+                <hr class="mb-6 border-gray-200">
                 
                 <div id="statsGridProf" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div class="card">
@@ -2055,6 +2061,7 @@
         // ========== GESTIÓN DE GRUPOS ==========
         let currentGroupId = null;
         let selectedStudents = [];
+        let _loadingGroups = false;
         
         async function initGrupos() {
             console.log('👥 Inicializando gestión de grupos');
@@ -2064,6 +2071,21 @@
             document.getElementById('closeGroupModal')?.addEventListener('click', () => closeGroupModal());
             document.getElementById('cancelGroupModal')?.addEventListener('click', () => closeGroupModal());
             document.getElementById('groupForm')?.addEventListener('submit', handleGroupSubmit);
+
+            // Preview de imagen del grupo
+            document.getElementById('groupImageFile')?.addEventListener('change', () => {
+                const file = document.getElementById('groupImageFile').files[0];
+                const preview = document.getElementById('groupImagePreview');
+                if (file && preview) {
+                    preview.src = URL.createObjectURL(file);
+                    preview.classList.remove('hidden');
+                }
+            });
+            document.getElementById('groupImageUrl')?.addEventListener('input', () => {
+                const url = document.getElementById('groupImageUrl').value.trim();
+                const preview = document.getElementById('groupImagePreview');
+                if (url && preview) { preview.src = url; preview.classList.remove('hidden'); }
+            });
             
             document.getElementById('closeGroupDetailModal')?.addEventListener('click', () => closeGroupDetailModal());
             document.getElementById('btnAddStudents')?.addEventListener('click', () => openAddStudentsModal());
@@ -2080,6 +2102,8 @@
         }
         
         async function loadTeacherGroups() {
+            if (_loadingGroups) return;
+            _loadingGroups = true;
             const user = window.dashboardUser;
             if (!user) {
                 console.warn('⚠️ No hay usuario autenticado');
@@ -2153,6 +2177,8 @@
                         </div>
                     `;
                 }
+            } finally {
+                _loadingGroups = false;
             }
         }
         
@@ -2866,6 +2892,8 @@
         // ========== CHAT EN TIEMPO REAL CON FIRESTORE ==========
         let activeChat = null;
         let chatUnsubscribe = null;
+        let chatDocUnsubscribe = null;
+        let _chatReadAt = {};
         
         async function initChats() {
             console.log('💬 Inicializando chat...');
@@ -2911,9 +2939,16 @@
             if (chatEmojiBtn && chatEmojiPicker) {
                 chatEmojiBtn.onclick = (e) => { e.stopPropagation(); chatEmojiPicker.classList.toggle('hidden'); };
                 chatEmojiPicker.querySelectorAll('.chat-emoji').forEach(span => {
-                    span.onclick = () => {
-                        if (input) { input.value += span.textContent; input.focus(); }
+                    span.onclick = async () => {
                         chatEmojiPicker.classList.add('hidden');
+                        // Send emoji directly as message
+                        if (input) {
+                            const prev = input.value;
+                            input.value = span.textContent;
+                            await sendMessage();
+                            // Restore any previous text after sending emoji
+                            if (input.value === '') input.value = prev;
+                        }
                     };
                 });
                 document.addEventListener('click', () => chatEmojiPicker.classList.add('hidden'), { once: false });
@@ -3078,6 +3113,16 @@
             
             activeChat = { chatId, otherUser };
             
+            // Marcar como leído (para "Visto")
+            const myUid = window.dashboardUser?.uid || window.currentUser?.uid;
+            if (myUid) {
+                try {
+                    await updateDoc(doc(window.db, 'chats', chatId), {
+                        [`readAt.${myUid}`]: serverTimestamp()
+                    });
+                } catch(_) {}
+            }
+            
             // Mostrar header y área de input
             const chatHeader = document.getElementById('chatHeader');
             const chatInputArea = document.getElementById('chatInputArea');
@@ -3130,19 +3175,39 @@
                     `;
                     return;
                 }
-                
-                snapshot.forEach(doc => {
-                    const msg = doc.data();
-                    const isMe = msg.senderId === (window.currentUser?.uid || window.auth?.currentUser?.uid);
+
+                const myUid = window.dashboardUser?.uid || window.currentUser?.uid || window.auth?.currentUser?.uid;
+                const otherUid = activeChat?.otherUser?.uid;
+
+                // Find index of last message sent by me
+                const docs = snapshot.docs;
+                let lastMeIndex = -1;
+                docs.forEach((d, i) => { if (d.data().senderId === myUid) lastMeIndex = i; });
+
+                docs.forEach((d, i) => {
+                    const msg = d.data();
+                    const isMe = msg.senderId === myUid;
                     
                     const msgDiv = document.createElement('div');
                     msgDiv.className = `flex ${isMe ? 'justify-end' : 'justify-start'} mb-3`;
+
+                    // Determine if "Visto" should show (only on last msg I sent)
+                    let vistoHtml = '';
+                    if (isMe && i === lastMeIndex && _chatReadAt[otherUid]) {
+                        const readTime = _chatReadAt[otherUid]?.toDate ? _chatReadAt[otherUid].toDate() : null;
+                        const msgTime = msg.timestamp?.toDate ? msg.timestamp.toDate() : null;
+                        if (readTime && msgTime && readTime >= msgTime) {
+                            vistoHtml = `<p class="text-xs text-indigo-200 text-right mt-0.5">Visto ✓✓</p>`;
+                        }
+                    }
+
                     msgDiv.innerHTML = `
                         <div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-800'} rounded-2xl px-4 py-2 max-w-xs shadow-sm">
                             <p class="text-sm whitespace-pre-wrap break-words">${escapeHtml(msg.text)}</p>
                             <p class="text-xs mt-1 ${isMe ? 'text-indigo-200' : 'text-gray-500'}">
                                 ${msg.timestamp ? formatTime(msg.timestamp.toDate()) : 'Enviando...'}
                             </p>
+                            ${vistoHtml}
                         </div>
                     `;
                     chatMessagesArea.appendChild(msgDiv);
@@ -3150,6 +3215,12 @@
                 
                 // Scroll al final
                 scrollChatToBottom();
+            });
+
+            // Escuchar readAt del chat para actualizar "Visto" en tiempo real
+            if (chatDocUnsubscribe) chatDocUnsubscribe();
+            chatDocUnsubscribe = onSnapshot(doc(window.db, 'chats', chatId), (chatSnap) => {
+                _chatReadAt = chatSnap.data()?.readAt || {};
             });
         }
         
@@ -4233,8 +4304,40 @@
 
         // Estadísticas
         function initEstadisticas(){
-            console.log('📈 Inicializando sección de estadísticas');
+            console.log('📈 Inicializando sección de cursos/estadísticas');
+            loadCoursesFromFirestore();
             loadProfessorStats();
+        }
+
+        async function loadCoursesFromFirestore() {
+            const container = document.getElementById('coursesFromFirestore');
+            if (!container) return;
+            try {
+                const snap = await getDocs(collection(window.db, 'courses'));
+                if (snap.empty) {
+                    container.innerHTML = '<p class="text-gray-400 text-sm col-span-full text-center py-4">No hay cursos cargados aún. El administrador puede añadirlos.</p>';
+                    return;
+                }
+                container.innerHTML = snap.docs.map(d => {
+                    const c = d.data();
+                    const img = c.image || c.imageUrl;
+                    return `<div class="card flex gap-4 items-start hover:shadow-md transition">
+                        ${img ? `<img src="${img}" class="w-16 h-16 rounded-lg object-cover flex-shrink-0">` : `<div class="w-16 h-16 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0"><svg class="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></div>`}
+                        <div class="flex-1 min-w-0">
+                            <span class="text-xs px-2 py-0.5 rounded-full ${c.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">${c.isActive ? 'Activo' : 'Inactivo'}</span>
+                            <h4 class="font-bold text-gray-800 mt-1 text-sm">${c.name || 'Sin nombre'}</h4>
+                            <p class="text-xs text-gray-500 line-clamp-2 mt-0.5">${c.description || ''}</p>
+                            <div class="flex gap-3 mt-2 text-xs text-gray-400">
+                                <span>${c.duration || ''}</span>
+                                <span>${c.category || ''}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch(e) {
+                console.error('Error cargando cursos:', e);
+                container.innerHTML = '<p class="text-red-400 text-sm col-span-full text-center">Error al cargar cursos</p>';
+            }
         }
 
         async function loadProfessorStats(){
