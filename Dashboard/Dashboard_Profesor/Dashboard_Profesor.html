@@ -2576,6 +2576,8 @@
                 alert('❌ Error al guardar asistencia');
             }
         }
+
+        function closeGroupDetailModal() {
             document.getElementById('groupDetailModal').classList.add('hidden');
             document.getElementById('groupChannelEmpty')?.classList.remove('hidden');
             currentGroupId = null;
@@ -5340,7 +5342,6 @@
             }
             window.openUserModalReal = openUserModalReal;
         </script>
-        <script src="../js/global-ui.js"></script>
         <script type="module">
             import '../../js/firebase-init.js';
             import { initAuth } from '../../js/auth.js';
