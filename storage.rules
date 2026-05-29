@@ -16,6 +16,35 @@ service firebase.storage {
       return request.auth.uid == userId;
     }
     
+    // Archivos de tareas adjuntos por profesores
+    match /task-attachments/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isOwner(userId)
+                      && request.resource.size < 20 * 1024 * 1024;
+    }
+
+    // Archivos adjuntos en publicaciones de grupos
+    match /group-posts/{groupId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                      && request.resource.size < 20 * 1024 * 1024;
+    }
+
+    // Imágenes de portada de grupos
+    match /group-covers/{groupId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                      && request.resource.size < 5 * 1024 * 1024
+                      && request.resource.contentType.matches('image/.*');
+    }
+
+    // Archivos de chat
+    match /chat-files/{chatId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                      && request.resource.size < 20 * 1024 * 1024;
+    }
+
     // Imágenes de perfil de usuarios
     match /users/{userId}/profile/{fileName} {
       allow read: if isAuthenticated();

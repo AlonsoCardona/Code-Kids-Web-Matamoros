@@ -1369,6 +1369,54 @@ async function loadRequests() {
     console.error('Error cargando solicitudes', e);
     tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-red-500">Error al cargar solicitudes</td></tr>';
   }
+
+  // Cargar reportes de problema de profesores/estudiantes
+  loadProblemReports();
+}
+
+async function loadProblemReports() {
+  const container = document.getElementById('reportsListAdmin');
+  if (!container) return;
+  container.innerHTML = '<p class="text-gray-400 text-center py-8">Cargando reportes...</p>';
+  try {
+    const q = query(collection(db, 'reports'), where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
+    onSnapshot(q, snap => {
+      if (snap.empty) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-8">No hay reportes de problema pendientes.</p>';
+        return;
+      }
+      container.innerHTML = snap.docs.map(d => {
+        const r = d.data();
+        const date = r.createdAt?.toDate?.()?.toLocaleString() || 'Fecha desconocida';
+        const typeLabel = { technical: 'Técnico', content: 'Contenido', conduct: 'Conducta', other: 'Otro' }[r.type] || r.type || 'General';
+        const roleLabel = r.reporterRole === 'profesor' ? '👨‍🏫 Profesor' : '👨‍🎓 Estudiante';
+        return `
+          <div class="border border-yellow-200 bg-yellow-50 rounded-xl p-4 flex flex-col gap-2">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-xs font-semibold bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full">${typeLabel}</span>
+                  <span class="text-xs text-gray-500">${roleLabel}</span>
+                  <span class="text-xs text-gray-400">${date}</span>
+                </div>
+                <p class="font-semibold text-gray-800 text-sm">${r.subject || 'Sin asunto'}</p>
+                <p class="text-gray-600 text-sm mt-1">${r.description || ''}</p>
+                <p class="text-xs text-gray-400 mt-1">${r.reporterName || ''} &lt;${r.reporterEmail || ''}&gt;</p>
+              </div>
+              <button data-reportid="${d.id}" class="markReportDone text-xs px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold">Resuelto</button>
+            </div>
+          </div>`;
+      }).join('');
+      container.querySelectorAll('.markReportDone').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await updateDoc(doc(db, 'reports', btn.dataset.reportid), { status: 'resolved' });
+        });
+      });
+    });
+  } catch (e) {
+    console.error('Error cargando reportes', e);
+    container.innerHTML = '<p class="text-red-400 text-center py-4">Error al cargar reportes.</p>';
+  }
 }
 
 // Eliminar solicitud con confirmación
