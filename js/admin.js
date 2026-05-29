@@ -839,8 +839,50 @@ async function loadCourses() {
   `;
 
   try {
+    const DEMO_IMAGE = '/images/Cursos/FondoCurso.PNG';
     const snapshot = await getDocs(collection(db, 'courses'));
-    allCoursesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    allCoursesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Ensure Python demo course exists
+    const hasPython = allCoursesData.some(c => c.name && c.name.includes('Misión Python'));
+    if (!hasPython) {
+      const demoCourse = {
+        name: '¡Misión Python: Tu Primera Aventura Programando!',
+        description: '¿Te gustaría saber cómo hablan las computadoras? ¡En este video súper divertido aprenderás a crear tus primeros hechizos tecnológicos usando Python! No necesitas saber nada de antes, solo muchas ganas de divertirte, explorar y escribir tu primer "¡Hola Mundo!".',
+        category: 'Python',
+        level: 'principiante',
+        duration: '~30 min',
+        image: DEMO_IMAGE,
+        imageUrl: DEMO_IMAGE,
+        lessonsCount: 3,
+        isActive: true,
+        steps: [
+          { number: 1, title: '¡Introduccion a Programacion! | Python | Parte 1', videoUrl: 'https://youtu.be/g8q4teQ2BN4?si=QqAZwrEu2kywx0u8' },
+          { number: 2, title: '¡Introduccion a Programacion! | Python | Parte 2', videoUrl: 'https://youtu.be/StBHsV-GGA8?si=SYuzw3qlAKduMBUW' },
+          { number: 3, title: '¡Introduccion a Programacion! | Python | Parte 3', videoUrl: 'https://youtu.be/67db0eerTKE?si=m38pBxZJGE4_XyFA' }
+        ],
+        createdAt: serverTimestamp()
+      };
+      try {
+        const newRef = await addDoc(collection(db, 'courses'), demoCourse);
+        allCoursesData.unshift({ id: newRef.id, ...demoCourse });
+      } catch (seedErr) {
+        console.warn('[admin] No se pudo sembrar curso demo:', seedErr);
+      }
+    }
+
+    // Migrate: add image to any course that lacks it
+    const migrationPromises = allCoursesData.map(async c => {
+      if (!c.image && !c.imageUrl) {
+        try {
+          await updateDoc(doc(db, 'courses', c.id), { image: DEMO_IMAGE, imageUrl: DEMO_IMAGE });
+          c.image = DEMO_IMAGE;
+          c.imageUrl = DEMO_IMAGE;
+        } catch (_) {}
+      }
+    });
+    await Promise.allSettled(migrationPromises);
+
     renderCoursesList(allCoursesData);
   } catch (error) {
     console.error('Error cargando cursos:', error);
