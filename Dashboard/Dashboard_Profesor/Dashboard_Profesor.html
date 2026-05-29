@@ -1752,21 +1752,25 @@
         // Cerrar sesión
         window.logout = async function() {
             const result = await Swal.fire({
-                title: '¿Cerrar sesión?',
-                text: '¿Estás seguro que quieres salir de tu cuenta?',
-                icon: 'question',
+                title: 'Cerrar sesión',
+                text: '¿Seguro que quieres salir de tu cuenta?',
+                icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
                 cancelButtonColor: '#6b7280',
                 confirmButtonText: 'Sí, salir',
                 cancelButtonText: 'Cancelar',
-                borderRadius: '1rem'
+                customClass: { popup: 'rounded-2xl' },
+                backdrop: 'rgba(0,0,0,0.4)'
             });
             if (result.isConfirmed) {
                 try {
+                    Swal.fire({ title: 'Hasta pronto 👋', text: 'Cerrando sesión...', icon: 'success', timer: 1200, showConfirmButton: false, customClass: { popup: 'rounded-2xl' } });
                     try { localStorage.removeItem('codekids_user_state'); } catch(_){ }
-                    await signOut(window.auth);
-                    window.location.href = '../auth/login.html';
+                    setTimeout(async () => {
+                        await signOut(window.auth);
+                        window.location.href = '../auth/login.html';
+                    }, 1000);
                 } catch (error) {
                     console.error('Error al cerrar sesión:', error);
                     Swal.fire({ title: 'Error', text: 'No se pudo cerrar la sesión. Intenta de nuevo.', icon: 'error', confirmButtonColor: '#6366f1' });
@@ -2227,9 +2231,14 @@
         
         async function handleGroupSubmit(e) {
             e.preventDefault();
+
+            // Guard anti-doble-submit
+            const submitBtn = e.target.querySelector('[type="submit"]');
+            if (submitBtn?.disabled) return;
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Guardando...'; }
             
             const user = window.dashboardUser || window.currentUser || window.auth?.currentUser;
-            if (!user) return;
+            if (!user) { if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Guardar'; } return; }
             
             const groupData = {
                 name: document.getElementById('groupName').value.trim(),
@@ -2274,6 +2283,8 @@
             } catch (error) {
                 console.error('Error guardando grupo:', error);
                 alert('❌ Error al guardar el grupo');
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = currentGroupId ? 'Actualizar Grupo' : 'Crear Grupo'; }
             }
         }
         
@@ -5669,11 +5680,7 @@
                 window.loadXPFromFirestore = loadXPFromFirestore;
             }
             
-            window.logout = async function() {
-                if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-                    try { await signOut(window.auth); window.location.href = '../../Vistas_Publicas/Pagina_Inicio.html'; } catch (e) { alert('Error al cerrar sesión'); }
-                }
-            };
+            // Logout ya definido en el script principal con SweetAlert2 — no redefinir
             
             // ========== BÚSQUEDA REAL CON FIRESTORE ==========
             const searchInput = document.getElementById('globalSearch');
