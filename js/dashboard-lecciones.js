@@ -1,7 +1,14 @@
 // ========== MÓDULO DE LECCIONES EN DASHBOARD ==========
 
-// Catálogo de cursos
-const COURSES_DASH = [
+// Extrae el ID de YouTube de una URL completa
+function extractYouTubeId(url) {
+  if (!url) return '';
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : '';
+}
+
+// Catálogo de cursos (puede ser extendido con datos de Firestore)
+let COURSES_DASH = [
   {
     id: 'python_basico',
     title: 'Python Básico',
@@ -57,6 +64,39 @@ export async function initLecciones() {
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
+  }
+
+  // Cargar cursos desde Firestore y añadirlos al frente del catálogo
+  try {
+    const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const snap = await getDocs(collection(window.db, 'courses'));
+    if (!snap.empty) {
+      const firestoreCourses = [];
+      snap.forEach(d => {
+        const c = d.data();
+        const videos = (c.steps || []).map((s, i) => {
+          const ytId = extractYouTubeId(s.videoUrl || '');
+          return { id: `s${i + 1}`, title: s.title || `Paso ${i + 1}`, ytId, duration: 300 };
+        }).filter(v => v.ytId);
+        if (c.name && videos.length > 0) {
+          const firstYtId = videos[0].ytId;
+          firestoreCourses.push({
+            id: d.id,
+            title: c.name,
+            description: c.description || '',
+            thumbnail: c.imageUrl || `https://img.youtube.com/vi/${firstYtId}/maxresdefault.jpg`,
+            level: c.level ? (c.level.charAt(0).toUpperCase() + c.level.slice(1)) : 'Principiante',
+            duration: c.duration || '',
+            videos
+          });
+        }
+      });
+      if (firestoreCourses.length > 0) {
+        COURSES_DASH = [...firestoreCourses, ...COURSES_DASH];
+      }
+    }
+  } catch (err) {
+    console.error('[Lecciones] Error cargando cursos de Firestore:', err);
   }
   
   // Cargar progreso del usuario
