@@ -1,1 +1,3 @@
-/*  /index.html  200
+# Multi-page app: no SPA fallback.
+# Removed "/* /index.html 200" — that pattern hides 404s and breaks SEO/analytics.
+# Real 404s are now returned for unknown paths.

@@ -35,14 +35,57 @@ try { admin.initializeApp(); } catch (e) { /* already initialized */ }
 const fetch = require('node-fetch');
 const { https } = require('firebase-functions');
 
-// ===== Cody IA - Proxy a Ollama (IA local gratuita) =====
-// Conecta con Ollama corriendo localmente en http://localhost:11434
+// CORS: allowed origins
+const ALLOWED_ORIGINS = [
+	'https://code-kidsweb.onrender.com',
+	'http://127.0.0.1:5002',
+	'http://localhost:5002',
+	'http://127.0.0.1:5000',
+	'http://localhost:5000',
+];
+function setCorsHeaders(req, res) {
+	const origin = req.headers.origin || '';
+	if (ALLOWED_ORIGINS.includes(origin)) {
+		res.set('Access-Control-Allow-Origin', origin);
+	}
+	res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+	res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+}
+
+// ===== Cody IA - Proxy a Ollama (IA local) =====
+// ⚠️  NOTE: This function calls Ollama at http://127.0.0.1:11434, which only works
+//     when running the Firebase emulator locally with `ollama serve` active.
+//     In the Cloud Functions runtime (production) there is no Ollama process, so
+//     every call will fail with "Fallo interno. ¿Ollama está corriendo?".
+//     To make Cody work in production, replace the Ollama call with a managed
+//     LLM API (e.g. Vertex AI, OpenAI, Anthropic) and set the key via env vars.
 
 exports.codyChat = https.onRequest(async (req, res) => {
-	// CORS simple
-	res.set('Access-Control-Allow-Origin', '*');
+	// CORS: only allow the deployed origins
+	const allowedOrigins = [
+		'https://code-kidsweb.onrender.com',
+		'http://127.0.0.1:5002',
+		'http://localhost:5002',
+	];
+	const origin = req.headers.origin || '';
+	if (allowedOrigins.includes(origin)) {
+		res.set('Access-Control-Allow-Origin', origin);
+	}
 	res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 	if (req.method === 'OPTIONS') return res.status(204).send('');
+
+	// Require a valid Firebase ID token
+	const authHeader = (req.headers.authorization || '');
+	const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!idToken) {
+		return res.status(401).json({ error: 'No autorizado: se requiere token' });
+	}
+	try {
+		await admin.auth().verifyIdToken(idToken);
+	} catch (tokenErr) {
+		logger.warn('codyChat: token inválido', tokenErr);
+		return res.status(401).json({ error: 'No autorizado: token inválido' });
+	}
 
 	try {
 		const { messages, max_tokens = 800, temperature = 0.7 } = req.body || {};
@@ -280,6 +323,8 @@ function validatePasswordComplexity(pw, email) {
 }
 
 exports.resolveAdminPasswordReset = onRequest(async (req, res) => {
+	setCorsHeaders(req, res);
+	if (req.method === 'OPTIONS') return res.status(204).send('');
 	if (req.method !== 'POST') {
 		return res.status(405).json({ error: 'Método no permitido' });
 	}
@@ -381,6 +426,8 @@ async function nextCounterForRoleLetter(letter) {
 }
 
 exports.adminCreateUser = onRequest(async (req, res) => {
+	setCorsHeaders(req, res);
+	if (req.method === 'OPTIONS') return res.status(204).send('');
 	if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 	try {
 		const adminUser = await verifyAdminFromRequest(req);
@@ -416,14 +463,9 @@ exports.adminCreateUser = onRequest(async (req, res) => {
 			}
 		}
 
-		// Generate temp password and ensure not duplicated across tempPassword (best-effort)
+		// Generate temp password (never stored in Firestore — returned only to the admin)
 		const db = admin.firestore();
-		let tempPassword = randomPassword(12);
-		for (let tries = 0; tries < 3; tries++) {
-			const q = await db.collection('users').where('tempPassword', '==', tempPassword).limit(1).get();
-			if (q.empty) break;
-			tempPassword = randomPassword(12);
-		}
+		const tempPassword = randomPassword(12);
 
 		// Create auth user
 		const displayName = `${nombre} ${apellidoPaterno} ${apellidoMaterno}`.trim();
@@ -457,7 +499,8 @@ exports.adminCreateUser = onRequest(async (req, res) => {
 				lastLogin: null,
 				passwordChangeRequired: true,
 				passwordValidUntil: null,
-				tempPassword,
+				// tempPassword is intentionally NOT stored in Firestore.
+				// It is returned only once to the calling admin via HTTPS.
 			});
 		} catch (firestoreErr) {
 			logger.error('adminCreateUser Firestore write failed', { message: firestoreErr.message, stack: firestoreErr.stack });
@@ -468,6 +511,21 @@ exports.adminCreateUser = onRequest(async (req, res) => {
 				return res.status(500).json({ error: 'firestore_write_failed', message: firestoreErr.message || null });
 			}
 			throw firestoreErr;
+		}
+
+		// Asignar custom claims según el rol para que las reglas de Firestore
+		// puedan verificarlo desde el token (sin leer Firestore).
+		try {
+			const claims = {};
+			const roleLower = role.toLowerCase();
+			if (roleLower === 'admin') claims.admin = true;
+			if (roleLower === 'profesor' || roleLower === 'teacher') claims.teacher = true;
+			if (Object.keys(claims).length > 0) {
+				await auth.setCustomUserClaims(userRecord.uid, claims);
+			}
+		} catch (claimErr) {
+			// No es fatal — el fallback de Firestore en las reglas sigue funcionando
+			logger.warn('adminCreateUser: no se pudieron asignar custom claims', { uid: userRecord.uid, err: claimErr.message });
 		}
 
 		await logActivity('USER_CREATED', { actorUid: adminUser.uid, userUid: userRecord.uid, role: role, email });
@@ -545,5 +603,149 @@ exports.requestPasswordReset = onRequest({ cors: true }, async (req, res) => {
 		logger.error('requestPasswordReset error', error);
 		// Incluso en error, responder con éxito para evitar enumeración
 		return res.status(200).json({ success: true, message: 'Solicitud recibida' });
+	}
+});
+
+// ==============================
+// Admin: Update user
+// ==============================
+exports.adminUpdateUser = onRequest(async (req, res) => {
+	setCorsHeaders(req, res);
+	if (req.method === 'OPTIONS') return res.status(204).send('');
+	if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+	try {
+		const adminUser = await verifyAdminFromRequest(req);
+		if (!adminUser) return res.status(403).json({ error: 'No autorizado' });
+
+		const { uid, nombre, apellidoPaterno, apellidoMaterno, role, schoolId } = req.body || {};
+		if (!uid || !nombre || !apellidoPaterno || !apellidoMaterno || !role) {
+			return res.status(400).json({ error: 'Campos requeridos: uid, nombre, apellidoPaterno, apellidoMaterno, role' });
+		}
+
+		const displayName = `${nombre} ${apellidoPaterno} ${apellidoMaterno}`.trim();
+		const roleLower = role.toLowerCase();
+
+		// Update Auth displayName
+		await admin.auth().updateUser(uid, { displayName });
+
+		// Update custom claims based on new role
+		const claims = {};
+		if (roleLower === 'admin') claims.admin = true;
+		if (roleLower === 'profesor' || roleLower === 'teacher') claims.teacher = true;
+		try {
+			await admin.auth().setCustomUserClaims(uid, claims);
+		} catch (claimErr) {
+			logger.warn('adminUpdateUser: no se pudieron actualizar custom claims', { uid, err: claimErr.message });
+		}
+
+		// Update Firestore document
+		const db = admin.firestore();
+		const roleLetter = mapRoleLetter(role);
+		await db.collection('users').doc(uid).set({
+			nombre,
+			apellidoPaterno,
+			apellidoMaterno,
+			displayName,
+			searchableDisplayName: displayName.toLowerCase(),
+			role: (role[0].toUpperCase() + role.slice(1).toLowerCase()),
+			rol: roleLower,
+			roleLetter,
+			schoolId: schoolId || null,
+			updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+		}, { merge: true });
+
+		await logActivity('USER_UPDATED', { actorUid: adminUser.uid, targetUid: uid, role });
+		return res.status(200).json({ message: 'Usuario actualizado correctamente' });
+	} catch (err) {
+		logger.error('adminUpdateUser error', err);
+		return res.status(500).json({ error: 'Error interno' });
+	}
+});
+
+// ==============================
+// Admin: Set user password
+// ==============================
+exports.adminSetUserPassword = onRequest(async (req, res) => {
+	setCorsHeaders(req, res);
+	if (req.method === 'OPTIONS') return res.status(204).send('');
+	if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+	try {
+		const adminUser = await verifyAdminFromRequest(req);
+		if (!adminUser) return res.status(403).json({ error: 'No autorizado' });
+
+		const { uid, generateRandom, newPassword: providedPassword } = req.body || {};
+		if (!uid) return res.status(400).json({ error: 'uid requerido' });
+
+		let newPassword;
+		if (generateRandom) {
+			newPassword = randomPassword(12);
+		} else if (providedPassword) {
+			const userRecord = await admin.auth().getUser(uid);
+			if (!validatePasswordComplexity(providedPassword, userRecord.email)) {
+				return res.status(400).json({ error: 'La contraseña no cumple los requisitos (mínimo 12 chars, mayúscula, minúscula, número, símbolo)' });
+			}
+			newPassword = providedPassword;
+		} else {
+			return res.status(400).json({ error: 'Se requiere generateRandom:true o newPassword' });
+		}
+
+		// Update password in Firebase Auth
+		await admin.auth().updateUser(uid, { password: newPassword });
+
+		// Force password change on next login
+		const db = admin.firestore();
+		const validUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+		await db.collection('users').doc(uid).set({
+			passwordChangeRequired: true,
+			forcePasswordChange: true,
+			passwordValidUntil: validUntil,
+			lastPasswordResetByAdminAt: admin.firestore.FieldValue.serverTimestamp(),
+			lastPasswordResetBy: adminUser.uid,
+		}, { merge: true });
+
+		await logActivity('USER_PASSWORD_SET', { actorUid: adminUser.uid, targetUid: uid });
+		return res.status(200).json({ message: 'Contraseña actualizada', newPassword });
+	} catch (err) {
+		logger.error('adminSetUserPassword error', err);
+		return res.status(500).json({ error: 'Error interno' });
+	}
+});
+
+// ==============================
+// Admin: Delete user
+// ==============================
+exports.adminDeleteUser = onRequest(async (req, res) => {
+	setCorsHeaders(req, res);
+	if (req.method === 'OPTIONS') return res.status(204).send('');
+	if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+	try {
+		const adminUser = await verifyAdminFromRequest(req);
+		if (!adminUser) return res.status(403).json({ error: 'No autorizado' });
+
+		const { uid } = req.body || {};
+		if (!uid) return res.status(400).json({ error: 'uid requerido' });
+
+		// Prevent self-deletion
+		if (uid === adminUser.uid) {
+			return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta' });
+		}
+
+		// Delete from Firebase Auth
+		try {
+			await admin.auth().deleteUser(uid);
+		} catch (authErr) {
+			if (authErr.code !== 'auth/user-not-found') throw authErr;
+			logger.warn('adminDeleteUser: user not found in Auth, deleting Firestore doc only', { uid });
+		}
+
+		// Delete from Firestore
+		const db = admin.firestore();
+		await db.collection('users').doc(uid).delete();
+
+		await logActivity('USER_DELETED', { actorUid: adminUser.uid, deletedUid: uid });
+		return res.status(200).json({ message: 'Usuario eliminado correctamente' });
+	} catch (err) {
+		logger.error('adminDeleteUser error', err);
+		return res.status(500).json({ error: 'Error interno' });
 	}
 });

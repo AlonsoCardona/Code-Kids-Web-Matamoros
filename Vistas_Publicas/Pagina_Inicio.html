@@ -1054,6 +1054,143 @@
         .theme-off .icon-moon { opacity:0.2; }
         .theme-toggle:focus-visible { outline: 3px solid rgba(111,66,193,0.12); border-radius: 8px; }
     </style>
+
+    <style>
+        /* ======================================================
+           MODO OSCURO: SECCIONES INTERIORES
+           ====================================================== */
+
+        /* --- Sobre Nosotros --- */
+        .theme-dark #pantalla-sobre-nosotros section {
+            background: #111827 !important;
+        }
+        .theme-dark #pantalla-sobre-nosotros h1,
+        .theme-dark #pantalla-sobre-nosotros h2 {
+            color: #A78BFA !important;
+        }
+        .theme-dark #pantalla-sobre-nosotros p:not(.card-popup .popup-body) {
+            color: #9CA3AF !important;
+        }
+        .theme-dark #pantalla-sobre-nosotros button {
+            color: #A78BFA !important;
+        }
+        .theme-dark #pantalla-sobre-nosotros .shape {
+            color: #6D28D9 !important;
+            opacity: 0.2 !important;
+        }
+
+        /* --- Características --- */
+        .theme-dark #pantalla-caracteristicas section {
+            background: #1F2937 !important;
+        }
+        .theme-dark #pantalla-caracteristicas h1,
+        .theme-dark #pantalla-caracteristicas h2 {
+            color: #A78BFA !important;
+        }
+        .theme-dark #pantalla-caracteristicas > div > p {
+            color: #9CA3AF !important;
+        }
+        .theme-dark #pantalla-caracteristicas button {
+            color: #A78BFA !important;
+        }
+        .theme-dark #pantalla-caracteristicas .shape {
+            color: #6D28D9 !important;
+            opacity: 0.2 !important;
+        }
+        .theme-dark .caracteristicas-postit h3 {
+            color: #F9FAFB !important;
+        }
+        .theme-dark .caracteristicas-postit p:not(.card-popup .popup-body) {
+            color: #E5E7EB !important;
+        }
+
+        /* --- Para Profesores --- */
+        .theme-dark #pantalla-profesores section {
+            background: #111827 !important;
+        }
+        .theme-dark #pantalla-profesores h1,
+        .theme-dark #pantalla-profesores h2 {
+            color: #A78BFA !important;
+        }
+        .theme-dark #pantalla-profesores p:not(.card-popup .popup-body) {
+            color: #9CA3AF !important;
+        }
+        .theme-dark #pantalla-profesores button {
+            color: #A78BFA !important;
+        }
+        .theme-dark #pantalla-profesores .shape {
+            color: #6D28D9 !important;
+            opacity: 0.2 !important;
+        }
+
+        /* ======================================================
+           POPUPS INFORMATIVOS DE TARJETAS
+           ====================================================== */
+        .card-popup {
+            position: absolute;
+            bottom: calc(100% + 14px);
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            width: 270px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(139,92,246,0.12);
+            border: 1.5px solid rgba(139,92,246,0.18);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.25s cubic-bezier(.2,.9,.2,1);
+            z-index: 200;
+            pointer-events: none;
+            text-align: left;
+        }
+        .card-popup::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 9px solid transparent;
+            border-top-color: #ffffff;
+        }
+        .card-popup .popup-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #7C3AED;
+            margin-bottom: 0.4rem;
+            font-family: 'Fredoka', sans-serif;
+        }
+        .card-popup .popup-body {
+            font-size: 0.8rem;
+            color: #4B5563 !important;
+            line-height: 1.55;
+        }
+
+        /* Activar popup al hacer hover */
+        .puzzle-card:hover .card-popup,
+        .caracteristicas-postit:hover .card-popup,
+        .profesor-libro-card:hover .card-popup {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Popup en modo oscuro */
+        .theme-dark .card-popup {
+            background: #1E293B;
+            border-color: rgba(139,92,246,0.3);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(139,92,246,0.2);
+        }
+        .theme-dark .card-popup::after {
+            border-top-color: #1E293B;
+        }
+        .theme-dark .card-popup .popup-title {
+            color: #A78BFA !important;
+        }
+        .theme-dark .card-popup .popup-body {
+            color: #CBD5E1 !important;
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-purple-50 to-blue-50">
     <!-- Header Simplificado -->
@@ -2428,5 +2565,76 @@
         </script>
         
         <script src="../js/theme-toggle.js"></script>
+
+        <script>
+        // Inyectar popups informativos en cada tarjeta
+        (function initCardPopups() {
+            const data = {
+                'puzzle-card': [
+                    {
+                        title: 'Nuestra misión',
+                        body: 'Inspirar a jóvenes de 6 a 15 años a crear con tecnología desde el primer día, sin importar su nivel previo.'
+                    },
+                    {
+                        title: 'Metodología',
+                        body: 'Ciclos de aprendizaje cortos con teoría, práctica guiada y proyecto final. Retroalimentación inmediata.'
+                    },
+                    {
+                        title: 'Seguridad primero',
+                        body: 'Sin perfiles públicos. Cuentas cerradas gestionadas por docentes. Privacidad total para cada estudiante.'
+                    },
+                    {
+                        title: 'Comunidad',
+                        body: 'Foros privados, galería de proyectos compartida y eventos virtuales mensuales para toda la comunidad.'
+                    }
+                ],
+                'caracteristicas-postit': [
+                    {
+                        title: 'Metodología Interactiva',
+                        body: 'Bloques visuales, código real y proyectos paso a paso. Más de 40 lecciones estructuradas por nivel.'
+                    },
+                    {
+                        title: 'Proyectos del Mundo Real',
+                        body: 'Desde una calculadora hasta un juego de aventuras. Tus alumnos publican y comparten sus creaciones.'
+                    },
+                    {
+                        title: 'Soporte para Educadores',
+                        body: 'Panel de control, reportes semanales de progreso y biblioteca de recursos didácticos descargables.'
+                    }
+                ],
+                'profesor-libro-card': [
+                    {
+                        title: 'Gestión simple',
+                        body: 'Hasta 5 grupos de 30 alumnos cada uno. Invita con un código único y activa o pausa cuentas al instante.'
+                    },
+                    {
+                        title: 'Progreso claro',
+                        body: 'Gráficas de actividad semanal, lista de insignias ganadas y tiempo de conexión por estudiante.'
+                    },
+                    {
+                        title: 'Retos a medida',
+                        body: 'Elige entre más de 80 actividades, ajusta la dificultad y asigna fechas límite sin salir del panel.'
+                    },
+                    {
+                        title: 'Comunicación segura',
+                        body: 'Mensajes revisados por filtros de contenido. Historial completo disponible para el docente en todo momento.'
+                    }
+                ]
+            };
+
+            Object.entries(data).forEach(function([cls, items]) {
+                var cards = document.querySelectorAll('.' + cls);
+                cards.forEach(function(card, i) {
+                    if (!items[i]) return;
+                    var popup = document.createElement('div');
+                    popup.className = 'card-popup';
+                    popup.innerHTML =
+                        '<p class="popup-title">' + items[i].title + '</p>' +
+                        '<p class="popup-body">' + items[i].body + '</p>';
+                    card.appendChild(popup);
+                });
+            });
+        })();
+        </script>
 </body>
 </html>

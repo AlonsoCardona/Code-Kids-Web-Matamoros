@@ -6,29 +6,46 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    // Lee el documento del usuario en Firestore.
+    // Solo se usa como fallback para isTeacher() mientras los claims de rol
+    // no estén asignados a usuarios existentes. isAdmin() NO lo usa.
     function getCurrentUser() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
     
+    // isAdmin: verifica custom claim (usuarios nuevos) con fallback a Firestore (usuarios sin claim)
+    // Seguro: los usuarios no pueden cambiar su propio role/rol gracias a roleFieldsUnchanged()
     function isAdmin() {
       return isAuthenticated() && (
+        request.auth.token.admin == true ||
         getCurrentUser().role == 'Admin' ||
         getCurrentUser().rol == 'admin'
       );
     }
     
+    // isTeacher: primero verifica claim (usuarios nuevos), luego fallback a Firestore (usuarios existentes)
     function isTeacher() {
       return isAuthenticated() && (
+        request.auth.token.teacher == true ||
         getCurrentUser().role == 'Profesor' ||
         getCurrentUser().rol == 'profesor' ||
         getCurrentUser().rol == 'teacher'
       );
     }
+
+    // Garantiza que los campos de rol no cambien en una auto-actualización
+    function roleFieldsUnchanged() {
+      return request.resource.data.role == resource.data.role &&
+             request.resource.data.rol  == resource.data.rol;
+    }
     
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      // FIX §1.2: estudiantes solo pueden leer su propio doc; profesores y admins pueden leer cualquiera
+      allow read: if request.auth.uid == userId || isTeacher() || isAdmin();
       allow create: if isAdmin();
-      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
+      // FIX §1.3: un usuario actualizando su propio doc NO puede cambiar los campos de rol
+      allow update: if isAdmin() ||
+                       (request.auth.uid == userId && roleFieldsUnchanged());
       allow delete: if isAdmin();
       
       match /notifications/{notifId} {
@@ -50,7 +67,7 @@ service cloud.firestore {
     }
     
     match /schools/{schoolId} {
-      allow read: if isAuthenticated();
+      allow read: if true;   // Escuelas visibles públicamente (mapa en la landing page)
       allow write: if isAdmin();
     }
     
@@ -168,8 +185,14 @@ service cloud.firestore {
     }
     
     match /userPasswords/{userId} {
+      // El admin puede crear/actualizar contraseñas de otros usuarios
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+    }
+
+    match /passwordRecords/{userId} {
+      allow read, write: if isAdmin();
       allow write: if isAuthenticated() && request.auth.uid == userId;
-      allow read: if isAdmin();
     }
   }
 }

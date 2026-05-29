@@ -34,3 +34,6 @@ dist/
 build/
 .cache/
 service-account-dev.json
+
+# Auth emulator exports — contain password hashes, must NOT be committed
+functions/users.json

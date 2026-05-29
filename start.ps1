@@ -45,7 +45,7 @@ Write-Host ""
 
 # 3. Verificar dependencias
 Write-Host "Verificando dependencias..." -ForegroundColor Cyan
-$functionsPath = "E:\CMoon\Proyectos_JHerrera\Videos_Crudos_2\CodekidsProyectFredy-sVersion-main\functions"
+$functionsPath = Join-Path $PSScriptRoot "functions"
 
 if (-not (Test-Path "$functionsPath\node_modules")) {
     Write-Host "Instalando dependencias..." -ForegroundColor Yellow
@@ -67,5 +67,5 @@ Write-Host "- UI: http://127.0.0.1:4001" -ForegroundColor Gray
 Write-Host "- Cody IA: Ollama (local)" -ForegroundColor Magenta
 Write-Host ""
 
-cd "E:\CMoon\Proyectos_JHerrera\Videos_Crudos_2\CodekidsProyectFredy-sVersion-main"
+cd $PSScriptRoot
 firebase emulators:start --project demo-codekids

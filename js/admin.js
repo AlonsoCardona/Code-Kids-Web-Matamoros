@@ -27,7 +27,8 @@
 import { auth, db } from './firebase-config.js';
 import { initAuth, logout } from './auth.js';
 import { collection, getDocs, getDoc, query, where, orderBy, limit, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, getAuth as _getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { initializeApp as _initApp, deleteApp as _deleteApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 
 let currentUserData = null;
 
@@ -57,9 +58,9 @@ initAuth((user, userData) => {
   } catch(_) {}
   
   // SEGURIDAD: Solo Admins pueden acceder
-  // Si no es Admin, redirigir a app.html
+  // Si no es Admin, redirigir al login
   if (userData.role !== 'Admin' && userData.rol !== 'admin') {
-    window.location.href = 'app.html';
+    window.location.href = '/Vistas_Publicas/Inicio_De_Sesion.html';
     return;
   }
   
@@ -71,6 +72,7 @@ initAuth((user, userData) => {
   }
   
   setupAdminUI();
+  document.body.setAttribute('data-admin-ready', 'true'); // Marker for Cypress tests
   loadDashboard();
 });
 
@@ -164,7 +166,7 @@ function setupAdminUI() {
   
   // Menú perfil
   document.getElementById('adminGotoProfile')?.addEventListener('click', () => {
-    window.location.href = 'app/dashboard.html';
+    window.location.href = '/Dashboard/Dashboard_Administrador/Dashboard_Admin.html';
   });
     // Abrir Configuración desde menú de perfil
     const btnSettings = document.getElementById('adminGotoSettings');
@@ -486,6 +488,8 @@ function getAdminBase() {
   } catch { return ''; }
 }
 
+const CLOUD_FUNCTIONS_BASE = 'https://us-central1-codekids-dev.cloudfunctions.net';
+
 function buildAdminEndpoint(path) {
   let base = getAdminBase();
   if (!base) {
@@ -497,7 +501,7 @@ function buildAdminEndpoint(path) {
     } catch (_) {}
   }
   if (base) return base + path;
-  return path; // fallback a Hosting rewrite
+  return CLOUD_FUNCTIONS_BASE + path; // fallback directo a Cloud Functions
 }
 
 function initUsersFilters() {
@@ -1517,7 +1521,7 @@ function showResolveModal(notificationId, email) {
       <p class="text-sm text-gray-600 mt-2">Usuario: <span class="font-mono">${email}</span></p>
       <form class="mt-4 space-y-3" id="resolveForm">
         <label class="form-label">Nueva contraseña temporal</label>
-        <input type="text" id="newTempPw" class="form-input" placeholder="Contraseña segura" required />
+        <input type="password" id="newTempPw" class="form-input" placeholder="Contraseña segura" required />
         <div class="text-xs text-gray-500">Mínimo 12, mayúscula, minúscula, número y símbolo. No incluir usuario del correo.</div>
         <div id="rErr" class="alert alert-danger hidden"><span>⚠️</span><span id="rErrText"></span></div>
         <div id="rOk" class="alert alert-success hidden"><span>✅</span><span id="rOkText"></span></div>
@@ -1557,7 +1561,7 @@ function showResolveModal(notificationId, email) {
     rSubmit.disabled = true; rText.textContent = 'Procesando…'; rSpin.classList.remove('hidden');
     try {
       const token = await getAdminToken();
-      const res = await fetch('/resolveAdminPasswordReset', {
+      const res = await fetch('https://us-central1-codekids-dev.cloudfunctions.net/resolveAdminPasswordReset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ notificationId, newPassword: pw })
@@ -1736,133 +1740,124 @@ async function loadSchoolsIntoSelect() {
   }
 }
 
-// Manejar creación de usuario
+// Manejar creación de usuario — implementación 100% client-side (sin Cloud Functions)
 async function handleCreateUser(e) {
   e.preventDefault();
-  
+
   const submitBtn = document.getElementById('createUserSubmitBtn');
   const errorDiv = document.getElementById('createUserError');
-  
+
   const nombre = document.getElementById('newUserNombre').value.trim();
   const apellidoPaterno = document.getElementById('newUserApellidoPaterno').value.trim();
   const apellidoMaterno = document.getElementById('newUserApellidoMaterno').value.trim();
   const role = document.getElementById('newUserRole').value;
   const schoolId = document.getElementById('newUserSchool').value || null;
-  
+
   // Crear displayName completo
-  const displayName = `${nombre} ${apellidoPaterno} ${apellidoMaterno}`;
-  
+  const displayName = `${nombre} ${apellidoPaterno} ${apellidoMaterno}`.trim();
+
   // Validaciones
   if (!nombre || !apellidoPaterno || !apellidoMaterno || !role) {
     errorDiv.textContent = 'Por favor completa todos los campos obligatorios.';
     errorDiv.classList.remove('hidden');
     return;
   }
-  
+
   submitBtn.disabled = true;
   submitBtn.textContent = 'Creando usuario...';
   errorDiv.classList.add('hidden');
-  
-  // Determinar endpoint: producción (Hosting rewrite) o servidor local Node (solo desarrollo)
-  let endpoint = (typeof window.CODEKIDS_LOCAL_ADMIN_ENDPOINT === 'string' && window.CODEKIDS_LOCAL_ADMIN_ENDPOINT.length > 0)
-    ? window.CODEKIDS_LOCAL_ADMIN_ENDPOINT
-    : '/adminCreateUser';
-  
+
   try {
-    // Asegurar sesión inicializada antes de pedir token; evitar fetch sin token válido
-    const token = await getAdminToken().catch(() => null);
-    if (!token) {
-      throw new Error('Sesión no inicializada o expirada. Por favor inicia sesión nuevamente antes de crear usuarios.');
-    }
-    // DEBUG extra: rol del usuario administrador actual
+    // 1. Generar email institucional y contraseña temporal
+    const email = _generateEmail(nombre, apellidoPaterno);
+    const tempPassword = _generateTempPassword();
+
+    // 2. Crear el usuario en Firebase Auth usando una app secundaria para no cerrar la
+    //    sesión del administrador actual.
+    const firebaseConfig = auth.app.options;
+    const secondaryAppName = 'ck_user_create_' + Date.now();
+    const secondaryApp = _initApp(firebaseConfig, secondaryAppName);
+    const secondaryAuth = _getAuth(secondaryApp);
+
+    let uid;
     try {
-      console.log('[CrearUsuario] currentUserData.role:', currentUserData?.role, 'currentUserData.rol:', currentUserData?.rol);
-    } catch (_) {}
-    // DEBUG: Log token length (no el token completo) para verificar obtención
-    console.log('[CrearUsuario] Token obtenido, longitud:', token.length);
-    console.log('[CrearUsuario] Endpoint destino:', endpoint);
-  
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ nombre, apellidoPaterno, apellidoMaterno, role, schoolId })
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, email, tempPassword);
+      uid = cred.user.uid;
+      await updateProfile(cred.user, { displayName });
+      await secondaryAuth.signOut();
+    } finally {
+      await _deleteApp(secondaryApp).catch(() => {});
+    }
+
+    // 3. Escribir el documento del usuario en Firestore
+    const roleLower = role === 'Admin' ? 'admin' : role === 'Profesor' ? 'profesor' : 'estudiante';
+    await setDoc(doc(db, 'users', uid), {
+      uid,
+      nombre,
+      apellidoPaterno,
+      apellidoMaterno,
+      displayName,
+      email,
+      role,
+      rol: roleLower,
+      schoolId: schoolId || null,
+      passwordChangeRequired: true,
+      currentPassword: tempPassword,
+      createdAt: serverTimestamp(),
+      createdBy: auth.currentUser?.uid || 'admin',
     });
-    console.log('[CrearUsuario] Respuesta status:', res.status);
-    let data = {};
-    try { data = await res.json(); } catch (_) {}
-    console.log('[CrearUsuario] Payload recibido:', data);
-    if (!res.ok) {
-      const msg = data?.error || data?.message || 'No se pudo crear el usuario.';
-      const err = new Error(msg);
-      err.status = res.status;
-      err.payload = data;
-      throw err;
-    }
 
-    // Mostrar modal de éxito con credenciales generadas
-    showSuccessModal(data.email, data.tempPassword);
-    
-    // Guardar contraseña en userPasswords, passwordRecords y actualizar usuario
-    try {
-      if (data.uid && data.email && data.tempPassword) {
-        // Guardar en la nueva colección userPasswords
-        await setDoc(doc(db, 'userPasswords', data.uid), {
-          email: data.email,
-          currentPassword: data.tempPassword,
-          updatedAt: serverTimestamp()
-        });
-        
-        // Guardar en passwordRecords (colección legacy)
-        await setDoc(doc(db, 'passwordRecords', data.uid), {
-          email: data.email,
-          password: data.tempPassword,
-          updatedAt: serverTimestamp()
-        });
-        
-        await updateDoc(doc(db, 'users', data.uid), {
-          currentPassword: data.tempPassword
-        });
-      }
-    } catch (pwErr) {
-      console.error('Error guardando contraseña:', pwErr);
-    }
+    // 4. Guardar credenciales en colecciones de contraseñas
+    await Promise.all([
+      setDoc(doc(db, 'userPasswords', uid), {
+        email,
+        currentPassword: tempPassword,
+        updatedAt: serverTimestamp(),
+      }),
+      setDoc(doc(db, 'passwordRecords', uid), {
+        email,
+        password: tempPassword,
+        updatedAt: serverTimestamp(),
+      }),
+    ]);
 
-    // Cerrar modal y refrescar lista
+    // 5. Mostrar modal de éxito y refrescar lista
+    showSuccessModal(email, tempPassword);
     closeCreateUserModal();
     loadUsers();
 
   } catch (error) {
     console.error('Error creando usuario:', error);
-    
-    // Mostrar detalle del backend si existe
     let errorMessage = 'Error al crear usuario. ';
-    if (error?.payload?.error || error?.payload?.message) {
-      errorMessage += (error.payload.error || error.payload.message);
+    if (error.code === 'auth/email-already-in-use') {
+      errorMessage += 'El correo generado ya está en uso. Intenta con un nombre/apellido diferente o contacta al administrador del sistema.';
+    } else if (error.code === 'auth/weak-password') {
+      errorMessage += 'La contraseña generada es muy débil. Recarga e intenta de nuevo.';
     } else {
-      errorMessage += (error.message || '');
+      errorMessage += error.message || 'Error desconocido.';
     }
-    // Sugerencia si parece endpoint no disponible (404)
-    if (error?.status === 404) {
-      errorMessage += ' Verifica que estás abriendo la app desde el Hosting (emulador en http://127.0.0.1:5002 o sitio desplegado) para que funcione /adminCreateUser.';
-    }
-    if (error?.status === 403) {
-      errorMessage += ' Revisa que tu documento en /users tenga role:"Admin" o rol:"admin" y que el token no esté expirado.';
-    }
-    // Fallback sugerido: si seguimos obteniendo 500 del endpoint original y existe endpoint local
-    if (error?.status === 500 && endpoint === '/adminCreateUser' && window.CODEKIDS_LOCAL_ADMIN_ENDPOINT) {
-      errorMessage += ' Se intentará usar el servidor local de administración. Vuelve a dar clic en Crear Usuario.';
-      // Cambiar endpoint para siguiente intento
-      window.CODEKIDS_FORCE_LOCAL_ADMIN = true;
-    }
-    
     errorDiv.textContent = errorMessage;
     errorDiv.classList.remove('hidden');
     submitBtn.disabled = false;
     submitBtn.textContent = 'Crear Usuario';
   }
+}
+
+/** Genera un email institucional: nombre.apellido##@codekids.com (sin acentos) */
+function _generateEmail(nombre, apellidoPaterno) {
+  const normalize = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  const n = normalize(nombre.split(' ')[0]);
+  const a = normalize(apellidoPaterno.split(' ')[0]);
+  const suffix = Math.floor(10 + Math.random() * 90); // 10-99
+  return `${n}.${a}${suffix}@codekids.com`;
+}
+
+/** Genera una contraseña temporal segura de 10 caracteres */
+function _generateTempPassword() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$';
+  let pw = '';
+  for (let i = 0; i < 10; i++) pw += chars[Math.floor(Math.random() * chars.length)];
+  return pw;
 }
 
 // Mostrar modal de éxito con credenciales
@@ -2423,7 +2418,7 @@ async function quickPasswordModal(uid) {
         <form id="quickPwForm" class="space-y-3">
           <div>
             <label class="form-label">Establecer contraseña manual (opcional)</label>
-            <input id="manualPw" type="text" class="form-input" placeholder="Contraseña segura" />
+            <input id="manualPw" type="password" class="form-input" placeholder="Contraseña segura" />
             <div class="text-[11px] text-gray-500 mt-1">Mínimo 12 caracteres, mayúscula, minúscula, número y símbolo. No incluir la parte antes de @ del correo.</div>
           </div>
           <div class="flex flex-col gap-2">

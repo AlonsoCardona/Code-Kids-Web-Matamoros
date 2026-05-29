@@ -1,5 +1,11 @@
 {
+  "scripts": {
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "cy:run:e2e": "cypress run --spec 'cypress/e2e/**/*.cy.js'"
+  },
   "dependencies": {
+    "cypress": "^15.16.0",
     "firebase-admin": "^13.6.0"
   }
 }

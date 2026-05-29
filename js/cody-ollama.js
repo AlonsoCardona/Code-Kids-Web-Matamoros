@@ -4,7 +4,7 @@
 console.log('%c🚀 CODY IA - OLLAMA REAL CARGADO', 'color: #00ff00; font-size: 20px; font-weight: bold;');
 
 const CODY_CONFIG = {
-    apiEndpoint: '/api/codyChat',
+    apiEndpoint: 'https://us-central1-codekids-dev.cloudfunctions.net/codyChat',
     model: 'llama3.2:3b',
     maxTokens: 800,
     temperature: 0.7

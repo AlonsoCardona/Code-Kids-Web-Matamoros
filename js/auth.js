@@ -122,13 +122,13 @@ async function promptPasswordChange() {
         <form id="changePasswordForm" class="space-y-4">
           <div>
             <label class="block text-gray-700 font-semibold mb-2">Nueva Contraseña</label>
-            <input type="text" id="newPassword" required minlength="8"
+            <input type="password" id="newPassword" required minlength="8"
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="Mínimo 8 caracteres">
           </div>
           <div>
             <label class="block text-gray-700 font-semibold mb-2">Confirmar Contraseña</label>
-            <input type="text" id="confirmPassword" required
+            <input type="password" id="confirmPassword" required
               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="Repite tu contraseña">
           </div>
@@ -183,7 +183,7 @@ async function promptPasswordChange() {
         showNotification('✅ Contraseña actualizada. Cerrando sesión…', 'success');
         // Cerrar sesión para que el siguiente login sea con la nueva contraseña
         try { await signOut(auth); } catch(_) {}
-        try { window.location.href = window.location.origin + '/auth/login.html'; } catch(_) {}
+        try { window.location.href = window.location.origin + '/Vistas_Publicas/Inicio_De_Sesion.html'; } catch(_) {}
         resolve();
       } catch (error) {
         console.error('Error al cambiar contraseña:', error);
@@ -244,9 +244,7 @@ export async function logout() {
   }
   
   await signOut(auth);
-  // Detectar si estamos en /app/ o en raíz
-  const isInAppFolder = window.location.pathname.includes('/app/');
-  window.location.href = isInAppFolder ? '../index.html' : 'index.html';
+  window.location.href = '/index.html';
 }
 
 // Obtener usuario actual

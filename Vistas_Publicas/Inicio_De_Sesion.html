@@ -692,7 +692,7 @@
                     forceModal.classList.remove('hidden');
                     forceModal.classList.add('flex');
                     btnGoChange.onclick = () => {
-                        window.location.href = '../app/configuracion/cambiar-password.html';
+                        redirectUser(userData); // auth.js mostrará el modal de cambio al cargar el dashboard
                     };
                     return; // no redirigir aún
                 }

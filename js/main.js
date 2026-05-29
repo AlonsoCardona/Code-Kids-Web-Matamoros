@@ -40,8 +40,8 @@ if (document.getElementById('map')) {
   loadSchoolsMap();
 }
 
-// Hero Map: Matamoros con puntos fijos
-function loadHeroMatamorosMap() {
+// Hero Map: carga las escuelas activas desde Firestore (mismas que en el admin)
+async function loadHeroMatamorosMap() {
   try {
     const el = document.getElementById('hero-map');
     if (!el) return;
@@ -54,19 +54,39 @@ function loadHeroMatamorosMap() {
       maxZoom: 18
     }).addTo(map);
 
-    const schools = [
-      { name: 'Colegio San Juan Siglo XXI', coords: [25.870, -97.510] },
-      { name: 'Liceo de Matamoros', coords: [25.862, -97.498] },
-      { name: 'Primaria Josefa Ortiz de Domínguez', coords: [25.876, -97.495] },
-      { name: 'Sec. Gral. No.1 Adolfo López Mateos', coords: [25.880, -97.505] },
-      { name: 'Colegio Don Bosco', coords: [25.865, -97.515] }
-    ];
+    // Intentar cargar desde Firestore (colección 'schools', isActive == true)
+    let loaded = false;
+    try {
+      const snap = await getDocs(query(collection(db, 'schools'), where('isActive', '==', true)));
+      if (!snap.empty) {
+        loaded = true;
+        snap.forEach(d => {
+          const s = d.data();
+          if (s.coords) {
+            L.marker([s.coords.latitude, s.coords.longitude])
+              .addTo(map)
+              .bindTooltip(s.name || 'Escuela', { direction: 'top' })
+              .bindPopup(`<strong>${s.name || 'Escuela'}</strong>${s.address ? '<br><span style="color:#6B7280">' + s.address + '</span>' : ''}`);
+          }
+        });
+      }
+    } catch (_) { /* Si Firestore falla se usan datos de respaldo */ }
 
-    schools.forEach(s => {
-      L.marker(s.coords).addTo(map).bindTooltip(s.name, { direction: 'top' });
-    });
+    // Datos de respaldo si Firestore no tiene escuelas registradas
+    if (!loaded) {
+      const fallback = [
+        { name: 'Colegio San Juan Siglo XXI', lat: 25.870, lng: -97.510 },
+        { name: 'Liceo de Matamoros', lat: 25.862, lng: -97.498 },
+        { name: 'Primaria Josefa Ortiz de Domínguez', lat: 25.876, lng: -97.495 },
+        { name: 'Sec. Gral. No.1 Adolfo López Mateos', lat: 25.880, lng: -97.505 },
+        { name: 'Colegio Don Bosco', lat: 25.865, lng: -97.515 }
+      ];
+      fallback.forEach(s => {
+        L.marker([s.lat, s.lng]).addTo(map).bindTooltip(s.name, { direction: 'top' });
+      });
+    }
   } catch (e) {
-    console.error('Error cargando mapa de Matamoros:', e);
+    console.error('Error cargando mapa:', e);
   }
 }
 
@@ -128,10 +148,10 @@ function showView(id) {
 document.querySelectorAll('[data-back]')?.forEach(btn => btn.addEventListener('click', () => showView('pantalla-principal')));
 
 // Login CTA routing: prefer dedicated auth page if available
-document.getElementById('nav-login')?.addEventListener('click', () => { window.location.href = 'auth/login.html'; });
-document.querySelector('[data-btn-login-header]')?.addEventListener('click', () => { window.location.href = 'auth/login.html'; });
+document.getElementById('nav-login')?.addEventListener('click', () => { window.location.href = 'Inicio_De_Sesion.html'; });
+document.querySelector('[data-btn-login-header]')?.addEventListener('click', () => { window.location.href = 'Inicio_De_Sesion.html'; });
 // Hero CTAs (also route to auth page; professor adds a query param)
-document.getElementById('btn-comenzar-aventura')?.addEventListener('click', () => { window.location.href = 'auth/login.html'; });
+document.getElementById('btn-comenzar-aventura')?.addEventListener('click', () => { window.location.href = 'Inicio_De_Sesion.html'; });
 // Botón profesor debe mostrar página de onboarding primero (marketing + beneficios)
 document.getElementById('btn-acceder-profesor')?.addEventListener('click', (e) => { 
   e.preventDefault();

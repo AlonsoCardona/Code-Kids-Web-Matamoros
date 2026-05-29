@@ -1,3 +1,8 @@
+// ⚠️  WARNING: DESPITE THE FILE NAME, THIS SCRIPT TARGETS PRODUCTION (codekids-dev).
+// The emulator connection lines below are intentionally commented out.
+// Running this script WILL create/modify real users in the live Firebase project.
+// If you intend to target the local emulator, uncomment those two lines before running.
+//
 // Script para crear usuario admin en Firebase
 const admin = require('firebase-admin');
 
