@@ -2643,7 +2643,7 @@
             // Aviso de bienvenida - solo una vez por sesión
             // (scripts al final del body: DOM ya listo, sin necesidad de DOMContentLoaded)
             (function mostrarAviso() {
-                const KEY = 'ck_aviso_v2';
+                const KEY = 'ck_aviso_v3';
                 if (sessionStorage.getItem(KEY)) return;
                 sessionStorage.setItem(KEY, '1');
                 setTimeout(() => {
@@ -2654,9 +2654,8 @@
                                      onerror="this.src='data:image/gif,R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAI='"
                                      style="width:120px;height:120px;object-fit:contain;border-radius:50%;box-shadow:0 0 0 5px #dbeafe;background:#eff6ff;padding:6px">
                                 <p style="font-size:1rem;color:#374151;line-height:1.65;text-align:center;margin:0">
-                                    <span style="font-weight:700;color:#6366f1;font-size:1.2rem;display:block;margin-bottom:8px">¡Hola! 👋</span>
-                                    En este momento estamos encontrando a los terribles bugs, es posible que ciertas cosas no se visualicen bien, no temas,
-                                    <span style="font-weight:600;color:#6366f1">estamos mejorando día con día</span> 🚀
+                                    <span style="font-weight:700;color:#6366f1;font-size:1.2rem;display:block;margin-bottom:8px">¡Hola! </span>
+                                    En este momento estamos encontrando a los terribles bugs, es posible que ciertas cosas no se visualicen bien, no temas,puedes correr localmente el ultimo commit para ver los cambios más recientes. Gracias por tu paciencia, <span style="font-weight:600;color:#6366f1">estamos mejorando día con día</span>
                                 </p>
                                 <p style="color:#9ca3af;font-size:0.85rem;font-style:italic;margin:0">— Alan</p>
                             </div>`,
