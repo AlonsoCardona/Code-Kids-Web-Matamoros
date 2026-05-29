@@ -882,8 +882,8 @@ function renderCoursesList(courses) {
           
           <div class="flex flex-col md:flex-row gap-5">
             <div class="w-full md:w-32 h-32 flex-shrink-0 bg-gradient-to-br from-purple-100 to-purple-50 rounded-lg overflow-hidden flex items-center justify-center">
-              ${course.image ? 
-                `<img src="${course.image}" alt="Cover" class="w-full h-full object-cover">` :
+              ${(course.image || course.imageUrl) ? 
+                `<img src="${course.image || course.imageUrl}" alt="Cover" class="w-full h-full object-cover">` :
                 `<svg class="w-12 h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>`
               }
             </div>
@@ -1056,8 +1056,8 @@ async function openCourseModal(courseId = null) {
           </div>
 
           <div class="col-span-2">
-            <label class="block text-sm font-semibold text-gray-700 mb-1">URL Imagen Portada</label>
-            <input type="url" name="image" value="${courseData.image || ''}" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg" placeholder="https://...">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">URL o Ruta de Imagen Portada</label>
+            <input type="text" name="image" value="${courseData.image || courseData.imageUrl || ''}" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="/images/Cursos/FondoCurso.PNG o https://...">
           </div>
         </div>
 
@@ -1114,6 +1114,7 @@ async function openCourseModal(courseId = null) {
       level: formData.get('level'),
       duration: formData.get('duration'),
       image: formData.get('image'),
+      imageUrl: formData.get('image'),
       lessonsCount: parseInt(formData.get('lessonsCount')) || 0,
       isActive: modal.querySelector('#toggleActive').checked,
       updatedAt: serverTimestamp()
@@ -1123,14 +1124,17 @@ async function openCourseModal(courseId = null) {
       if (isEdit) {
         await updateDoc(doc(db, 'courses', courseId), payload);
         showToast('Curso actualizado correctamente');
+        close();
+        loadCourses();
       } else {
         payload.createdAt = serverTimestamp();
         payload.createdBy = auth.currentUser?.uid || 'unknown';
         await addDoc(collection(db, 'courses'), payload);
-        showToast('Curso creado exitosamente');
+        close();
+        loadCourses();
+        // Mostrar pantalla de procesamiento de video
+        if (window.showCourseProcessingModal) window.showCourseProcessingModal();
       }
-      close();
-      loadCourses();
     } catch (error) {
       console.error(error);
       showToast('Error al guardar. Intenta de nuevo.', 'error');

@@ -13,7 +13,7 @@ let COURSES_DASH = [
     id: 'python_basico',
     title: '¡Misión Python: Tu Primera Aventura Programando!',
     description: '¿Te gustaría saber cómo hablan las computadoras? ¡En este video súper divertido aprenderás a crear tus primeros hechizos tecnológicos usando Python! No necesitas saber nada de antes, solo muchas ganas de divertirte, explorar y escribir tu primer "¡Hola Mundo!".',
-    thumbnail: 'https://img.youtube.com/vi/g8q4teQ2BN4/maxresdefault.jpg',
+    thumbnail: '/images/Cursos/FondoCurso.PNG',
     level: 'Principiante',
     duration: '~30 min',
     videos: [
