@@ -1379,13 +1379,19 @@ async function loadProblemReports() {
   if (!container) return;
   container.innerHTML = '<p class="text-gray-400 text-center py-8">Cargando reportes...</p>';
   try {
-    const q = query(collection(db, 'reports'), where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'reports'), where('status', '==', 'pending'));
     onSnapshot(q, snap => {
       if (snap.empty) {
         container.innerHTML = '<p class="text-gray-400 text-center py-8">No hay reportes de problema pendientes.</p>';
         return;
       }
-      container.innerHTML = snap.docs.map(d => {
+      // Sort client-side by createdAt desc
+      const docs = snap.docs.slice().sort((a, b) => {
+        const ta = a.data().createdAt?.toMillis?.() || 0;
+        const tb = b.data().createdAt?.toMillis?.() || 0;
+        return tb - ta;
+      });
+      container.innerHTML = docs.map(d => {
         const r = d.data();
         const date = r.createdAt?.toDate?.()?.toLocaleString() || 'Fecha desconocida';
         const typeLabel = { technical: 'Técnico', content: 'Contenido', conduct: 'Conducta', other: 'Otro' }[r.type] || r.type || 'General';

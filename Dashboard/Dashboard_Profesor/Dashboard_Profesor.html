@@ -390,7 +390,6 @@
                     <!-- Tareas por Calificar -->
                     <div class="card">
                         <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
-                            <span class="mr-2">✅</span>
                             Por Calificar
                         </h2>
                         <div id="tasksToGrade" class="space-y-3 text-sm">
@@ -661,6 +660,19 @@
                             <p class="text-gray-500">Cargando...</p>
                         </div>
                     </div>
+
+                    <!-- Cursos disponibles card (full width row) -->
+                    <div class="card md:col-span-2 lg:col-span-3">
+                        <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            Progreso por Curso
+                        </h3>
+                        <div id="statsCoursesProgress" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <p class="text-gray-500">Cargando...</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -911,8 +923,8 @@
                                 <nav class="flex gap-1 overflow-x-auto">
                                     <button class="group-tab active px-4 py-3 border-b-2 border-indigo-600 text-indigo-600 font-semibold text-sm whitespace-nowrap" data-tab="publicaciones">📢 Publicaciones</button>
                                     <button class="group-tab px-4 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm whitespace-nowrap" data-tab="estudiantes">👥 Estudiantes</button>
-                                    <button class="group-tab px-4 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm whitespace-nowrap" data-tab="asistencia">✅ Asistencia</button>
-                                    <button class="group-tab px-4 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm whitespace-nowrap" data-tab="config">⚙️ Configuración</button>
+                                    <button class="group-tab px-4 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm whitespace-nowrap" data-tab="asistencia">Asistencia</button>
+                                    <button class="group-tab px-4 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm whitespace-nowrap" data-tab="config">Configuracion</button>
                                 </nav>
                             </div>
 
@@ -1015,7 +1027,7 @@
             </section>
 
             <!-- Modal: Crear/Editar Grupo -->
-            <div id="groupModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div id="groupModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
                 <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                     <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                         <h3 id="groupModalTitle" class="text-2xl font-bold text-gray-800">Crear Nuevo Grupo</h3>
@@ -1081,7 +1093,7 @@
             </div>
 
             <!-- Modal: Añadir Estudiantes -->
-            <div id="addStudentsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div id="addStudentsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
                 <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                     <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                         <h3 class="text-2xl font-bold text-gray-800">Añadir Estudiantes al Grupo</h3>
@@ -1115,7 +1127,7 @@
             </div>
 
             <!-- Modal de perfil de usuario -->
-            <div id="userProfileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div id="userProfileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center">
                 <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
                     <div class="flex justify-between items-start mb-4">
                         <h3 class="text-xl font-bold">Perfil de Usuario</h3>
@@ -1433,6 +1445,56 @@
                 </div>
             </div>
 
+            <!-- Modal: Calificaciones Parciales por Estudiante -->
+            <div id="parcialGradesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                    <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800">Calificaciones Parciales</h3>
+                            <p id="parcialStudentName" class="text-gray-600 text-sm"></p>
+                        </div>
+                        <button onclick="closeParcialModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-3" id="parcialInputs">
+                            <!-- 5 unidades -->
+                            <div class="flex items-center gap-3">
+                                <label class="w-28 text-sm font-semibold text-gray-700">Unidad 1</label>
+                                <input type="number" id="parcial_u1" class="form-input flex-1 py-1.5 text-sm" min="0" max="100" placeholder="0-100">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <label class="w-28 text-sm font-semibold text-gray-700">Unidad 2</label>
+                                <input type="number" id="parcial_u2" class="form-input flex-1 py-1.5 text-sm" min="0" max="100" placeholder="0-100">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <label class="w-28 text-sm font-semibold text-gray-700">Unidad 3</label>
+                                <input type="number" id="parcial_u3" class="form-input flex-1 py-1.5 text-sm" min="0" max="100" placeholder="0-100">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <label class="w-28 text-sm font-semibold text-gray-700">Unidad 4</label>
+                                <input type="number" id="parcial_u4" class="form-input flex-1 py-1.5 text-sm" min="0" max="100" placeholder="0-100">
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <label class="w-28 text-sm font-semibold text-gray-700">Unidad 5</label>
+                                <input type="number" id="parcial_u5" class="form-input flex-1 py-1.5 text-sm" min="0" max="100" placeholder="0-100">
+                            </div>
+                        </div>
+                        <!-- Chart canvas -->
+                        <div class="mt-6">
+                            <canvas id="parcialChart" height="150"></canvas>
+                        </div>
+                        <div class="mt-4 p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                            <span class="text-sm font-semibold text-gray-700">Promedio general:</span>
+                            <span id="parcialPromedio" class="text-lg font-bold text-indigo-600">--</span>
+                        </div>
+                        <div class="mt-4 flex gap-3">
+                            <button onclick="saveParcialGrades()" class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm transition">Guardar</button>
+                            <button onclick="closeParcialModal()" class="px-4 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-semibold text-sm transition">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Modal: Calificar Entrega -->
             <div id="gradeSubmissionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
                 <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1718,7 +1780,7 @@
                 timer: isError ? undefined : 3000,
                 timerProgressBar: !isError,
                 toast: !isError,
-                position: isError ? 'center' : 'top-end',
+                position: isError ? 'center' : 'bottom-end',
                 showConfirmButton: isError
             });
         };
@@ -2140,7 +2202,7 @@
         async function handleGroupSubmit(e) {
             e.preventDefault();
             
-            const user = window.currentUser || window.auth?.currentUser;
+            const user = window.dashboardUser || window.currentUser || window.auth?.currentUser;
             if (!user) return;
             
             const groupData = {
@@ -2321,9 +2383,15 @@
                                     <div class="mt-3 border-t border-gray-100 pt-2">
                                         <button onclick="toggleReplyForm('${postDoc.id}')" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">💬 Responder</button>
                                         <div id="replies-${postDoc.id}" class="mt-2 space-y-2 hidden"></div>
-                                        <div id="replyForm-${postDoc.id}" class="hidden mt-2 flex gap-2">
-                                            <input type="text" placeholder="Escribe una respuesta..." class="form-input flex-1 text-xs py-1.5" id="replyInput-${postDoc.id}">
-                                            <button onclick="submitReply('${groupId}','${postDoc.id}')" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold">Enviar</button>
+                                        <div id="replyForm-${postDoc.id}" class="hidden mt-2">
+                                            <div class="flex gap-2">
+                                                <input type="text" placeholder="Escribe una respuesta..." class="form-input flex-1 text-xs py-1.5" id="replyInput-${postDoc.id}">
+                                                <button onclick="toggleReplyEmoji('${postDoc.id}')" class="px-2 py-1 text-lg hover:bg-gray-100 rounded" title="Emoji">😊</button>
+                                                <button onclick="submitReply('${groupId}','${postDoc.id}')" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold">Enviar</button>
+                                            </div>
+                                            <div id="replyEmojiPicker-${postDoc.id}" class="hidden mt-1 p-2 bg-white border border-gray-200 rounded-lg shadow-lg grid grid-cols-8 gap-1">
+                                                ${['😀','😍','🎉','👍','❤️','🔥','✅','⭐','📚','💡','🚀','🎯','🤔','😎','🌟','🎓','📝','💻','🏆','👏','😂','🙌','💪','👋'].map(e=>`<span class="reply-emoji-opt cursor-pointer hover:bg-gray-100 rounded p-1 text-center text-base" onclick="insertReplyEmoji('${postDoc.id}','${e}')">${e}</span>`).join('')}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2368,6 +2436,18 @@
         window.toggleReplyForm = function(postId) {
             const form = document.getElementById(`replyForm-${postId}`);
             if (form) form.classList.toggle('hidden');
+        };
+
+        window.toggleReplyEmoji = function(postId) {
+            const picker = document.getElementById(`replyEmojiPicker-${postId}`);
+            if (picker) picker.classList.toggle('hidden');
+        };
+
+        window.insertReplyEmoji = function(postId, emoji) {
+            const input = document.getElementById(`replyInput-${postId}`);
+            if (input) { input.value += emoji; input.focus(); }
+            const picker = document.getElementById(`replyEmojiPicker-${postId}`);
+            if (picker) picker.classList.add('hidden');
         };
 
         window.submitReply = async function(groupId, postId) {
@@ -2790,7 +2870,7 @@
         async function initChats() {
             console.log('💬 Inicializando chat...');
             
-            const user = window.currentUser || window.auth?.currentUser;
+            const user = window.dashboardUser || window.currentUser || window.auth?.currentUser;
             if (!user) {
                 console.error('❌ No hay usuario en initChats');
                 return;
@@ -3547,10 +3627,14 @@
                         const uData = uDoc.exists() ? uDoc.data() : {};
                         const name = uData.displayName || uData.email || sid;
                         const existing = existingGrades[sid] ?? '';
-                        rows += `<tr class="border-b border-gray-100"><td class="py-2 px-3 text-sm text-gray-800">${name}</td><td class="py-2 px-3"><input type="number" class="grade-input w-24 form-input text-sm py-1 px-2" min="0" max="100" value="${existing}" data-studentid="${sid}" placeholder="0-100"></td></tr>`;
+                        rows += `<tr class="border-b border-gray-100">
+                            <td class="py-2 px-3 text-sm text-gray-800">${name}</td>
+                            <td class="py-2 px-3"><input type="number" class="grade-input w-24 form-input text-sm py-1 px-2" min="0" max="100" value="${existing}" data-studentid="${sid}" placeholder="0-100"></td>
+                            <td class="py-2 px-3"><button onclick="openParcialModal('${sid}','${name.replace(/'/g,'&#39;')}','${groupId}')" class="text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold">Calificaciones parciales</button></td>
+                        </tr>`;
                     } catch(e) {}
                 }
-                container.innerHTML = `<table class="w-full text-sm"><thead><tr class="bg-gray-50"><th class="py-2 px-3 text-left font-semibold text-gray-600">Estudiante</th><th class="py-2 px-3 text-left font-semibold text-gray-600">Calificación (${unidad})</th></tr></thead><tbody>${rows}</tbody></table>`;
+                container.innerHTML = `<table class="w-full text-sm"><thead><tr class="bg-gray-50"><th class="py-2 px-3 text-left font-semibold text-gray-600">Estudiante</th><th class="py-2 px-3 text-left font-semibold text-gray-600">Calificación (${unidad})</th><th class="py-2 px-3 text-left font-semibold text-gray-600">Parciales</th></tr></thead><tbody>${rows}</tbody></table>`;
                 document.getElementById('btnGuardarCalifContainer')?.classList.remove('hidden');
             } catch(e) {
                 container.innerHTML = '<p class="text-red-400 text-center py-4">Error al cargar estudiantes.</p>';
@@ -3578,6 +3662,83 @@
         }
 
         // Show user profile from chat
+        // ========== CALIFICACIONES PARCIALES ==========
+        let _parcialStudentId = null;
+        let _parcialGroupId = null;
+        let _parcialChart = null;
+
+        window.openParcialModal = async function(studentId, studentName, groupId) {
+            _parcialStudentId = studentId;
+            _parcialGroupId = groupId;
+            document.getElementById('parcialStudentName').textContent = studentName;
+            // Load existing parcial grades
+            ['u1','u2','u3','u4','u5'].forEach(u => { document.getElementById(`parcial_${u}`).value = ''; });
+            try {
+                const docRef = doc(window.db, 'gradesParciales', `${groupId}_${studentId}`);
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    const d = snap.data();
+                    ['u1','u2','u3','u4','u5'].forEach(u => {
+                        if (d[u] !== undefined) document.getElementById(`parcial_${u}`).value = d[u];
+                    });
+                }
+            } catch(e) {}
+            document.getElementById('parcialGradesModal').classList.remove('hidden');
+            updateParcialChart();
+            // React to input changes
+            ['u1','u2','u3','u4','u5'].forEach(u => {
+                document.getElementById(`parcial_${u}`).oninput = updateParcialChart;
+            });
+        };
+
+        function updateParcialChart() {
+            const vals = ['u1','u2','u3','u4','u5'].map(u => parseFloat(document.getElementById(`parcial_${u}`)?.value) || 0);
+            const filled = vals.filter(v => v > 0);
+            const avg = filled.length ? (filled.reduce((a,b)=>a+b,0) / filled.length).toFixed(1) : '--';
+            document.getElementById('parcialPromedio').textContent = avg !== '--' ? avg : '--';
+            const ctx = document.getElementById('parcialChart');
+            if (!ctx) return;
+            if (_parcialChart) { _parcialChart.destroy(); _parcialChart = null; }
+            _parcialChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Unidad 1','Unidad 2','Unidad 3','Unidad 4','Unidad 5'],
+                    datasets: [{
+                        label: 'Calificación',
+                        data: vals,
+                        backgroundColor: vals.map(v => v >= 70 ? 'rgba(99,102,241,0.7)' : 'rgba(239,68,68,0.6)'),
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { min: 0, max: 100, ticks: { stepSize: 20 } } }
+                }
+            });
+        }
+
+        window.closeParcialModal = function() {
+            document.getElementById('parcialGradesModal').classList.add('hidden');
+            if (_parcialChart) { _parcialChart.destroy(); _parcialChart = null; }
+        };
+
+        window.saveParcialGrades = async function() {
+            if (!_parcialStudentId || !_parcialGroupId) return;
+            const data = { studentId: _parcialStudentId, groupId: _parcialGroupId, savedAt: new Date() };
+            ['u1','u2','u3','u4','u5'].forEach(u => {
+                const v = document.getElementById(`parcial_${u}`)?.value;
+                if (v !== '') data[u] = parseFloat(v) || 0;
+            });
+            try {
+                await setDoc(doc(window.db, 'gradesParciales', `${_parcialGroupId}_${_parcialStudentId}`), data);
+                alert('Calificaciones parciales guardadas');
+                window.closeParcialModal();
+            } catch(e) {
+                alert('Error al guardar: ' + e.message);
+            }
+        };
+
         window.showChatUserProfile = async function(uid) {
             if (!uid) return;
             try {
@@ -4214,6 +4375,54 @@
                     atRiskHTML = '<p class="text-green-600 text-sm">✓ Todos los estudiantes están progresando bien</p>';
                 }
                 document.getElementById('studentsAtRisk').innerHTML = atRiskHTML;
+
+                // ---- Cursos disponibles: progreso de estudiantes ----
+                try {
+                    const courseIds = (window.COURSES_DASH || []).map(c => c.id);
+                    if (courseIds.length > 0 && allStudents.length > 0) {
+                        const courseProgressMap = {}; // courseId -> {started, completed}
+                        courseIds.forEach(cid => { courseProgressMap[cid] = { started: 0, completed: 0 }; });
+
+                        const totalStudents = allStudents.length;
+                        for (let i = 0; i < allStudents.length; i += 10) {
+                            const batch = allStudents.slice(i, i + 10).map(s => s.id);
+                            for (const cid of courseIds) {
+                                const cpQuery = query(
+                                    collection(window.db, 'courseProgress'),
+                                    where('userId', 'in', batch),
+                                    where('courseId', '==', cid)
+                                );
+                                const cpSnap = await getDocs(cpQuery);
+                                cpSnap.forEach(cpDoc => {
+                                    const cp = cpDoc.data();
+                                    courseProgressMap[cid].started++;
+                                    const totalVids = cp.totalVideos || 1;
+                                    const doneVids = Object.values(cp.completedVideos || {}).filter(Boolean).length;
+                                    if (doneVids >= totalVids) courseProgressMap[cid].completed++;
+                                });
+                            }
+                        }
+
+                        const coursesHTML = (window.COURSES_DASH || []).map(course => {
+                            const prog = courseProgressMap[course.id] || { started: 0, completed: 0 };
+                            const pct = totalStudents > 0 ? Math.round((prog.started / totalStudents) * 100) : 0;
+                            return `<div class="bg-gray-50 rounded-lg p-3">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-2xl">${course.icon || '📘'}</span>
+                                    <span class="font-semibold text-gray-800 text-sm">${course.title || course.id}</span>
+                                </div>
+                                <div class="text-xs text-gray-500 mb-1">${prog.started} de ${totalStudents} estudiantes iniciaron · ${prog.completed} completaron</div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5"><div class="bg-indigo-500 h-1.5 rounded-full" style="width:${pct}%"></div></div>
+                            </div>`;
+                        }).join('');
+                        document.getElementById('statsCoursesProgress').innerHTML = coursesHTML || '<p class="text-gray-400 text-sm">No hay cursos definidos</p>';
+                    } else {
+                        document.getElementById('statsCoursesProgress').innerHTML = '<p class="text-gray-400 text-sm col-span-3">No hay datos de cursos disponibles</p>';
+                    }
+                } catch(eCourses) {
+                    console.warn('No se pudo cargar progreso de cursos:', eCourses);
+                    document.getElementById('statsCoursesProgress').innerHTML = '<p class="text-gray-400 text-sm col-span-3">Progreso de cursos no disponible</p>';
+                }
                 
             } catch (error) {
                 console.error('Error cargando estadísticas:', error);
@@ -5923,6 +6132,11 @@
                                             console.log('✅ Header de gamificación actualizado');
                                         }
                                         
+                                        // 4a. Cargar foto de perfil desde Firestore
+                                        if (freshData.photoURL) {
+                                            document.getElementById('userAvatar').src = freshData.photoURL;
+                                        }
+
                                         // 4. Cargar marco guardado
                                         if (freshData.selectedFrame) {
                                             const avatar = document.getElementById('userAvatar');
