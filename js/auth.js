@@ -67,9 +67,10 @@ export function initAuth(onUserLoaded) {
           currentUserData = { id: user.uid, ...userDoc.data() };
         }
         
-        // Actualizar último login en Firestore
+        // Actualizar último login y actividad en Firestore
         await updateDoc(doc(db, 'users', user.uid), {
-          lastLogin: serverTimestamp()
+          lastLogin: serverTimestamp(),
+          lastActive: serverTimestamp()
         });
         
         // SEGURIDAD: Verificar cambio de contraseña obligatorio

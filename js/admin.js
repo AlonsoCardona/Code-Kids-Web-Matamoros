@@ -27,7 +27,7 @@
 import { auth, db } from './firebase-config.js';
 import { initAuth, logout } from './auth.js';
 import { collection, getDocs, getDoc, query, where, orderBy, limit, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, getAuth as _getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged, createUserWithEmailAndPassword, updateProfile, getAuth as _getAuth, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { initializeApp as _initApp, deleteApp as _deleteApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 
 let currentUserData = null;
@@ -284,56 +284,56 @@ function startActivityListeners() {
   loadSecurityAlerts();
 }
 
-// 1. Usuarios Activos Ahora (última actividad < 5 minutos)
+// 1. Usuarios Activos Ahora (filtrado en cliente, sondeo cada 30s — no requiere índice compuesto)
 function loadActiveUsers() {
-  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-  
-  const q = query(
-    collection(db, 'users'),
-    where('lastActive', '>=', twoMinutesAgo),
-    orderBy('lastActive', 'desc')
-  );
-  
-  activeUsersUnsubscribe = onSnapshot(q, (snapshot) => {
-    const activeUsersList = document.getElementById('activeUsersList');
-    const activeUsersCount = document.getElementById('activeUsersCount');
-    
-    if (!snapshot || snapshot.empty) {
-      activeUsersList.innerHTML = '<p class="text-sm text-gray-500">Sin usuarios activos ahora</p>';
-      activeUsersCount.textContent = '0';
-      return;
-    }
-    
-    activeUsersCount.textContent = snapshot.size;
-    
-    const users = [];
-    snapshot.forEach(doc => {
-      const user = doc.data();
-      const lastActive = user.lastActive?.toDate?.() || new Date();
-      users.push({ ...user, id: doc.id, lastActive });
-    });
-    
-    activeUsersList.innerHTML = users.map(u => {
-      const timeAgo = getTimeAgo(u.lastActive);
-      const roleColor = u.role === 'Admin' ? 'text-red-600' : u.role === 'Profesor' ? 'text-purple-600' : 'text-blue-600';
-      const roleIcon = u.role === 'Admin' ? '👑' : u.role === 'Profesor' ? '👨‍🏫' : '👨‍🎓';
-      
-      return `
-        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-          <div class="flex items-center gap-2">
-            <span>${roleIcon}</span>
-            <div>
-              <p class="text-sm font-semibold text-gray-800">${u.displayName || u.email}</p>
-              <p class="text-xs ${roleColor}">${u.role || 'Usuario'}</p>
+  async function _pollActive() {
+    try {
+      const snapshot = await getDocs(collection(db, 'users'));
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const activeUsersList = document.getElementById('activeUsersList');
+      const activeUsersCount = document.getElementById('activeUsersCount');
+
+      const activeUsers = [];
+      snapshot.forEach(d => {
+        const u = d.data();
+        const lastActive = u.lastActive?.toDate?.() || null;
+        if (lastActive && lastActive >= fiveMinutesAgo) {
+          activeUsers.push({ ...u, id: d.id, lastActive });
+        }
+      });
+
+      if (!activeUsers.length) {
+        activeUsersList.innerHTML = '<p class="text-sm text-gray-500">Sin usuarios activos ahora</p>';
+        activeUsersCount.textContent = '0';
+        return;
+      }
+
+      activeUsersCount.textContent = activeUsers.length;
+      activeUsersList.innerHTML = activeUsers.map(u => {
+        const timeAgo = getTimeAgo(u.lastActive);
+        const roleColor = u.role === 'Admin' ? 'text-red-600' : u.role === 'Profesor' ? 'text-purple-600' : 'text-blue-600';
+        const roleIcon = u.role === 'Admin' ? '👑' : u.role === 'Profesor' ? '👨‍🏫' : '👨‍🎓';
+        return `
+          <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+            <div class="flex items-center gap-2">
+              <span>${roleIcon}</span>
+              <div>
+                <p class="text-sm font-semibold text-gray-800">${u.displayName || u.email}</p>
+                <p class="text-xs ${roleColor}">${u.role || 'Usuario'}</p>
+              </div>
             </div>
+            <span class="text-xs text-gray-500">${timeAgo}</span>
           </div>
-          <span class="text-xs text-gray-500">${timeAgo}</span>
-        </div>
-      `;
-    }).join('');
-  }, (error) => {
-    console.error('Error en listener de usuarios activos:', error);
-  });
+        `;
+      }).join('');
+    } catch (err) {
+      console.error('Error cargando usuarios activos:', err);
+    }
+  }
+
+  _pollActive();
+  const intervalId = setInterval(_pollActive, 30000);
+  activeUsersUnsubscribe = () => clearInterval(intervalId);
 }
 
 // 2. Últimos 5 Inicios de Sesión
@@ -2258,7 +2258,7 @@ async function showEditUserModal(uid) {
     pwBlock.innerHTML = `
       <h4 class="text-sm font-semibold mb-2">Administrar Contraseña</h4>
       <div class="flex flex-col gap-2">
-        <button id="btnGenNewPw" class="px-3 py-2 rounded bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold w-full transition">Generar nueva contraseña temporal</button>
+        <button id="btnGenNewPw" class="px-3 py-2 rounded bg-purple-700 hover:bg-purple-800 text-white text-sm font-semibold w-full transition">Enviar correo de restablecimiento</button>
         <div id="pwResult" class="hidden bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded text-xs"></div>
       </div>
     `;
@@ -2266,62 +2266,29 @@ async function showEditUserModal(uid) {
     const btnGenNewPw = pwBlock.querySelector('#btnGenNewPw');
     const pwResult = pwBlock.querySelector('#pwResult');
     btnGenNewPw.addEventListener('click', async () => {
-      btnGenNewPw.disabled = true; btnGenNewPw.textContent = 'Generando…'; pwResult.classList.add('hidden');
+      btnGenNewPw.disabled = true; btnGenNewPw.textContent = 'Enviando correo…'; pwResult.classList.add('hidden');
       try {
-        const token = await getAdminToken();
-        const endpoint = buildAdminEndpoint('/adminSetUserPassword');
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ uid, generateRandom: true })
+        // Obtener email del usuario desde Firestore
+        const userDocSnap = await getDoc(doc(db, 'users', uid));
+        const userEmail = userDocSnap.data()?.email;
+        if (!userEmail) throw new Error('No se encontró el email del usuario');
+        // Enviar correo de restablecimiento via Firebase Auth (sin Cloud Functions, gratis)
+        await sendPasswordResetEmail(auth, userEmail);
+        // Registrar que se solicitó el restablecimiento
+        await updateDoc(doc(db, 'users', uid), {
+          passwordResetEmailSentAt: serverTimestamp(),
+          passwordChangeRequired: true,
         });
-        let payload = {}; try { payload = await res.json(); } catch(_) {}
-        if (!res.ok) throw new Error(payload?.error || payload?.message || 'Error al actualizar contraseña');
-        // Asegurar reemplazo inmediato en Firestore para reflejar en tabla
-        try {
-          await updateDoc(doc(db, 'users', uid), {
-            tempPassword: payload.newPassword,
-            passwordChangeRequired: true,
-            forcePasswordChange: true,
-          });
-        } catch(_) {}
-        pwResult.innerHTML = `Nueva contraseña temporal: <span class="font-mono font-semibold">${payload.newPassword}</span><br><span class="text-[11px]">El usuario deberá cambiarla en su siguiente inicio de sesión.</span>`;
-        pwResult.classList.remove('hidden');
+        pwResult.innerHTML = `Correo enviado a <strong>${userEmail}</strong>.<br><span class="text-[11px] text-green-700">El usuario recibirá un enlace para establecer su nueva contraseña.</span>`;
+        pwResult.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-700');
+        pwResult.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
         loadUsers();
       } catch (err) {
-        console.warn('[adminSetUserPassword] Endpoint falló, aplicando fallback solo Firestore tempPassword…', err);
-        // Fallback: escribir tempPassword en Firestore para mostrarla aunque Auth no se actualice
-        try {
-          const tempPassword = generatePassword(12);
-          const userDoc = await getDoc(doc(db, 'users', uid));
-          const userEmail = userDoc.data()?.email || '';
-          
-          await updateDoc(doc(db, 'users', uid), {
-            tempPassword,
-            currentPassword: tempPassword,
-            passwordChangeRequired: true,
-            forcePasswordChange: true,
-            lastTempPasswordFallbackAt: serverTimestamp(),
-          });
-          
-          // Guardar en passwordRecords
-          await setDoc(doc(db, 'passwordRecords', uid), {
-            email: userEmail,
-            password: tempPassword,
-            updatedAt: serverTimestamp()
-          });
-          
-          pwResult.innerHTML = `Contraseña temporal (Fallback): <span class="font-mono font-semibold">${tempPassword}</span><br><span class="text-[11px] text-red-700">Auth no actualizada. Generar de nuevo cuando el servidor esté disponible.</span>`;
-          pwResult.classList.remove('hidden');
-          pwResult.classList.add('bg-red-50','border-red-200','text-red-700');
-          loadUsers();
-        } catch (e2) {
-          pwResult.textContent = 'Fallo total: ' + (e2.message || 'Error desconocido');
-          pwResult.classList.remove('hidden');
-          pwResult.classList.add('bg-red-50','border-red-200','text-red-700');
-        }
+        pwResult.textContent = 'Error: ' + (err.message || 'No se pudo enviar el correo');
+        pwResult.classList.remove('hidden');
+        pwResult.classList.add('bg-red-50', 'border-red-200', 'text-red-700');
       } finally {
-        btnGenNewPw.disabled = false; btnGenNewPw.textContent = 'Generar nueva contraseña temporal';
+        btnGenNewPw.disabled = false; btnGenNewPw.textContent = 'Enviar correo de restablecimiento';
       }
     });
   } catch (e) {
