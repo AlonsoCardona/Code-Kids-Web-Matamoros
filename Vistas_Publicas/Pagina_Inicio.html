@@ -2636,5 +2636,42 @@
             });
         })();
         </script>
+
+        <!-- SweetAlert2 -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            // Aviso de bienvenida - solo una vez por sesión
+            document.addEventListener('DOMContentLoaded', () => {
+                if (!sessionStorage.getItem('ck_aviso_inicio')) {
+                    sessionStorage.setItem('ck_aviso_inicio', '1');
+                    setTimeout(() => {
+                        Swal.fire({
+                            html: `
+                                <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 4px">
+                                    <img src="../images/Cody_IA_CHAT.png"
+                                         onerror="this.style.fontSize='64px';this.outerHTML='<span style=\\'font-size:64px\\'>🤖</span>'"
+                                         style="width:110px;height:110px;object-fit:contain;border-radius:50%;box-shadow:0 0 0 5px #dbeafe;background:#eff6ff;padding:6px">
+                                    <p style="font-size:1.05rem;color:#374151;line-height:1.6;text-align:center;margin:0">
+                                        <span style="font-weight:700;color:#6366f1;font-size:1.25rem;display:block;margin-bottom:6px">¡Hola! 👋</span>
+                                        En este momento estamos encontrando a los terribles bugs. Es posible que ciertas cosas no se visualicen bien, no temas,
+                                        <span style="font-weight:600;color:#6366f1">estamos mejorando día con día</span> 🚀
+                                    </p>
+                                    <p style="color:#9ca3af;font-size:0.88rem;font-style:italic;margin:0">— Alan</p>
+                                </div>`,
+                            showConfirmButton: true,
+                            confirmButtonText: '¡Entendido!',
+                            confirmButtonColor: '#6366f1',
+                            customClass: { popup: 'swal2-rounded', confirmButton: 'swal2-rounded-btn' },
+                            backdrop: 'rgba(99,102,241,0.12)',
+                            width: 400
+                        });
+                    }, 900);
+                }
+            });
+        </script>
+        <style>
+            .swal2-rounded { border-radius: 1.5rem !important; }
+            .swal2-rounded-btn { border-radius: 0.75rem !important; padding: 0.6rem 2rem !important; }
+        </style>
 </body>
 </html>
