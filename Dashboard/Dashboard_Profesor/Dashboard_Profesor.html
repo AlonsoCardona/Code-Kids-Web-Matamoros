@@ -1912,6 +1912,30 @@
         function initInicio(){
             renderContinueLearning();
             try { window.userState?.subscribe(renderContinueLearning); } catch(_){ }
+
+            // Aviso de mantenimiento (una sola vez por sesión)
+            if (!sessionStorage.getItem('ck_aviso_bugs')) {
+                sessionStorage.setItem('ck_aviso_bugs', '1');
+                setTimeout(() => {
+                    Swal.fire({
+                        html: `
+                            <div class="flex flex-col items-center gap-3 py-2">
+                                <img src="../../images/minicoders/Robot_Sargento_2.jpg" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🤖</text></svg>'" class="w-24 h-24 rounded-full object-cover" style="box-shadow:0 0 0 4px #dbeafe">
+                                <p class="text-gray-700 text-base leading-relaxed text-center px-2">
+                                    <span class="font-bold text-indigo-600 text-lg block mb-1">¡Hola! 👋</span>
+                                    En este momento estamos encontrando a los terribles bugs. Es posible que ciertas cosas no se visualicen bien, no temas, <span class="font-semibold text-indigo-500">estamos mejorando día con día</span> 🚀
+                                </p>
+                                <p class="text-gray-400 text-sm italic">— Alan</p>
+                            </div>`,
+                        showConfirmButton: true,
+                        confirmButtonText: '¡Entendido!',
+                        confirmButtonColor: '#6366f1',
+                        customClass: { popup: 'rounded-2xl shadow-xl', confirmButton: 'rounded-xl px-6' },
+                        backdrop: 'rgba(99,102,241,0.15)',
+                        width: 380
+                    });
+                }, 800);
+            }
         }
 
         function renderContinueLearning(){
